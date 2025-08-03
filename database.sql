@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR UNIQUE,
     name VARCHAR NOT NULL,
+    password_hash VARCHAR,
     telegram_id VARCHAR UNIQUE,
     telegram_username VARCHAR,
     role VARCHAR CHECK (role IN ('participant', 'admin')) DEFAULT 'participant',
