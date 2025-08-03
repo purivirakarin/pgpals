@@ -4,9 +4,6 @@
       "maxDuration": 30
     }
   },
-  "env": {
-    "NEXTAUTH_URL": "@nextauth_url"
-  },
   "build": {
     "env": {
       "NEXT_TELEMETRY_DISABLED": "1"
