@@ -307,9 +307,9 @@ export default function TelegramDebugPage() {
       <div className="mt-8 card p-6 bg-blue-50">
         <h3 className="text-lg font-semibold text-blue-900 mb-4">Troubleshooting Steps</h3>
         <ol className="space-y-2 text-sm text-blue-800">
-          <li>1. <strong>Check bot status:</strong> Click "Check Status" to verify your bot token is working</li>
+          <li>1. <strong>Check bot status:</strong> Click &quot;Check Status&quot; to verify your bot token is working</li>
           <li>2. <strong>For local development:</strong> Use ngrok to create a public URL for your local server</li>
-          <li>3. <strong>Set webhook:</strong> Enter your public URL + /api/telegram/webhook and click "Set Webhook"</li>
+          <li>3. <strong>Set webhook:</strong> Enter your public URL + /api/telegram/webhook and click &quot;Set Webhook&quot;</li>
           <li>4. <strong>Test bot:</strong> Send a message to your bot and check if it appears in recent updates</li>
           <li>5. <strong>Debug responses:</strong> Check your console logs for webhook activity</li>
         </ol>

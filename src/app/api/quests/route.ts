@@ -6,15 +6,28 @@ import { Quest } from '@/types';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') || 'active';
+    const status = searchParams.get('status');
     const category = searchParams.get('category');
 
     let query = supabase
       .from('quests')
       .select('*')
-      .eq('status', status)
       .order('created_at', { ascending: false });
+
+    // If user is admin and no status specified, return all quests
+    // If user is admin and status specified, filter by status
+    // If user is not admin, only return active quests
+    if (session?.user?.role === 'admin') {
+      if (status) {
+        query = query.eq('status', status);
+      }
+      // No filter for admin means all quests
+    } else {
+      // Non-admin users only see active quests
+      query = query.eq('status', 'active');
+    }
 
     if (category) {
       query = query.eq('category', category);

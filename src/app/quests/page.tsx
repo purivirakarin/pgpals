@@ -209,7 +209,7 @@ export default function QuestsPage() {
                   <span className="text-sm font-medium text-gray-600">Active filters:</span>
                   {searchTerm && (
                     <span className="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 text-sm font-medium rounded-full">
-                      Search: "{searchTerm}"
+                      Search: &quot;{searchTerm}&quot;
                       <button
                         onClick={() => setSearchTerm('')}
                         className="ml-2 text-primary-500 hover:text-primary-700"
