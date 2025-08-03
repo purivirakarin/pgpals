@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Trophy, Medal, Award, User, TrendingUp } from 'lucide-react';
 import { LeaderboardEntry } from '@/types';
 
@@ -15,11 +15,7 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [limit]);
-
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/leaderboard?limit=${limit}`);
@@ -33,7 +29,11 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
     } finally {
       setLoading(false);
     }
-  };
+  }, [limit]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {

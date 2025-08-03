@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,7 +17,9 @@ import {
   Award,
   MessageCircle,
   Loader,
-  AlertCircle
+  AlertCircle,
+  X,
+  Save
 } from 'lucide-react';
 
 interface UserData {
@@ -32,6 +34,13 @@ interface UserData {
   submissions?: { count: number }[];
 }
 
+interface EditUserFormData {
+  name: string;
+  email: string;
+  role: 'participant' | 'admin';
+  total_points: number;
+}
+
 export default function AdminUsersPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -40,19 +49,17 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [editFormData, setEditFormData] = useState<EditUserFormData>({
+    name: '',
+    email: '',
+    role: 'participant',
+    total_points: 0
+  });
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session || session.user?.role !== 'admin') {
-      router.push('/');
-      return;
-    }
-
-    fetchUsers();
-  }, [session, status, router]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -69,7 +76,18 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [roleFilter, searchTerm]);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    if (!session || session.user?.role !== 'admin') {
+      router.push('/');
+      return;
+    }
+
+    fetchUsers();
+  }, [session, status, router, fetchUsers]);
 
   useEffect(() => {
     const delayedSearch = setTimeout(() => {
@@ -79,7 +97,7 @@ export default function AdminUsersPage() {
     }, 300);
 
     return () => clearTimeout(delayedSearch);
-  }, [searchTerm, roleFilter, session]);
+  }, [searchTerm, roleFilter, session, fetchUsers]);
 
   const updateUserRole = async (userId: string, newRole: 'participant' | 'admin') => {
     try {
@@ -100,8 +118,58 @@ export default function AdminUsersPage() {
     }
   };
 
-  const deleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  const openEditModal = (user: UserData) => {
+    setEditingUser(user);
+    setEditFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      total_points: user.total_points
+    });
+    setShowEditModal(true);
+    setError(null);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingUser(null);
+    setError(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user');
+      }
+
+      const updatedUser = await response.json();
+      setUsers(users.map(user => 
+        user.id === editingUser.id ? { ...user, ...updatedUser } : user
+      ));
+
+      closeEditModal();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const deleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete "${userName}"? This action cannot be undone.`)) {
       return;
     }
 
@@ -110,7 +178,10 @@ export default function AdminUsersPage() {
         method: 'DELETE'
       });
 
-      if (!response.ok) throw new Error('Failed to delete user');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user');
+      }
       
       setUsers(users.filter(user => user.id !== userId));
     } catch (err) {
@@ -151,14 +222,6 @@ export default function AdminUsersPage() {
             </div>
             <p className="text-lg text-gray-600">Manage user accounts and permissions</p>
           </div>
-          
-          <button
-            onClick={() => router.push('/admin/users/new')}
-            className="btn-primary flex items-center"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Add User
-          </button>
         </div>
       </div>
 
@@ -317,7 +380,7 @@ export default function AdminUsersPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => router.push(`/admin/users/${user.id}`)}
+                          onClick={() => openEditModal(user)}
                           className="text-primary-600 hover:text-primary-700"
                           title="Edit user"
                         >
@@ -325,7 +388,7 @@ export default function AdminUsersPage() {
                         </button>
                         {user.id !== session.user?.id && (
                           <button
-                            onClick={() => deleteUser(user.id)}
+                            onClick={() => deleteUser(user.id, user.name)}
                             className="text-red-600 hover:text-red-700"
                             title="Delete user"
                           >
@@ -378,6 +441,115 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Edit User: {editingUser.name}
+                </h2>
+                <button 
+                  onClick={closeEditModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role
+                  </label>
+                  <select
+                    value={editFormData.role}
+                    onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as 'participant' | 'admin' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    disabled={editingUser.id === session.user?.id}
+                  >
+                    <option value="participant">Participant</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  {editingUser.id === session.user?.id && (
+                    <p className="text-xs text-gray-500 mt-1">You cannot change your own role</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Total Points
+                  </label>
+                  <input
+                    type="number"
+                    value={editFormData.total_points}
+                    onChange={(e) => setEditFormData({ ...editFormData, total_points: parseInt(e.target.value) || 0 })}
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
+                    <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
+                    <span className="text-red-800 text-sm">{error}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={closeEditModal}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="btn-primary flex items-center"
+                  >
+                    {submitting ? (
+                      <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    {submitting ? 'Saving...' : 'Update User'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

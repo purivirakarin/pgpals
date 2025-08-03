@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useStats } from '@/contexts/StatsContext';
+import Image from 'next/image';
 import {
   FileText,
   Search,
@@ -54,18 +55,7 @@ export default function AdminSubmissionsPage() {
   const [reviewLoading, setReviewLoading] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session || session.user?.role !== 'admin') {
-      router.push('/');
-      return;
-    }
-
-    fetchSubmissions();
-  }, [session, status, router]);
-
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -81,7 +71,18 @@ export default function AdminSubmissionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    if (!session || session.user?.role !== 'admin') {
+      router.push('/');
+      return;
+    }
+
+    fetchSubmissions();
+  }, [session, status, router, fetchSubmissions]);
 
   useEffect(() => {
     const delayedFetch = setTimeout(() => {
@@ -91,7 +92,7 @@ export default function AdminSubmissionsPage() {
     }, 300);
 
     return () => clearTimeout(delayedFetch);
-  }, [statusFilter, session]);
+  }, [statusFilter, session, fetchSubmissions]);
 
   const reviewSubmission = async (submissionId: string, action: 'approve' | 'reject', feedback?: string) => {
     setReviewLoading(submissionId);
@@ -454,9 +455,11 @@ export default function AdminSubmissionsPage() {
               </button>
             </div>
             <div className="flex justify-center">
-              <img
+              <Image
                 src={`/api/telegram/file/${selectedImage}`}
                 alt="Submission"
+                width={800}
+                height={600}
                 className="max-w-full max-h-[70vh] object-contain"
                 onError={() => {
                   console.error('Failed to load image');

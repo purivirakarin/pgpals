@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -43,18 +43,7 @@ export default function ProfilePage() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (status === 'loading') return;
-    
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
-
-    fetchProfile();
-  }, [session, status, router]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       // Fetch profile data
       const response = await fetch(`/api/users/${session?.user?.id}`);
@@ -79,7 +68,18 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (status === 'loading') return;
+    
+    if (!session) {
+      router.push('/auth/signin');
+      return;
+    }
+
+    fetchProfile();
+  }, [session, status, router, fetchProfile]);
 
   const linkTelegramAccount = async () => {
     if (!telegramId) {
@@ -164,7 +164,7 @@ export default function ProfilePage() {
     return null;
   }
 
-  const completedQuests = profile.submissions?.filter(s => s.status === 'approved' || s.status === 'ai_approved').length || 0;
+const completedQuests = profile.submissions?.filter(s => s.status === 'approved' || s.status === 'ai_approved').length || 0;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -259,7 +259,7 @@ export default function ProfilePage() {
                     <li>1. Find our bot on Telegram</li>
                     <li>2. Send <code className="bg-blue-100 px-1 rounded">/start</code> to get your Telegram ID</li>
                     <li>3. Copy your Telegram ID and enter it below</li>
-                    <li>4. Click "Link Account" to connect</li>
+                    <li>4. Click &quot;Link Account&quot; to connect</li>
                   </ol>
                 </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { Trophy, Star, Target } from 'lucide-react';
 import { useStats } from '@/contexts/StatsContext';
@@ -19,7 +19,7 @@ export default function UserStatsDisplay() {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserStats = async () => {
+  const fetchUserStats = useCallback(async () => {
     if (!session?.user || session.user.role === 'admin') {
       setLoading(false);
       return;
@@ -40,13 +40,13 @@ export default function UserStatsDisplay() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user]);
 
   useEffect(() => {
     if (status !== 'loading') {
       fetchUserStats();
     }
-  }, [session, status, refreshTrigger]);
+  }, [session, status, refreshTrigger, fetchUserStats]);
 
   if (loading || !session?.user || session.user.role === 'admin' || !stats) {
     return null;
