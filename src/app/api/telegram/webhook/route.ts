@@ -5,10 +5,15 @@ import { User, Quest, Submission } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('Webhook received request');
     const update = await request.json();
+    console.log('Webhook update:', JSON.stringify(update, null, 2));
     
     if (update.message) {
+      console.log('Processing message:', update.message);
       await handleMessage(update.message);
+    } else {
+      console.log('No message in update');
     }
     
     return NextResponse.json({ ok: true });
@@ -18,86 +23,184 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleMessage(message: any) {
-  const chatId = message.chat.id;
-  const text = message.text;
-  const photo = message.photo;
-  const userId = message.from.id;
-  const username = message.from.username;
+export async function GET() {
+  return NextResponse.json({ 
+    message: 'Telegram webhook endpoint is active',
+    timestamp: new Date().toISOString()
+  });
+}
 
-  if (text?.startsWith('/start')) {
-    await handleStartCommand(chatId, userId, username);
-  } else if (text?.startsWith('/submit')) {
-    await handleSubmitCommand(chatId, text, photo, userId);
-  } else if (text?.startsWith('/status')) {
-    await handleStatusCommand(chatId, userId);
-  } else if (text?.startsWith('/quests')) {
-    await handleQuestsCommand(chatId);
-  } else if (text?.startsWith('/leaderboard')) {
-    await handleLeaderboardCommand(chatId);
-  } else if (photo && text) {
-    await handlePhotoSubmission(chatId, photo, text, userId, message.message_id);
-  } else {
-    await bot.sendMessage(chatId, 
-      'Available commands:\n' +
-      '/start - Link your account\n' +
-      '/submit [quest_id] - Submit with photo\n' +
-      '/status - Check your submissions\n' +
-      '/quests - List available quests\n' +
-      '/leaderboard - View top participants'
-    );
+async function handleMessage(message: any) {
+  try {
+    const chatId = message.chat.id;
+    const text = message.text;
+    const caption = message.caption;
+    const photo = message.photo;
+    const userId = message.from.id;
+    const username = message.from.username;
+
+    console.log(`Processing message from user ${userId} (${username}): "${text || caption}"`);
+
+    if (text?.startsWith('/start')) {
+      console.log('Handling /start command');
+      await handleStartCommand(chatId, userId, username);
+    } else if (text?.startsWith('/submit')) {
+      console.log('Handling /submit command (text only)');
+      await handleSubmitCommand(chatId, text, photo, userId);
+    } else if (photo && caption?.startsWith('/submit')) {
+      console.log('Handling photo submission with /submit caption');
+      await handlePhotoSubmission(chatId, photo, caption, userId, message.message_id);
+    } else if (text?.startsWith('/status')) {
+      console.log('Handling /status command');
+      await handleStatusCommand(chatId, userId);
+    } else if (text?.startsWith('/quests')) {
+      console.log('Handling /quests command');
+      const parts = text.split(' ');
+      const showAll = parts.length > 1 && parts[1] === 'all';
+      await handleQuestsCommand(chatId, userId, showAll);
+    } else if (text?.startsWith('/leaderboard')) {
+      console.log('Handling /leaderboard command');
+      await handleLeaderboardCommand(chatId);
+    } else if (photo && caption) {
+      console.log('Handling photo with caption (non-submit)');
+      await bot.sendMessage(chatId, 'To submit a quest, use caption format: `/submit [quest_id]`');
+    } else {
+      console.log('Sending help message');
+      await bot.sendMessage(chatId, 
+        'Available commands:\n' +
+        '/start - Link your account\n' +
+        '/submit [quest_id] - Submit with photo\n' +
+        '/status - Check your submissions\n' +
+        '/quests - List top 5 available quests\n' +
+        '/quests all - List more available quests\n' +
+        '/leaderboard - View top participants'
+      );
+    }
+  } catch (error) {
+    console.error('Error in handleMessage:', error);
+    // Send error message to user
+    try {
+      await bot.sendMessage(message.chat.id, 'Sorry, there was an error processing your message. Please try again.');
+    } catch (sendError) {
+      console.error('Failed to send error message:', sendError);
+    }
   }
 }
 
 async function handleStartCommand(chatId: number, telegramId: number, username?: string) {
   try {
-    const { data: existingUser } = await supabaseAdmin
+    console.log(`Start command for user ${telegramId} (${username})`);
+    
+    // Test bot sending capability first
+    await bot.sendMessage(chatId, 'Processing your /start command... 🤖');
+    
+    console.log('Checking for existing user in database...');
+    const { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('telegram_id', telegramId.toString())
       .single();
 
+    console.log('User query result:', { existingUser, userError });
+
+    if (userError && userError.code !== 'PGRST116') {
+      // PGRST116 is "not found" which is expected for new users
+      console.error('Database error:', userError);
+      throw userError;
+    }
+
     if (existingUser) {
+      console.log('Found existing user, sending welcome back message');
       await bot.sendMessage(chatId, 
         `Welcome back, ${existingUser.name}! 🎉\n` +
         `Your account is already linked.\n` +
-        `Points: ${existingUser.total_points}`
+        `Points: ${existingUser.total_points}\n\n` +
+        `Try /quests to see available challenges!`
       );
     } else {
+      console.log('New user, sending welcome message');
       await bot.sendMessage(chatId, 
         `Welcome to PGPals! 🎮\n\n` +
-        `To link your account, please visit: ${process.env.NEXTAUTH_URL}/auth/telegram?telegram_id=${telegramId}&username=${username}\n\n` +
-        `Or create a new account on our website and then use this bot.`
+        `To link your account:\n` +
+        `1. Visit: ${process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app'}\n` +
+        `2. Sign up or sign in\n` +
+        `3. Go to your Profile page\n` +
+        `4. Enter this Telegram ID: \`${telegramId}\`\n` +
+        `${username ? `5. Optional: Enter username: \`${username}\`\n` : ''}` +
+        `\n🔗 Once linked, you can:\n` +
+        `• Submit quest photos directly here\n` +
+        `• Check your status with /status\n` +
+        `• View quests with /quests\n\n` +
+        `Try /quests to see what's available!`, 
+        { parse_mode: 'Markdown' }
       );
     }
   } catch (error) {
     console.error('Start command error:', error);
-    await bot.sendMessage(chatId, 'Sorry, there was an error. Please try again later.');
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    await bot.sendMessage(chatId, 
+      `Sorry, there was an error: ${errorMsg}\n\n` +
+      `Please try again or contact support.`
+    );
   }
 }
 
-async function handleQuestsCommand(chatId: number) {
+async function handleQuestsCommand(chatId: number, userId: string, showAll: boolean = false) {
   try {
-    const { data: quests } = await supabaseAdmin
+    // First, get the user's completed/approved submissions
+    const { data: completedSubmissions } = await supabaseAdmin
+      .from('submissions')
+      .select('quest_id')
+      .eq('user_id', userId)
+      .eq('status', 'approved');
+
+    const completedQuestIds = completedSubmissions?.map(s => s.quest_id) || [];
+
+    // Get active quests that the user hasn't completed, ordered by points (highest first)
+    let query = supabaseAdmin
       .from('quests')
       .select('*')
       .eq('status', 'active')
-      .order('created_at', { ascending: false });
+      .order('points', { ascending: false });
+
+    // Limit to 5 unless showAll is true
+    if (!showAll) {
+      query = query.limit(5);
+    } else {
+      query = query.limit(15); // Cap at 15 even for "all" to prevent message limits
+    }
+
+    // Exclude completed quests if there are any
+    if (completedQuestIds.length > 0) {
+      query = query.not('id', 'in', `(${completedQuestIds.join(',')})`);
+    }
+
+    const { data: quests } = await query;
 
     if (!quests || quests.length === 0) {
-      await bot.sendMessage(chatId, 'No active quests available at the moment.');
+      await bot.sendMessage(chatId, '🎯 No new quests available! You might have completed all available quests.');
       return;
     }
 
-    let message = '🎯 **Available Quests:**\n\n';
-    quests.forEach((quest: Quest) => {
-      message += `**${quest.title}** (${quest.points} pts)\n`;
+    let message = showAll ? 
+      '🎯 **All Available Quests** (by Points):\n\n' : 
+      '🎯 **Top Available Quests** (Top 5 by Points):\n\n';
+    
+    quests.forEach((quest: Quest, index: number) => {
+      message += `${index + 1}. **${quest.title}** (${quest.points} pts)\n`;
       message += `ID: \`${quest.id}\`\n`;
       message += `Category: ${quest.category}\n`;
-      message += `${quest.description}\n\n`;
+      // Truncate description to prevent message being too long
+      const maxDescLength = showAll ? 80 : 100;
+      message += `${quest.description.length > maxDescLength ? quest.description.substring(0, maxDescLength) + '...' : quest.description}\n\n`;
     });
     
-    message += 'To submit: Send a photo with caption `/submit [quest_id]`';
+    message += '📸 To submit: Send a photo with caption `/submit [quest_id]`\n';
+    message += '💡 Only showing quests you haven\'t completed yet!\n';
+    
+    if (!showAll && quests.length === 5) {
+      message += '\n📋 Use `/quests all` to see more quests';
+    }
 
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
   } catch (error) {
@@ -132,14 +235,15 @@ async function handlePhotoSubmission(
   messageId: number
 ) {
   try {
-    const questIdMatch = caption.match(/\/submit\s+([a-f0-9-]+)/);
+    const questIdMatch = caption.match(/\/submit\s+([a-zA-Z0-9-]+)/);
     if (!questIdMatch) {
       await bot.sendMessage(chatId, 'Invalid format. Use: Send photo with caption `/submit [quest_id]`');
       return;
     }
 
     const questId = questIdMatch[1];
-
+    console.log('Processing quest submission for ID:', questId);
+    
     const { data: user } = await supabaseAdmin
       .from('users')
       .select('*')
@@ -147,11 +251,14 @@ async function handlePhotoSubmission(
       .single();
 
     if (!user) {
+      console.log('User not found for telegram_id:', telegramId);
       await bot.sendMessage(chatId, 
         'Please link your account first using /start command.'
       );
       return;
     }
+    
+    console.log('Found user:', user.id, user.name);
 
     const { data: quest } = await supabaseAdmin
       .from('quests')
@@ -161,13 +268,18 @@ async function handlePhotoSubmission(
       .single();
 
     if (!quest) {
+      console.log('Quest not found or inactive for ID:', questId);
       await bot.sendMessage(chatId, 'Quest not found or inactive.');
       return;
     }
+    
+    console.log('Found quest:', quest.id, quest.title);
 
     const largestPhoto = photo[photo.length - 1];
     const fileId = largestPhoto.file_id;
+    console.log('Photo file ID:', fileId);
 
+    console.log('Inserting submission into database...');
     const { data: submission, error } = await supabaseAdmin
       .from('submissions')
       .insert({
@@ -182,10 +294,12 @@ async function handlePhotoSubmission(
       .single();
 
     if (error) {
-      console.error('Submission error:', error);
+      console.error('Submission database error:', error);
       await bot.sendMessage(chatId, 'Error creating submission. Please try again.');
       return;
     }
+    
+    console.log('Submission created successfully:', submission);
 
     await bot.sendMessage(chatId, 
       `✅ Submission received!\n\n` +
