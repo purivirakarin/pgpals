@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { LeaderboardEntry } from '@/types';
 
 export async function GET(request: NextRequest) {
@@ -7,19 +7,18 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
 
-    const { data: users, error } = await supabase
+    const { data: users, error } = await supabaseAdmin
       .from('users')
       .select(`
         id,
         name,
         telegram_username,
         total_points,
-        submissions!inner(
+        submissions!submissions_user_id_fkey(
           status
         )
       `)
       .eq('role', 'participant')
-      .eq('submissions.status', 'approved')
       .order('total_points', { ascending: false })
       .limit(limit);
 

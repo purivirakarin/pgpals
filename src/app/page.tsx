@@ -24,7 +24,7 @@ export default function HomePage() {
         </div>
         
         <div className="card p-6 text-center">
-          <MessageCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
+          <MessageCircle className="w-12 h-12 text-primary-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Submit via Telegram</h3>
           <p className="text-gray-600 text-sm">
             Upload proof photos directly through our Telegram bot
@@ -32,7 +32,7 @@ export default function HomePage() {
         </div>
         
         <div className="card p-6 text-center">
-          <Trophy className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+          <Trophy className="w-12 h-12 text-amber-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Earn Points</h3>
           <p className="text-gray-600 text-sm">
             Get points for completed quests and build your score
@@ -40,7 +40,7 @@ export default function HomePage() {
         </div>
         
         <div className="card p-6 text-center">
-          <Users className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+          <Users className="w-12 h-12 text-primary-700 mx-auto mb-4" />
           <h3 className="text-lg font-semibold mb-2">Compete & Win</h3>
           <p className="text-gray-600 text-sm">
             Climb the leaderboard and compete with other participants

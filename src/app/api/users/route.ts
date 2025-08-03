@@ -1,0 +1,88 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase';
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const role = searchParams.get('role');
+    const search = searchParams.get('search');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
+
+    let query = supabaseAdmin
+      .from('users')
+      .select(`
+        *,
+        submissions:submissions!submissions_user_id_fkey(count)
+      `)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (role) {
+      query = query.eq('role', role);
+    }
+
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    const { data: users, error } = await query;
+
+    if (error) {
+      console.error('Users fetch error:', error);
+      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    }
+
+    return NextResponse.json(users || []);
+  } catch (error) {
+    console.error('Users API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user || session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { email, name, role, telegram_id, telegram_username } = body;
+
+    if (!email || !name) {
+      return NextResponse.json({ error: 'Email and name are required' }, { status: 400 });
+    }
+
+    const { data: user, error } = await supabaseAdmin
+      .from('users')
+      .insert({
+        email,
+        name,
+        role: role || 'participant',
+        telegram_id,
+        telegram_username
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('User creation error:', error);
+      return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
+    }
+
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    console.error('User creation API error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
