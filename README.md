@@ -1,4 +1,4 @@
-# PGPals - Quest Gamification Platform
+# PGPals - Prince George's Park Residence Event
 
 A modern quest-based gamification web application where participants complete challenges, submit proof via Telegram, and compete on leaderboards.
 

@@ -8,7 +8,7 @@ import { StatsProvider } from '@/contexts/StatsContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'PGPals - Quest Gamification Platform',
+  title: 'PGPals - Prince George\'s Park Residence Event',
   description: 'Complete quests, earn points, and climb the leaderboard!',
 };
 
