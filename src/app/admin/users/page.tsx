@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import Dropdown from '@/components/Dropdown';
 
 interface UserData {
   id: number;
@@ -55,6 +56,8 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState<{userId: number, newRole: string} | null>(null);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [editFormData, setEditFormData] = useState<EditUserFormData>({
     name: '',
@@ -98,6 +101,38 @@ export default function AdminUsersPage() {
 
     fetchUsers();
   }, [session, status, router, fetchUsers]);
+
+  const handleRoleChange = (userId: number, newRole: 'participant' | 'admin') => {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    setPendingUpdate({ userId, newRole });
+    setShowConfirmModal(true);
+  };
+
+  const confirmRoleUpdate = async () => {
+    if (!pendingUpdate) return;
+    
+    try {
+      const response = await fetch(`/api/users/${pendingUpdate.userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: pendingUpdate.newRole })
+      });
+
+      if (!response.ok) throw new Error('Failed to update user role');
+      
+      const updatedUser = await response.json();
+      setUsers(users.map(user => 
+        user.id === pendingUpdate.userId ? { ...user, role: updatedUser.role } : user
+      ));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user');
+    } finally {
+      setShowConfirmModal(false);
+      setPendingUpdate(null);
+    }
+  };
 
   const updateUserRole = async (userId: number, newRole: 'participant' | 'admin') => {
     try {
@@ -325,19 +360,17 @@ export default function AdminUsersPage() {
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Role
             </label>
-            <div className="relative">
-              <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <select
-                id="role"
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">All Roles</option>
-                <option value="participant">Participants</option>
-                <option value="admin">Admins</option>
-              </select>
-            </div>
+            <Dropdown
+              options={[
+                { value: "", label: "All Roles" },
+                { value: "participant", label: "Participants" },
+                { value: "admin", label: "Admins" }
+              ]}
+              value={roleFilter}
+              onChange={setRoleFilter}
+              placeholder="All Roles"
+              icon={<Filter className="w-5 h-5" />}
+            />
           </div>
         </div>
       </div>
@@ -407,19 +440,19 @@ export default function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <select
+                        <Dropdown
+                          options={[
+                            { value: "participant", label: "Participant" },
+                            { value: "admin", label: "Admin" }
+                          ]}
                           value={user.role}
-                          onChange={(e) => updateUserRole(user.id, e.target.value as 'participant' | 'admin')}
-                          className={`text-sm px-2 py-1 rounded-full font-medium border-0 ${
+                          onChange={(newRole) => handleRoleChange(user.id, newRole as 'participant' | 'admin')}
+                          className={`text-sm font-medium ${
                             user.role === 'admin' 
-                              ? 'bg-amber-100 text-amber-800' 
-                              : 'bg-green-100 text-green-800'
+                              ? 'text-amber-800' 
+                              : 'text-green-800'
                           }`}
-                          disabled={user.id === parseInt(session.user?.id || '0')}
-                        >
-                          <option value="participant">Participant</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        />
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-900">
@@ -924,6 +957,56 @@ export default function AdminUsersPage() {
                     <Link className="w-4 h-4 mr-2" />
                   )}
                   {submitting ? 'Linking...' : 'Link Users'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Role Change Confirmation Modal */}
+      {showConfirmModal && pendingUpdate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center mb-4">
+                <AlertCircle className="w-6 h-6 text-yellow-500 mr-3" />
+                <h3 className="text-lg font-semibold text-gray-900">Confirm Role Change</h3>
+              </div>
+              
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to change this user's role to{' '}
+                <span className="font-semibold">
+                  {pendingUpdate.newRole === 'admin' ? 'Admin' : 'Participant'}
+                </span>
+                ?
+              </p>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div className="flex">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+                  <div className="text-sm text-yellow-700">
+                    <strong>Important:</strong> This action will immediately change the user's permissions and access level.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    setPendingUpdate(null);
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRoleUpdate}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium"
+                >
+                  Confirm Change
                 </button>
               </div>
             </div>

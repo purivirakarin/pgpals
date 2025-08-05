@@ -73,43 +73,59 @@ export default function QuestCard({
     const statusConfig = {
       'pending_ai': {
         style: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
-        text: 'Pending AI Review',
-        icon: '⏳'
+        text: 'Pending Review',
+        icon: '⏳',
+        tooltip: undefined
       },
       'ai_approved': {
         style: 'bg-green-100 text-green-700 border border-green-200',
         text: 'Completed',
-        icon: '✅'
+        icon: '✅',
+        tooltip: undefined
       },
       'ai_rejected': {
         style: 'bg-red-100 text-red-700 border border-red-200',
-        text: 'AI Rejected',
-        icon: '❌'
+        text: 'Rejected',
+        icon: '❌',
+        tooltip: 'You can resubmit this quest. Make sure to follow the requirements!'
       },
       'manual_review': {
         style: 'bg-blue-100 text-blue-700 border border-blue-200',
-        text: 'Under Review',
-        icon: '👁️'
+        text: 'Pending Review',
+        icon: '👁️',
+        tooltip: undefined
       },
       'approved': {
         style: 'bg-green-100 text-green-700 border border-green-200',
         text: 'Completed',
-        icon: '✅'
+        icon: '✅',
+        tooltip: undefined
       },
       'rejected': {
         style: 'bg-red-100 text-red-700 border border-red-200',
         text: 'Rejected',
-        icon: '❌'
+        icon: '❌',
+        tooltip: 'You can resubmit this quest. Make sure to follow the requirements!'
       }
     };
 
     const config = statusConfig[userSubmission.status as keyof typeof statusConfig];
     if (!config) return null;
 
+    const isRejected = userSubmission.status === 'rejected' || userSubmission.status === 'ai_rejected';
+
     return (
-      <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${config.style}`}>
-        <span className="mr-1">{config.icon}</span>
-        {config.text}
+      <div className="relative group">
+        <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${config.style} ${isRejected ? 'cursor-help' : ''}`}>
+          <span className="mr-1">{config.icon}</span>
+          {config.text}
+        </div>
+        {isRejected && config.tooltip && (
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+            {config.tooltip}
+            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          </div>
+        )}
       </div>
     );
   };
@@ -172,9 +188,22 @@ export default function QuestCard({
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div className="flex items-center text-xs text-gray-500">
-          <Calendar className="w-4 h-4 mr-1" />
-          {new Date(quest.created_at).toLocaleDateString()}
+        <div className="flex flex-col space-y-1">
+          <div className="flex items-center text-xs text-gray-500">
+            <Calendar className="w-4 h-4 mr-1" />
+            Created: {new Date(quest.created_at).toLocaleDateString()}
+          </div>
+          {quest.expires_at && (
+            <div className={`flex items-center text-xs font-medium ${
+              new Date(quest.expires_at) < new Date() 
+                ? 'text-red-600' 
+                : new Date(quest.expires_at) < new Date(Date.now() + 24 * 60 * 60 * 1000)
+                ? 'text-yellow-600'
+                : 'text-blue-600'
+            }`}>
+              🕐 Expires: {new Date(quest.expires_at).toLocaleDateString()}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
