@@ -170,16 +170,49 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
 
 async function handleQuestsCommand(chatId: number, userId: string, showAll: boolean = false) {
   try {
-    // First, get the user's completed/approved submissions
-    const { data: completedSubmissions } = await supabaseAdmin
+    // Get user information including partner details
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .eq('telegram_id', userId.toString())
+      .single();
+
+    if (!user) {
+      await bot.sendMessage(chatId, 
+        '🚫 Account not linked!\n\n' +
+        '1. Create account at: ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + '\n' +
+        '2. Use /start to get your Telegram ID\n' +
+        '3. Enter that ID in your Profile page\n\n' +
+        'You must link your account before viewing quests!'
+      );
+      return;
+    }
+
+    // Get user's completed/approved submissions
+    const { data: userCompletedSubmissions } = await supabaseAdmin
       .from('submissions')
       .select('quest_id')
-      .eq('user_id', userId)
-      .eq('status', 'approved');
+      .eq('user_id', user.id)
+      .in('status', ['approved', 'ai_approved']);
 
-    const completedQuestIds = completedSubmissions?.map(s => s.quest_id) || [];
+    let excludedQuestIds = userCompletedSubmissions?.map(s => s.quest_id) || [];
 
-    // Get active quests that the user hasn't completed, ordered by points (highest first)
+    // If user has a partner, also exclude quests completed or pending by partner
+    if (user.partner_id) {
+      const { data: partnerSubmissions } = await supabaseAdmin
+        .from('submissions')
+        .select('quest_id')
+        .eq('user_id', user.partner_id)
+        .in('status', ['approved', 'ai_approved', 'pending_ai', 'manual_review']);
+
+      const partnerQuestIds = partnerSubmissions?.map(s => s.quest_id) || [];
+      excludedQuestIds = [...excludedQuestIds, ...partnerQuestIds];
+      
+      // Remove duplicates
+      excludedQuestIds = Array.from(new Set(excludedQuestIds));
+    }
+
+    // Get active quests that haven't been completed/submitted by user or partner
     let query = supabaseAdmin
       .from('quests')
       .select('*')
@@ -193,15 +226,16 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
       query = query.limit(15); // Cap at 15 even for "all" to prevent message limits
     }
 
-    // Exclude completed quests if there are any
-    if (completedQuestIds.length > 0) {
-      query = query.not('id', 'in', `(${completedQuestIds.join(',')})`);
+    // Exclude completed/pending quests if there are any
+    if (excludedQuestIds.length > 0) {
+      query = query.not('id', 'in', `(${excludedQuestIds.join(',')})`);
     }
 
     const { data: quests } = await query;
 
     if (!quests || quests.length === 0) {
-      await bot.sendMessage(chatId, '🎯 No new quests available! You might have completed all available quests.');
+      const partnerNote = user.partner_id ? ' (including quests your partner has submitted/completed)' : '';
+      await bot.sendMessage(chatId, `🎯 No new quests available! You might have completed all available quests${partnerNote}.`);
       return;
     }
 
@@ -219,7 +253,13 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
     });
     
     message += '📸 To submit: Send a photo with caption `/submit [quest_id]`\n';
-    message += '💡 Only showing quests you haven\'t completed yet!\n';
+    
+    if (user.partner_id) {
+      message += '💡 Excluding quests you or your partner have already submitted/completed!\n';
+    } else {
+      message += '💡 Only showing quests you haven\'t completed yet!\n';
+      message += '👥 Link a partner in your profile to work as a team!\n';
+    }
     
     if (!showAll && quests.length === 5) {
       message += '\n📋 Use `/quests all` to see more quests';
@@ -311,7 +351,44 @@ async function handlePhotoSubmission(
     
     console.log('Found quest:', quest.id, quest.title);
 
-    // Check for existing submissions
+    // Check for partner quest submission conflicts
+    if (user.partner_id) {
+      console.log('User has partner, checking for partner quest conflicts');
+      
+      // Check if partner has already submitted or completed this quest
+      const { data: partnerSubmissions } = await supabaseAdmin
+        .from('submissions')
+        .select('*')
+        .eq('user_id', user.partner_id)
+        .eq('quest_id', questId)
+        .in('status', ['approved', 'ai_approved', 'pending_ai', 'manual_review']);
+
+      if (partnerSubmissions && partnerSubmissions.length > 0) {
+        const partnerSubmission = partnerSubmissions[0];
+        
+        if (partnerSubmission.status === 'approved' || partnerSubmission.status === 'ai_approved') {
+          await bot.sendMessage(chatId, 
+            `🚫 Quest already completed by your partner!\n\n` +
+            `Quest: ${quest.title}\n` +
+            `Your partner has already completed this quest. Please choose a different quest to work on.\n\n` +
+            `Use /quests to see available quests.`
+          );
+          return;
+        } else if (partnerSubmission.status === 'pending_ai' || partnerSubmission.status === 'manual_review') {
+          await bot.sendMessage(chatId, 
+            `⏳ Your partner has already submitted this quest!\n\n` +
+            `Quest: ${quest.title}\n` +
+            `Your partner's submission is currently being reviewed. Please choose a different quest to work on.\n\n` +
+            `Use /quests to see available quests.`
+          );
+          return;
+        }
+      }
+    } else {
+      console.log('User has no partner assigned, can submit any quest');
+    }
+
+    // Check for existing submissions from this user
     const { data: existingSubmissions } = await supabaseAdmin
       .from('submissions')
       .select('*')

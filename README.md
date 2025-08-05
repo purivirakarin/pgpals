@@ -9,6 +9,7 @@ A modern quest-based gamification web application where participants complete ch
 - **Smart Sorting**: Sort quests by title, points, creation date, or expiration date
 - **Quest Details**: View comprehensive quest information including requirements and expiration dates
 - **Visual Status Tracking**: Clear status badges (Pending Review, Completed, Rejected)
+- **Team Partnership System**: Link with a partner to collaborate on quest completion
 - **Telegram Integration**: Submit proof photos directly via Telegram bot
 - **Real-time Leaderboard**: Live rankings with points and completion streaks
 - **Profile Management**: Track personal progress and submission history
@@ -122,6 +123,35 @@ curl -X POST https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook \
    - Personal profile showing total points and completion streak
    - Submission history with timestamps and status updates
    - Real-time leaderboard positioning
+
+#### 👥 Team Partnership System
+
+PGPals supports a team-based quest system where participants can link with a partner to collaborate on quests:
+
+1. **Partnership Setup**:
+   - Link with a partner through your profile page on the website
+   - Both partners share combined points and quest completions
+   - Partnership is mutual - both users see each other as partners
+
+2. **Quest Collaboration Rules**:
+   - **With Partner**: Only one person per team can submit each quest
+   - **Without Partner**: Can submit any available quest independently
+   - Partners cannot both submit the same quest (prevents duplicate submissions)
+
+3. **Smart Quest Filtering**:
+   - `/quests` command excludes quests already submitted/completed by your partner
+   - Ensures efficient division of labor between team members
+   - Clear messaging about which quests are available vs. partner-claimed
+
+4. **Submission Protection**:
+   - Automatic validation prevents conflicting submissions
+   - If partner has already submitted a quest, you'll be notified to choose another
+   - Both pending and approved partner submissions are protected
+
+5. **Flexible Team Management**:
+   - Can work independently if no partner is assigned
+   - Partner linking is optional - solo play is fully supported
+   - Team status clearly indicated in all bot interactions
 
 ### 🔧 Administrator Experience
 
@@ -540,6 +570,13 @@ curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"
 - **Data Retention**: Configurable submission retention policies
 
 ## 🎉 Recent Enhancements (2025)
+
+### Team Partnership System (Latest)
+- ✅ **Partner Collaboration**: Link with a teammate to work together on quests
+- ✅ **Smart Quest Protection**: Prevents duplicate submissions from team members
+- ✅ **Intelligent Filtering**: `/quests` command excludes partner-completed quests
+- ✅ **Flexible Team Management**: Optional partnership system - solo play fully supported
+- ✅ **Conflict Prevention**: Real-time validation prevents quest submission conflicts
 
 ### Quest Management Improvements
 - ✅ **Expiration Date System**: Full lifecycle management for time-limited quests
