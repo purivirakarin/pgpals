@@ -115,21 +115,27 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
     }
 
     if (existingUser) {
-      console.log('Found existing user, getting points from view');
+      console.log('Found existing user, calculating points and completed quests');
       
-      // Get current points from the view
-      const { data: userStats } = await supabaseAdmin
-        .from('user_points_view')
-        .select('total_points')
+      // Calculate total points from approved submissions
+      const { data: submissions } = await supabaseAdmin
+        .from('submissions')
+        .select(`
+          quest:quests(points)
+        `)
         .eq('user_id', existingUser.id)
-        .single();
-        
-      const currentPoints = userStats?.total_points || 0;
+        .in('status', ['approved', 'ai_approved']);
+      
+      const totalPoints = submissions?.reduce((sum, sub: any) => sum + (sub.quest?.points || 0), 0) || 0;
+      
+      // Count completed quests (approved submissions)
+      const completedQuests = submissions?.length || 0;
       
       await bot.sendMessage(chatId, 
         `Welcome back, ${existingUser.name}! 🎉\n` +
         `Your account is already linked.\n` +
-        `Points: ${currentPoints}\n\n` +
+        `Total Points: ${totalPoints}\n` +
+        `Team Quests Completed: ${completedQuests}\n\n` +
         `Try /quests to see available challenges!`
       );
     } else {
@@ -395,10 +401,10 @@ async function handlePhotoSubmission(
 
 async function handleStatusCommand(chatId: number, telegramId: number) {
   try {
-    // Get user and their current points
+    // Get user information
     const { data: user } = await supabaseAdmin
       .from('users')
-      .select('id, name, streak_count')
+      .select('id, name')
       .eq('telegram_id', telegramId.toString())
       .single();
 
@@ -413,15 +419,19 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       return;
     }
 
-    // Get current points from view
-    const { data: userStats } = await supabaseAdmin
-      .from('user_points_view')
-      .select('total_points')
+    // Calculate total points from approved submissions
+    const { data: approvedSubmissions } = await supabaseAdmin
+      .from('submissions')
+      .select(`
+        quest:quests(points)
+      `)
       .eq('user_id', user.id)
-      .single();
+      .in('status', ['approved', 'ai_approved']);
 
-    const currentPoints = userStats?.total_points || 0;
+    const totalPoints = approvedSubmissions?.reduce((sum: number, sub: any) => sum + (sub.quest?.points || 0), 0) || 0;
+    const completedQuests = approvedSubmissions?.length || 0;
 
+    // Get recent submissions for status display
     const { data: submissions } = await supabaseAdmin
       .from('submissions')
       .select(`
@@ -433,8 +443,8 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       .limit(10);
 
     let message = `📊 **Your Status:**\n\n`;
-    message += `Total Points: ${currentPoints}\n`;
-    message += `Streak: ${user.streak_count}\n\n`;
+    message += `Total Points: ${totalPoints}\n`;
+    message += `Team Quests Completed: ${completedQuests}\n\n`;
 
     if (submissions && submissions.length > 0) {
       message += `**Recent Submissions:**\n`;
@@ -455,15 +465,45 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
 
 async function handleLeaderboardCommand(chatId: number) {
   try {
-    const { data: topUsers } = await supabaseAdmin
-      .from('user_points_view')
-      .select('name, telegram_username, total_points')
-      .eq('role', 'participant')
-      .order('total_points', { ascending: false })
-      .limit(20);
+    // Get all participants and calculate their points
+    const { data: users } = await supabaseAdmin
+      .from('users')
+      .select('id, name, telegram_username')
+      .eq('role', 'participant');
 
-    if (!topUsers || topUsers.length === 0) {
+    if (!users || users.length === 0) {
       await bot.sendMessage(chatId, 'No participants yet!');
+      return;
+    }
+
+    // Calculate points for each user
+    const userPointsPromises = users.map(async (user) => {
+      const { data: submissions } = await supabaseAdmin
+        .from('submissions')
+        .select(`
+          quest:quests(points)
+        `)
+        .eq('user_id', user.id)
+        .in('status', ['approved', 'ai_approved']);
+
+      const totalPoints = submissions?.reduce((sum: number, sub: any) => sum + (sub.quest?.points || 0), 0) || 0;
+      
+      return {
+        ...user,
+        total_points: totalPoints
+      };
+    });
+
+    const usersWithPoints = await Promise.all(userPointsPromises);
+    
+    // Sort by points descending and take top 20
+    const topUsers = usersWithPoints
+      .sort((a, b) => b.total_points - a.total_points)
+      .slice(0, 20)
+      .filter(user => user.total_points > 0); // Only show users with points
+
+    if (topUsers.length === 0) {
+      await bot.sendMessage(chatId, 'No participants with points yet!');
       return;
     }
 
