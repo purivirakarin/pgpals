@@ -466,7 +466,7 @@ export default function QuestsPage() {
                   <div className="space-y-3">
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">Find our Telegram bot and start a conversation</p>
+                      <p className="text-blue-100">Start a conversation with @pgpals_quest_bot on telegram</p>
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
@@ -502,7 +502,7 @@ export default function QuestsPage() {
                     </div>
                     <div className="flex items-start space-x-3">
                       <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">Get instant AI validation and feedback! ✨</p>
+                      <p className="text-blue-100">Get validation within 1-2 days! ✨</p>
                     </div>
                   </div>
                 </div>

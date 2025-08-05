@@ -37,7 +37,7 @@ interface UserData {
   partner_name?: string;
   partner_telegram?: string;
   created_at: string;
-  submissions?: { count: number }[];
+  submission_count?: number;
 }
 
 interface EditUserFormData {
@@ -365,131 +365,240 @@ export default function AdminUsersPage() {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Stats
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Telegram
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Partner
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Joined
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Stats
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Telegram
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Partner
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Joined
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedUsers.map((user) => (
+                    <tr key={user.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <User className="w-8 h-8 text-gray-400 mr-3" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                            <div className="text-sm text-gray-500">{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <select
+                          value={user.role}
+                          onChange={(e) => updateUserRole(user.id, e.target.value as 'participant' | 'admin')}
+                          className={`text-sm px-2 py-1 rounded-full font-medium border-0 ${
+                            user.role === 'admin' 
+                              ? 'bg-amber-100 text-amber-800' 
+                              : 'bg-green-100 text-green-800'
+                          }`}
+                          disabled={user.id === parseInt(session.user?.id || '0')}
+                        >
+                          <option value="participant">Participant</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900">
+                          <div className="flex items-center mb-1">
+                            <Award className="w-4 h-4 text-yellow-500 mr-1" />
+                            {user.total_points} points
+                          </div>
+                          <div className="flex items-center text-gray-500">
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            {user.submission_count || 0} submissions
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.telegram_id ? (
+                          <div className="text-sm">
+                            <div className="text-green-600 font-medium">✓ Linked</div>
+                            {user.telegram_username && (
+                              <div className="text-gray-500">@{user.telegram_username}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">Not linked</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.partner_id ? (
+                          <div className="text-sm">
+                            <div className="text-blue-600 font-medium">🤝 {user.partner_name}</div>
+                            {user.partner_telegram && (
+                              <div className="text-gray-500">@{user.partner_telegram}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">No partner</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => openEditModal(user)}
+                            className="text-primary-600 hover:text-primary-700"
+                            title="Edit user"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => openLinkModal(user)}
+                            className="text-blue-600 hover:text-blue-700"
+                            title="Create partnership with another user"
+                          >
+                            <Link className="w-4 h-4" />
+                          </button>
+                          {user.id !== parseInt(session.user?.id || '0') && (
+                            <button
+                              onClick={() => deleteUser(user.id, user.name)}
+                              className="text-red-600 hover:text-red-700"
+                              title="Delete user"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4 p-4">
+              {paginatedUsers.map((user) => (
+                <div key={user.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                  {/* User Header */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center">
+                      <User className="w-8 h-8 text-gray-400 mr-3" />
+                      <div>
+                        <div className="font-medium text-gray-900">{user.name}</div>
+                        <div className="text-sm text-gray-500">{user.email}</div>
+                      </div>
+                    </div>
+                    <select
+                      value={user.role}
+                      onChange={(e) => updateUserRole(user.id, e.target.value as 'participant' | 'admin')}
+                      className={`text-xs px-2 py-1 rounded-full font-medium border-0 ${
+                        user.role === 'admin' 
+                          ? 'bg-amber-100 text-amber-800' 
+                          : 'bg-green-100 text-green-800'
+                      }`}
+                      disabled={user.id === parseInt(session.user?.id || '0')}
+                    >
+                      <option value="participant">Participant</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-2 gap-4 mb-3">
+                    <div>
+                      <div className="flex items-center mb-1">
+                        <Award className="w-4 h-4 text-yellow-500 mr-1" />
+                        <span className="text-sm font-medium">{user.total_points} points</span>
+                      </div>
                       <div className="flex items-center">
-                        <User className="w-8 h-8 text-gray-400 mr-3" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
-                        </div>
+                        <MessageCircle className="w-4 h-4 text-gray-400 mr-1" />
+                        <span className="text-sm text-gray-500">{user.submission_count || 0} submissions</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        value={user.role}
-                        onChange={(e) => updateUserRole(user.id, e.target.value as 'participant' | 'admin')}
-                        className={`text-sm px-2 py-1 rounded-full font-medium border-0 ${
-                          user.role === 'admin' 
-                            ? 'bg-amber-100 text-amber-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}
-                        disabled={user.id === parseInt(session.user?.id || '0')}
-                      >
-                        <option value="participant">Participant</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">
-                        <div className="flex items-center mb-1">
-                          <Award className="w-4 h-4 text-yellow-500 mr-1" />
-                          {user.total_points} points
-                        </div>
-                        <div className="flex items-center text-gray-500">
-                          <MessageCircle className="w-4 h-4 mr-1" />
-                          {user.submissions?.[0]?.count || 0} submissions
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500 mb-1">Joined</div>
+                      <div className="text-sm text-gray-900">{new Date(user.created_at).toLocaleDateString()}</div>
+                    </div>
+                  </div>
+
+                  {/* Telegram & Partner */}
+                  <div className="grid grid-cols-1 gap-2 mb-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-500">Telegram:</span>
                       {user.telegram_id ? (
-                        <div className="text-sm">
-                          <div className="text-green-600 font-medium">✓ Linked</div>
+                        <div className="text-right">
+                          <div className="text-green-600 text-sm font-medium">✓ Linked</div>
                           {user.telegram_username && (
-                            <div className="text-gray-500">@{user.telegram_username}</div>
+                            <div className="text-gray-500 text-xs">@{user.telegram_username}</div>
                           )}
                         </div>
                       ) : (
                         <span className="text-sm text-gray-500">Not linked</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4">
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-500">Partner:</span>
                       {user.partner_id ? (
-                        <div className="text-sm">
-                          <div className="text-blue-600 font-medium">🤝 {user.partner_name}</div>
+                        <div className="text-right">
+                          <div className="text-blue-600 text-sm font-medium">🤝 {user.partner_name}</div>
                           {user.partner_telegram && (
-                            <div className="text-gray-500">@{user.partner_telegram}</div>
+                            <div className="text-gray-500 text-xs">@{user.partner_telegram}</div>
                           )}
                         </div>
                       ) : (
                         <span className="text-sm text-gray-500">No partner</span>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => openEditModal(user)}
-                          className="text-primary-600 hover:text-primary-700"
-                          title="Edit user"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => openLinkModal(user)}
-                          className="text-blue-600 hover:text-blue-700"
-                          title="Create partnership with another user"
-                        >
-                          <Link className="w-4 h-4" />
-                        </button>
-                        {user.id !== parseInt(session.user?.id || '0') && (
-                          <button
-                            onClick={() => deleteUser(user.id, user.name)}
-                            className="text-red-600 hover:text-red-700"
-                            title="Delete user"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-center space-x-4 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => openEditModal(user)}
+                      className="flex items-center px-3 py-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      <span className="text-sm">Edit</span>
+                    </button>
+                    <button
+                      onClick={() => openLinkModal(user)}
+                      className="flex items-center px-3 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Link className="w-4 h-4 mr-1" />
+                      <span className="text-sm">Link</span>
+                    </button>
+                    {user.id !== parseInt(session.user?.id || '0') && (
+                      <button
+                        onClick={() => deleteUser(user.id, user.name)}
+                        className="flex items-center px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        <span className="text-sm">Delete</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Pagination */}

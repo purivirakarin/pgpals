@@ -54,14 +54,14 @@ export async function GET(request: NextRequest) {
 
     // Get submission counts for each user
     const usersWithSubmissions = await Promise.all((users || []).map(async (user) => {
-      const { data: submissionCount } = await supabaseAdmin
+      const { count: submissionCount } = await supabaseAdmin
         .from('submissions')
-        .select('id', { count: 'exact' })
+        .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
       return {
         ...user,
-        submissions: [{ count: submissionCount || 0 }]
+        submission_count: submissionCount || 0
       };
     }));
 
