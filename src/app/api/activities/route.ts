@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
     // Filter by user if specified (for user-specific activity feeds)
     if (userId) {
-      if (session.user.role !== 'admin' && session.user.id !== userId) {
+      if (session.user.role !== 'admin' && parseInt(session.user.id) !== parseInt(userId)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
       // Filter by user_id OR created_by (fallback for different activity types)

@@ -14,6 +14,7 @@ export default function QuestsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState(''); // New status filter
   const [sortBy, setSortBy] = useState<'points' | 'id' | 'title' | 'created_at'>('points');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [error, setError] = useState<string | null>(null);
@@ -62,11 +63,29 @@ export default function QuestsPage() {
                            quest.description?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !selectedCategory || quest.category === selectedCategory;
       
-      // Exclude quests that the user has already submitted (regardless of status)
-      const userSubmission = getUserSubmission(quest.id);
-      const notSubmitted = !userSubmission;
+      // Filter by submission status if specified
+      if (selectedStatus && session) {
+        const userSubmission = getUserSubmission(quest.id);
+        
+        switch (selectedStatus) {
+          case 'available':
+            return matchesSearch && matchesCategory && !userSubmission;
+          case 'completed':
+            return matchesSearch && matchesCategory && userSubmission && 
+                   (userSubmission.status === 'approved' || userSubmission.status === 'ai_approved');
+          case 'pending':
+            return matchesSearch && matchesCategory && userSubmission && 
+                   (userSubmission.status === 'pending_ai' || userSubmission.status === 'manual_review');
+          case 'rejected':
+            return matchesSearch && matchesCategory && userSubmission && 
+                   (userSubmission.status === 'rejected' || userSubmission.status === 'ai_rejected');
+          default:
+            return matchesSearch && matchesCategory;
+        }
+      }
       
-      return matchesSearch && matchesCategory && (notSubmitted || !session);
+      // If no status filter or no session, show all quests that match search and category
+      return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       let comparison = 0;
@@ -132,7 +151,7 @@ export default function QuestsPage() {
             <Target className="w-8 h-8 text-primary-600" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-            Available Quests
+            Quests
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Complete quests to earn points and climb the leaderboard! Submit your proof via Telegram.
@@ -200,7 +219,7 @@ export default function QuestsPage() {
               </div>
 
               {/* Category Dropdown */}
-              <div className="lg:w-80">
+              <div className="lg:w-64">
                 <label htmlFor="category" className="block text-sm font-semibold text-gray-700 mb-3">
                   Category
                 </label>
@@ -234,6 +253,43 @@ export default function QuestsPage() {
                   )}
                 </div>
               </div>
+
+              {/* Status Filter - Only show for logged in users */}
+              {session && (
+                <div className="lg:w-64">
+                  <label htmlFor="status" className="block text-sm font-semibold text-gray-700 mb-3">
+                    Status
+                  </label>
+                  <div className="relative group">
+                    <Filter className="w-5 h-5 text-gray-400 group-focus-within:text-primary-500 absolute left-4 top-1/2 transform -translate-y-1/2 transition-colors" />
+                    <select
+                      id="status"
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value)}
+                      className="w-full pl-12 pr-10 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 appearance-none bg-white cursor-pointer"
+                    >
+                      <option value="">All Quests</option>
+                      <option value="available">Available</option>
+                      <option value="completed">Completed</option>
+                      <option value="pending">Pending Review</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                    {selectedStatus && (
+                      <button
+                        onClick={() => setSelectedStatus('')}
+                        className="absolute right-12 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Sort Controls */}
               <div className="lg:w-80">
@@ -272,7 +328,7 @@ export default function QuestsPage() {
             </div>
 
             {/* Active Filters Display */}
-            {(searchTerm || selectedCategory) && (
+            {(searchTerm || selectedCategory || selectedStatus) && (
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-sm font-medium text-gray-600">Active filters:</span>
@@ -298,10 +354,22 @@ export default function QuestsPage() {
                       </button>
                     </span>
                   )}
+                  {selectedStatus && (
+                    <span className="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 text-sm font-medium rounded-full">
+                      Status: {selectedStatus.charAt(0).toUpperCase() + selectedStatus.slice(1)}
+                      <button
+                        onClick={() => setSelectedStatus('')}
+                        className="ml-2 text-primary-500 hover:text-primary-700"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
                   <button
                     onClick={() => {
                       setSearchTerm('');
                       setSelectedCategory('');
+                      setSelectedStatus('');
                     }}
                     className="text-sm text-gray-500 hover:text-gray-700 underline transition-colors"
                   >

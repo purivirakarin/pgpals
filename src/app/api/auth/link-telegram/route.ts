@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       .eq('telegram_id', telegram_id.toString())
       .single();
 
-    if (existingLink && existingLink.id !== session.user.id) {
+    if (existingLink && parseInt(existingLink.id) !== parseInt(session.user.id)) {
       return NextResponse.json({ 
         error: 'This Telegram account is already linked to another user' 
       }, { status: 400 });

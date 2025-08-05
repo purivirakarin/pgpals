@@ -20,7 +20,9 @@ import {
   Award,
   Loader,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Submission } from '@/types';
 
@@ -50,18 +52,20 @@ export default function AdminSubmissionsPage() {
   const { refreshStats } = useStats();
   const [submissions, setSubmissions] = useState<SubmissionWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [reviewLoading, setReviewLoading] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const submissionsPerPage = 10;
 
   const fetchSubmissions = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter) params.append('status', statusFilter);
-      
-      const response = await fetch(`/api/admin/submissions?${params}`);
+      // Fetch all submissions for frontend filtering and pagination
+      const response = await fetch('/api/admin/submissions');
       if (!response.ok) throw new Error('Failed to fetch submissions');
       
       const data = await response.json();
@@ -71,7 +75,7 @@ export default function AdminSubmissionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, []);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -83,16 +87,6 @@ export default function AdminSubmissionsPage() {
 
     fetchSubmissions();
   }, [session, status, router, fetchSubmissions]);
-
-  useEffect(() => {
-    const delayedFetch = setTimeout(() => {
-      if (session?.user?.role === 'admin') {
-        fetchSubmissions();
-      }
-    }, 300);
-
-    return () => clearTimeout(delayedFetch);
-  }, [statusFilter, session, fetchSubmissions]);
 
   const reviewSubmission = async (submissionId: number, action: 'approve' | 'reject', feedback?: string) => {
     setReviewLoading(submissionId);
@@ -162,8 +156,29 @@ export default function AdminSubmissionsPage() {
   };
 
   const filteredSubmissions = (submissions || []).filter(submission => {
-    return !statusFilter || submission.status === statusFilter;
+    const matchesSearch = !searchTerm || 
+      submission.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.quest.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (submission.user.telegram_username && submission.user.telegram_username.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesStatus = !statusFilter || submission.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
+
+  // Pagination logic
+  const totalFilteredSubmissions = filteredSubmissions.length;
+  const totalPages = Math.ceil(totalFilteredSubmissions / submissionsPerPage);
+  const startIndex = (currentPage - 1) * submissionsPerPage;
+  const endIndex = startIndex + submissionsPerPage;
+  const paginatedSubmissions = filteredSubmissions.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const pendingCount = (submissions || []).filter(s => s.status === 'manual_review' || s.status === 'ai_rejected').length;
 
@@ -213,6 +228,22 @@ export default function AdminSubmissionsPage() {
       {/* Filters */}
       <div className="mb-6 card p-6">
         <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+              Search Submissions
+            </label>
+            <div className="relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                id="search"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Search by user, quest, category, or @username..."
+              />
+            </div>
+          </div>
           <div className="md:w-64">
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Status
@@ -254,20 +285,30 @@ export default function AdminSubmissionsPage() {
       </div>
 
       {/* Submissions List */}
-      {filteredSubmissions.length === 0 ? (
-        <div className="text-center py-12 card">
-          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No submissions found</h3>
-          <p className="text-gray-600">
-            {statusFilter 
-              ? 'No submissions match the selected filter.'
-              : 'No submissions have been made yet.'
-            }
-          </p>
+      <div className="card">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Submissions ({totalFilteredSubmissions})
+          </h2>
+          <div className="text-sm text-gray-500">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalFilteredSubmissions)} of {totalFilteredSubmissions}
+          </div>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {filteredSubmissions.map((submission) => (
+
+        {paginatedSubmissions.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No submissions found</h3>
+            <p className="text-gray-600">
+              {searchTerm || statusFilter 
+                ? 'Try adjusting your search or filter criteria.'
+                : 'No submissions have been made yet.'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4 p-6">
+          {paginatedSubmissions.map((submission) => (
             <div key={submission.id} className="card p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -386,7 +427,64 @@ export default function AdminSubmissionsPage() {
             </div>
           ))}
         </div>
-      )}
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              {/* Page numbers */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 text-sm rounded ${
+                        currentPage === pageNum
+                          ? 'bg-primary-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Summary Stats */}
       <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">

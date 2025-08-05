@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Target, Plus, Edit, Trash2, Loader, X, Save, AlertCircle } from 'lucide-react';
+import { Target, Plus, Edit, Trash2, Loader, X, Save, AlertCircle, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Quest {
   id: string;
@@ -31,6 +31,9 @@ export default function AdminQuestsPage() {
   const router = useRouter();
   const [quests, setQuests] = useState<Quest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
   const [formData, setFormData] = useState<QuestFormData>({
@@ -43,6 +46,9 @@ export default function AdminQuestsPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const questsPerPage = 8;
 
   const fetchQuests = useCallback(async () => {
     try {
@@ -181,6 +187,32 @@ export default function AdminQuestsPage() {
     }
   };
 
+  const filteredQuests = quests.filter(quest => {
+    const matchesSearch = !searchTerm || 
+      quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quest.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      quest.category.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = !statusFilter || quest.status === statusFilter;
+    const matchesCategory = !categoryFilter || quest.category === categoryFilter;
+    
+    return matchesSearch && matchesStatus && matchesCategory;
+  });
+
+  // Pagination logic
+  const totalFilteredQuests = filteredQuests.length;
+  const totalPages = Math.ceil(totalFilteredQuests / questsPerPage);
+  const startIndex = (currentPage - 1) * questsPerPage;
+  const endIndex = startIndex + questsPerPage;
+  const paginatedQuests = filteredQuests.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, categoryFilter]);
+
+  const categories = ['Health', 'Education', 'Outdoor', 'Creative', 'Social', 'Daily', 'Weekly', 'Special', 'Community', 'Challenge'];
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -230,8 +262,98 @@ export default function AdminQuestsPage() {
         </div>
       )}
 
-      <div className="grid gap-6">
-        {quests.map((quest) => (
+      {/* Filters */}
+      <div className="mb-6 card p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-1">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+              Search Quests
+            </label>
+            <div className="relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                id="search"
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Search by title, description, or category..."
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Category
+            </label>
+            <div className="relative">
+              <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <select
+                id="category"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Categories</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Status
+            </label>
+            <div className="relative">
+              <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <select
+                id="status"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quests List */}
+      <div className="card">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Quests ({totalFilteredQuests})
+          </h2>
+          <div className="text-sm text-gray-500">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalFilteredQuests)} of {totalFilteredQuests}
+          </div>
+        </div>
+
+        {paginatedQuests.length === 0 ? (
+          <div className="text-center py-12">
+            <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No quests found</h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || statusFilter || categoryFilter
+                ? 'Try adjusting your search or filter criteria.'
+                : 'Get started by creating your first quest.'
+              }
+            </p>
+            <button 
+              onClick={openCreateModal}
+              className="btn-primary"
+            >
+              Create Quest
+            </button>
+          </div>
+        ) : (
+          <div className="p-6 space-y-4">
+            {paginatedQuests.map((quest) => (
           <div key={quest.id} className="card p-6">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -270,19 +392,63 @@ export default function AdminQuestsPage() {
               </div>
             </div>
           </div>
-        ))}
+            ))}
+          </div>
+        )}
 
-        {quests.length === 0 && (
-          <div className="text-center py-12">
-            <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No quests found</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first quest.</p>
-            <button 
-              onClick={openCreateModal}
-              className="btn-primary"
-            >
-              Create Quest
-            </button>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              {/* Page numbers */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 text-sm rounded ${
+                        currentPage === pageNum
+                          ? 'bg-primary-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
       </div>

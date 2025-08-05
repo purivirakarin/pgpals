@@ -20,7 +20,9 @@ import {
   AlertCircle,
   X,
   Save,
-  Link
+  Link,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface UserData {
@@ -63,25 +65,28 @@ export default function AdminUsersPage() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [linkingUser, setLinkingUser] = useState<UserData | null>(null);
   const [selectedTargetUser, setSelectedTargetUser] = useState<string>('');
+  const [linkSearchTerm, setLinkSearchTerm] = useState('');
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const usersPerPage = 10;
 
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (roleFilter) params.append('role', roleFilter);
-      if (searchTerm) params.append('search', searchTerm);
-      
-      const response = await fetch(`/api/users?${params}`);
+      // Remove server-side filtering, fetch all users for frontend filtering
+      const response = await fetch('/api/users');
       if (!response.ok) throw new Error('Failed to fetch users');
       
       const data = await response.json();
       setUsers(data);
+      setTotalUsers(data.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users');
     } finally {
       setLoading(false);
     }
-  }, [roleFilter, searchTerm]);
+  }, []);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -93,16 +98,6 @@ export default function AdminUsersPage() {
 
     fetchUsers();
   }, [session, status, router, fetchUsers]);
-
-  useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      if (session?.user?.role === 'admin') {
-        fetchUsers();
-      }
-    }, 500);
-
-    return () => clearTimeout(delayedSearch);
-  }, [searchTerm, roleFilter, session?.user?.role, fetchUsers]);
 
   const updateUserRole = async (userId: number, newRole: 'participant' | 'admin') => {
     try {
@@ -196,6 +191,7 @@ export default function AdminUsersPage() {
   const openLinkModal = (user: UserData) => {
     setLinkingUser(user);
     setSelectedTargetUser('');
+    setLinkSearchTerm('');
     setShowLinkModal(true);
   };
 
@@ -227,6 +223,7 @@ export default function AdminUsersPage() {
       setShowLinkModal(false);
       setLinkingUser(null);
       setSelectedTargetUser('');
+      setLinkSearchTerm('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to link users');
     } finally {
@@ -239,6 +236,27 @@ export default function AdminUsersPage() {
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = !roleFilter || user.role === roleFilter;
     return matchesSearch && matchesRole;
+  });
+
+  // Pagination logic
+  const totalFilteredUsers = filteredUsers.length;
+  const totalPages = Math.ceil(totalFilteredUsers / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter]);
+
+  // Filter users for linking (exclude current user and already partnered users)
+  const availableUsersForLinking = users.filter(user => {
+    if (!linkingUser) return false;
+    const matchesLinkSearch = user.name.toLowerCase().includes(linkSearchTerm.toLowerCase()) ||
+                             user.email.toLowerCase().includes(linkSearchTerm.toLowerCase()) ||
+                             (user.telegram_username && user.telegram_username.toLowerCase().includes(linkSearchTerm.toLowerCase()));
+    return user.id !== linkingUser.id && !user.partner_id && matchesLinkSearch;
   });
 
   if (status === 'loading' || loading) {
@@ -326,13 +344,16 @@ export default function AdminUsersPage() {
 
       {/* Users List */}
       <div className="card">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
-            Users ({filteredUsers.length})
+            Users ({totalFilteredUsers})
           </h2>
+          <div className="text-sm text-gray-500">
+            Showing {startIndex + 1}-{Math.min(endIndex, totalFilteredUsers)} of {totalFilteredUsers}
+          </div>
         </div>
 
-        {filteredUsers.length === 0 ? (
+        {paginatedUsers.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No users found</h3>
@@ -372,7 +393,7 @@ export default function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
                       <div className="flex items-center">
@@ -392,7 +413,7 @@ export default function AdminUsersPage() {
                             ? 'bg-amber-100 text-amber-800' 
                             : 'bg-green-100 text-green-800'
                         }`}
-                        disabled={user.id.toString() === session.user?.id}
+                        disabled={user.id === parseInt(session.user?.id || '0')}
                       >
                         <option value="participant">Participant</option>
                         <option value="admin">Admin</option>
@@ -453,7 +474,7 @@ export default function AdminUsersPage() {
                         >
                           <Link className="w-4 h-4" />
                         </button>
-                        {user.id.toString() !== session.user?.id && (
+                        {user.id !== parseInt(session.user?.id || '0') && (
                           <button
                             onClick={() => deleteUser(user.id, user.name)}
                             className="text-red-600 hover:text-red-700"
@@ -468,6 +489,62 @@ export default function AdminUsersPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              {/* Page numbers */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 text-sm rounded ${
+                        currentPage === pageNum
+                          ? 'bg-primary-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -561,12 +638,12 @@ export default function AdminUsersPage() {
                     value={editFormData.role}
                     onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as 'participant' | 'admin' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    disabled={editingUser.id.toString() === session.user?.id}
+                    disabled={editingUser.id === parseInt(session.user?.id || '0')}
                   >
                     <option value="participant">Participant</option>
                     <option value="admin">Admin</option>
                   </select>
-                  {editingUser.id.toString() === session.user?.id && (
+                  {editingUser.id === parseInt(session.user?.id || '0') && (
                     <p className="text-xs text-gray-500 mt-1">You cannot change your own role</p>
                   )}
                 </div>
@@ -625,7 +702,10 @@ export default function AdminUsersPage() {
                   Link User: {linkingUser.name}
                 </h2>
                 <button 
-                  onClick={() => setShowLinkModal(false)}
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setLinkSearchTerm('');
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <X className="w-6 h-6" />
@@ -639,23 +719,63 @@ export default function AdminUsersPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Target User
+                    Search Users
                   </label>
-                  <select
-                    value={selectedTargetUser}
-                    onChange={(e) => setSelectedTargetUser(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="">Select a user...</option>
-                    {users
-                      .filter(user => user.id !== linkingUser.id)
-                      .map(user => (
-                        <option key={user.id} value={user.id}>
-                          {user.name} ({user.email})
-                          {user.telegram_username ? ` - @${user.telegram_username}` : ''}
-                        </option>
-                      ))}
-                  </select>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={linkSearchTerm}
+                      onChange={(e) => setLinkSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Search by name, email, or @username..."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Available Users ({availableUsersForLinking.length})
+                  </label>
+                  <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg">
+                    {availableUsersForLinking.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">
+                        {linkSearchTerm ? 'No users match your search' : 'No available users to link'}
+                      </div>
+                    ) : (
+                      <div className="space-y-1 p-2">
+                        {availableUsersForLinking.map(user => (
+                          <div
+                            key={user.id}
+                            onClick={() => setSelectedTargetUser(user.id.toString())}
+                            className={`p-3 rounded-lg cursor-pointer border-2 transition-colors ${
+                              selectedTargetUser === user.id.toString()
+                                ? 'border-primary-500 bg-primary-50'
+                                : 'border-transparent hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="font-medium text-gray-900">{user.name}</div>
+                                <div className="text-sm text-gray-500">{user.email}</div>
+                                {user.telegram_username && (
+                                  <div className="text-sm text-blue-600">@{user.telegram_username}</div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {user.total_points} pts
+                                </div>
+                                {user.telegram_id && (
+                                  <div className="text-xs text-green-600">Telegram ✓</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -676,7 +796,10 @@ export default function AdminUsersPage() {
               <div className="flex justify-end space-x-3 pt-6">
                 <button
                   type="button"
-                  onClick={() => setShowLinkModal(false)}
+                  onClick={() => {
+                    setShowLinkModal(false);
+                    setLinkSearchTerm('');
+                  }}
                   className="btn-secondary"
                 >
                   Cancel
