@@ -61,7 +61,7 @@ export async function PUT(
     
     // Handle expires_at - allow setting it to null if empty string is provided
     if (expires_at !== undefined) {
-      updateData.expires_at = expires_at && expires_at.trim() !== '' ? expires_at : null;
+      updateData.expires_at = expires_at && expires_at.trim() !== '' ? new Date(expires_at).toISOString() : null;
     }
 
     const { data: quest, error } = await supabaseAdmin
@@ -99,20 +99,60 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // First, get all users who have approved submissions for this quest
-    // so we can recalculate their points after deletion
-    const { data: affectedSubmissions, error: submissionsError } = await supabaseAdmin
+    // First, check if quest exists
+    const { data: existingQuest, error: questError } = await supabaseAdmin
+      .from('quests')
+      .select('title')
+      .eq('id', params.id)
+      .single();
+
+    if (questError || !existingQuest) {
+      return NextResponse.json({ error: 'Quest not found' }, { status: 404 });
+    }
+
+    // Check for existing submissions
+    const { data: submissions, error: submissionsError } = await supabaseAdmin
+      .from('submissions')
+      .select('id, status, user_id')
+      .eq('quest_id', params.id);
+
+    if (submissionsError) {
+      console.error('Error checking submissions:', submissionsError);
+      return NextResponse.json({ error: 'Failed to check quest dependencies' }, { status: 500 });
+    }
+
+    // If there are submissions, provide detailed error message
+    if (submissions && submissions.length > 0) {
+      const approvedCount = submissions.filter(s => s.status === 'approved').length;
+      const pendingCount = submissions.filter(s => s.status === 'pending_ai' || s.status === 'manual_review' || s.status === 'pending_manual').length;
+      const totalCount = submissions.length;
+      
+      let errorMessage = `Cannot delete quest "${existingQuest.title}" because it has ${totalCount} submission(s)`;
+      
+      if (approvedCount > 0) {
+        errorMessage += ` (${approvedCount} approved`;
+        if (pendingCount > 0) {
+          errorMessage += `, ${pendingCount} pending review)`;
+        } else {
+          errorMessage += ')';
+        }
+      } else if (pendingCount > 0) {
+        errorMessage += ` (${pendingCount} pending review)`;
+      }
+      
+      errorMessage += '. Please review and handle all submissions before deleting the quest.';
+      
+      return NextResponse.json({ error: errorMessage }, { status: 409 });
+    }
+
+    // Get approved submissions for point recalculation (should be empty at this point)
+    const { data: affectedSubmissions } = await supabaseAdmin
       .from('submissions')
       .select('user_id, points_awarded')
       .eq('quest_id', params.id)
       .eq('status', 'approved');
 
-    if (submissionsError) {
-      console.error('Error fetching affected submissions:', submissionsError);
-      // Continue with deletion even if we can't fetch submissions
-    }
-
-    // Delete the quest (this will also cascade delete submissions if FK is set up with CASCADE)
+    // Delete the quest
     const { error } = await supabaseAdmin
       .from('quests')
       .delete()
@@ -120,7 +160,21 @@ export async function DELETE(
 
     if (error) {
       console.error('Quest deletion error:', error);
-      return NextResponse.json({ error: 'Failed to delete quest' }, { status: 500 });
+      
+      // Provide more specific error messages based on error code
+      if (error.code === '23503') {
+        return NextResponse.json({ 
+          error: 'Cannot delete quest due to foreign key constraints. This quest may still have associated data.' 
+        }, { status: 409 });
+      } else if (error.code === '42501') {
+        return NextResponse.json({ 
+          error: 'Insufficient permissions to delete this quest.' 
+        }, { status: 403 });
+      } else {
+        return NextResponse.json({ 
+          error: `Failed to delete quest: ${error.message || 'Unknown database error'}` 
+        }, { status: 500 });
+      }
     }
 
     // Points are now automatically calculated via database view

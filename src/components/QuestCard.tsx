@@ -201,7 +201,11 @@ export default function QuestCard({
                 ? 'text-yellow-600'
                 : 'text-blue-600'
             }`}>
-              🕐 Expires: {new Date(quest.expires_at).toLocaleDateString()}
+              {new Date(quest.expires_at) < new Date() ? (
+                <>� Expired: {new Date(quest.expires_at).toLocaleString()}</>
+              ) : (
+                <>🕐 Expires: {new Date(quest.expires_at).toLocaleString()}</>
+              )}
             </div>
           )}
         </div>
