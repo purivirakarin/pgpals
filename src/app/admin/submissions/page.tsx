@@ -216,7 +216,7 @@ export default function AdminSubmissionsPage() {
           <FileText className="w-8 h-8 text-primary-600 mr-3" />
           <h1 className="text-3xl font-bold text-gray-900">Submission Management</h1>
           {pendingCount > 0 && (
-            <span className="ml-4 bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+            <span className="ml-4 bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
               {pendingCount} pending review
             </span>
           )}

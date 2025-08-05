@@ -135,7 +135,7 @@ export default function AdminQuestsPage() {
       category: quest.category,
       requirements: quest.requirements || '',
       status: quest.status,
-      expires_at: quest.expires_at ? new Date(quest.expires_at).toISOString().slice(0, 16) : '' // Format for datetime-local input with proper timezone
+      expires_at: quest.expires_at ? new Date(quest.expires_at).toISOString().split('T')[0] : '' // Format for date input (YYYY-MM-DD)
     });
     setShowModal(true);
     setError(null);
@@ -156,10 +156,23 @@ export default function AdminQuestsPage() {
       const url = editingQuest ? `/api/quests/${editingQuest.id}` : '/api/quests';
       const method = editingQuest ? 'PUT' : 'POST';
 
+      // Process the expires_at date to ensure it's set to 23:59 Singapore time
+      let processedFormData = { ...formData };
+      if (formData.expires_at) {
+        // Parse the date input (YYYY-MM-DD format from date input)
+        const dateStr = formData.expires_at;
+        
+        // Create date object and set to 23:59:59 local time
+        const expireDate = new Date(dateStr + 'T23:59:59');
+        
+        // Convert to UTC for storage
+        processedFormData.expires_at = expireDate.toISOString();
+      }
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(processedFormData)
       });
 
       if (!response.ok) {
@@ -482,7 +495,27 @@ export default function AdminQuestsPage() {
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          🕐 Expires: {new Date(quest.expires_at).toLocaleDateString()}
+                          {(() => {
+                            const now = new Date();
+                            const expireDate = new Date(quest.expires_at);
+                            const diffMs = expireDate.getTime() - now.getTime();
+                            
+                            if (diffMs <= 0) {
+                              return '🕐 Expired';
+                            }
+                            
+                            const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                            
+                            if (diffDays > 0) {
+                              return `🕐 Expires in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+                            } else if (diffHours > 0) {
+                              return `🕐 Expires in ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+                            } else {
+                              return `🕐 Expires in ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+                            }
+                          })()}
                         </span>
                       )}
                       <button
@@ -687,14 +720,15 @@ export default function AdminQuestsPage() {
                     Expiration Date (Optional)
                   </label>
                   <input
-                    type="datetime-local"
+                    type="date"
                     value={formData.expires_at}
                     onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
-                    min={new Date().toISOString().slice(0, 16)}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    placeholder="Select date"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Quest will automatically become inactive after this date
+                  <p className="mt-1 text-xs text-gray-500">
+                    Quest will expire at 23:59 Singapore time on the selected date. Leave empty for no expiration.
                   </p>
                 </div>
 

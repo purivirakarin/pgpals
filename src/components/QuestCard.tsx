@@ -37,6 +37,7 @@ export default function QuestCard({
       console.error('Failed to copy:', err);
     }
   };
+  
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'health':
@@ -187,44 +188,98 @@ export default function QuestCard({
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div className="flex flex-col space-y-1">
-          <div className="flex items-center text-xs text-gray-500">
-            <Calendar className="w-4 h-4 mr-1" />
-            Created: {new Date(quest.created_at).toLocaleDateString()}
+      <div className="pt-4 border-t border-gray-100 space-y-3">
+        {/* Date Information - Flexible Grid Layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+          {/* Created Date */}
+          <div className="flex items-center text-gray-500">
+            <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
+            <span>Created {new Date(quest.created_at).toLocaleDateString('en-GB', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: '2-digit' 
+            })}</span>
           </div>
+
+          {/* Expires Date */}
           {quest.expires_at && (
-            <div className={`flex items-center text-xs font-medium ${
+            <div className={`flex items-center font-medium ${
               new Date(quest.expires_at) < new Date() 
                 ? 'text-red-600' 
                 : new Date(quest.expires_at) < new Date(Date.now() + 24 * 60 * 60 * 1000)
                 ? 'text-yellow-600'
                 : 'text-blue-600'
             }`}>
-              {new Date(quest.expires_at) < new Date() ? (
-                <>� Expired: {new Date(quest.expires_at).toLocaleString()}</>
-              ) : (
-                <>🕐 Expires: {new Date(quest.expires_at).toLocaleString()}</>
-              )}
+              <span className="mr-1 flex-shrink-0">🕐</span>
+              <span>
+                {(() => {
+                  const now = new Date();
+                  const expireDate = new Date(quest.expires_at);
+                  const diffMs = expireDate.getTime() - now.getTime();
+                  
+                  if (diffMs <= 0) {
+                    return 'Expired';
+                  }
+                  
+                  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                  
+                  if (diffDays > 0) {
+                    return `Expires in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+                  } else if (diffHours > 0) {
+                    return `Expires in ${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+                  } else {
+                    return `Expires in ${diffMinutes} minute${diffMinutes > 1 ? 's' : ''}`;
+                  }
+                })()}
+              </span>
+            </div>
+          )}
+
+          {/* Submission Date */}
+          {userSubmission && userSubmission.created_at && (
+            <div className="flex items-center text-gray-500">
+              <span className="mr-1 flex-shrink-0">📝</span>
+              <span>Submitted {new Date(userSubmission.created_at).toLocaleDateString('en-GB', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: '2-digit' 
+              })}</span>
+            </div>
+          )}
+          
+          {/* Approved Date */}
+          {userSubmission && (userSubmission.status === 'approved' || userSubmission.status === 'ai_approved') && userSubmission.updated_at && (
+            <div className="flex items-center text-green-600 font-medium">
+              <span className="mr-1 flex-shrink-0">✅</span>
+              <span>Approved {new Date(userSubmission.updated_at).toLocaleDateString('en-GB', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: '2-digit' 
+              })}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center space-x-2">
-          {!userSubmission && quest.status === 'active' && (
-            <div className="relative group">
+        {/* Copy Command - Full width below */}
+        {!userSubmission && quest.status === 'active' && (
+          <div className="w-full">
+            <div className="relative group w-full max-w-xs">
               <button
                 onClick={copySubmitCommand}
-                className="flex items-center bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-200 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-xs font-medium border border-blue-200 transition-colors cursor-pointer"
                 title={`Click to copy: /submit ${numericId}`}
               >
-                <span className="mr-1">📱</span>
-                <code className="font-mono mr-2">/submit {numericId}</code>
-                {copied ? (
-                  <Check className="w-3 h-3 text-green-600" />
-                ) : (
-                  <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
-                )}
+                <span className="mr-2">📱</span>
+                <code className="font-mono">/submit {numericId}</code>
+                <span className="ml-2">
+                  {copied ? (
+                    <Check className="w-3 h-3 text-green-600" />
+                  ) : (
+                    <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </span>
               </button>
               
               {/* Tooltip showing full command */}
@@ -233,30 +288,60 @@ export default function QuestCard({
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
               </div>
             </div>
-          )}
-          
-          {showActions && (
-            <div className="flex space-x-2">
-              {onEdit && (
-                <button
-                  onClick={() => onEdit(quest)}
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-primary-50 transition-colors"
-                >
-                  Edit
-                </button>
-              )}
+          </div>
+        )}
+
+        {/* Copy Command for Rejected Quests - Show copy command again */}
+        {userSubmission && (userSubmission.status === 'rejected' || userSubmission.status === 'ai_rejected') && quest.status === 'active' && (
+          <div className="w-full">
+            <div className="relative group w-full max-w-xs">
+              <button
+                onClick={copySubmitCommand}
+                className="w-full flex items-center justify-center bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-xs font-medium border border-orange-200 transition-colors cursor-pointer"
+                title={`Click to copy: /submit ${numericId} - Resubmit quest`}
+              >
+                <span className="mr-2">🔄</span>
+                <code className="font-mono">/submit {numericId}</code>
+                <span className="ml-2">
+                  {copied ? (
+                    <Check className="w-3 h-3 text-green-600" />
+                  ) : (
+                    <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </span>
+              </button>
               
-              {onDelete && (
-                <button
-                  onClick={() => onDelete(quest.id)}
-                  className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
-                >
-                  Delete
-                </button>
-              )}
+              {/* Tooltip showing resubmit command */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                <code>/submit {numericId}</code> - Resubmit quest
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Admin Action Buttons */}
+        {showActions && (
+          <div className="flex items-center justify-end space-x-2">
+            {onEdit && (
+              <button
+                onClick={() => onEdit(quest)}
+                className="text-primary-600 hover:text-primary-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-primary-50 transition-colors"
+              >
+                Edit
+              </button>
+            )}
+            
+            {onDelete && (
+              <button
+                onClick={() => onDelete(quest.id)}
+                className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
