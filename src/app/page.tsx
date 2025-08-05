@@ -58,16 +58,28 @@ export default function HomePage() {
                   1
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Start with Telegram</h3>
+                  <h3 className="font-semibold mb-1">Create Your Account</h3>
                   <p className="text-gray-600">
-                    Find our Telegram bot and use <code className="bg-gray-100 px-2 py-1 rounded">/start</code> to link your account
+                    Sign up on this website first to create your participant account
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start">
+                <div className="bg-primary-100 text-primary-600 rounded-full w-8 h-8 flex items-center justify-center font-semibold mr-4 mt-1">
+                  2
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Link Telegram</h3>
+                  <p className="text-gray-600">
+                    Find our Telegram bot, use <code className="bg-gray-100 px-2 py-1 rounded">/start</code>, then enter your Telegram ID in your profile
                   </p>
                 </div>
               </div>
               
               <div className="flex items-start">
                 <div className="bg-primary-100 text-primary-600 rounded-full w-8 h-8 flex items-center justify-center font-semibold mr-4 mt-1">
-                  2
+                  3
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Browse Quests</h3>
@@ -79,7 +91,7 @@ export default function HomePage() {
               
               <div className="flex items-start">
                 <div className="bg-primary-100 text-primary-600 rounded-full w-8 h-8 flex items-center justify-center font-semibold mr-4 mt-1">
-                  3
+                  4
                 </div>
                 <div>
                   <h3 className="font-semibold mb-1">Submit Proof</h3>
