@@ -9,18 +9,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
 
+    // Use the view that automatically calculates points from approved submissions
     const { data: users, error } = await supabaseAdmin
-      .from('users')
-      .select(`
-        id,
-        name,
-        telegram_username,
-        total_points,
-        submissions!submissions_user_id_fkey(
-          status
-        )
-      `)
-      .eq('role', 'participant')
+      .from('user_points_view')
+      .select('*')
       .order('total_points', { ascending: false })
       .limit(limit);
 
@@ -30,14 +22,12 @@ export async function GET(request: NextRequest) {
     }
 
     const processedUsers = users?.map((user: any, index: number) => {
-      const completedQuests = user.submissions?.filter((s: any) => s.status === 'approved').length || 0;
-      
       return {
         user_id: user.id,
         name: user.name,
         telegram_username: user.telegram_username,
         total_points: user.total_points || 0,
-        completed_quests: completedQuests,
+        completed_quests: user.completed_quests || 0,
         rank: index + 1
       } as LeaderboardEntry;
     }) || [];

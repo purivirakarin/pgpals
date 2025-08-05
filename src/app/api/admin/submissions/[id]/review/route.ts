@@ -56,53 +56,9 @@ export async function POST(
       return NextResponse.json({ error: 'Failed to update submission' }, { status: 500 });
     }
 
-    // Update user's total points if approved
-    if (action === 'approve') {
-      // Get current user total points
-      const { data: userData, error: userFetchError } = await supabaseAdmin
-        .from('users')
-        .select('total_points')
-        .eq('id', submission.user_id)
-        .single();
-
-      if (!userFetchError && userData) {
-        const currentPoints = userData.total_points || 0;
-        const newTotalPoints = currentPoints + submission.quest.points;
-
-        const { error: userUpdateError } = await supabaseAdmin
-          .from('users')
-          .update({ total_points: newTotalPoints })
-          .eq('id', submission.user_id);
-
-        if (userUpdateError) {
-          console.error('Failed to update user points:', userUpdateError);
-          // Don't fail the request, just log the error
-        }
-      }
-    }
-
-    // If rejecting a previously approved submission, subtract points
-    if (action === 'reject' && submission.status === 'approved' && submission.points_awarded > 0) {
-      const { data: userData, error: userFetchError } = await supabaseAdmin
-        .from('users')
-        .select('total_points')
-        .eq('id', submission.user_id)
-        .single();
-
-      if (!userFetchError && userData) {
-        const currentPoints = userData.total_points || 0;
-        const newTotalPoints = Math.max(0, currentPoints - submission.points_awarded);
-
-        const { error: userUpdateError } = await supabaseAdmin
-          .from('users')
-          .update({ total_points: newTotalPoints })
-          .eq('id', submission.user_id);
-
-        if (userUpdateError) {
-          console.error('Failed to update user points:', userUpdateError);
-        }
-      }
-    }
+    // Points are now automatically calculated via database view
+    // No manual recalculation needed
+    console.log(`Submission ${params.id} updated. Points will be automatically reflected in user_points_view`);
 
     return NextResponse.json(updatedSubmission);
 

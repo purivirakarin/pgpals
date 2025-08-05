@@ -19,17 +19,21 @@ import {
   Loader,
   AlertCircle,
   X,
-  Save
+  Save,
+  Link
 } from 'lucide-react';
 
 interface UserData {
-  id: string;
+  id: number;
   name: string;
   email: string;
   role: 'participant' | 'admin';
   total_points: number;
   telegram_id?: string;
   telegram_username?: string;
+  partner_id?: number;
+  partner_name?: string;
+  partner_telegram?: string;
   created_at: string;
   submissions?: { count: number }[];
 }
@@ -38,7 +42,6 @@ interface EditUserFormData {
   name: string;
   email: string;
   role: 'participant' | 'admin';
-  total_points: number;
 }
 
 export default function AdminUsersPage() {
@@ -54,10 +57,12 @@ export default function AdminUsersPage() {
   const [editFormData, setEditFormData] = useState<EditUserFormData>({
     name: '',
     email: '',
-    role: 'participant',
-    total_points: 0
+    role: 'participant'
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkingUser, setLinkingUser] = useState<UserData | null>(null);
+  const [selectedTargetUser, setSelectedTargetUser] = useState<string>('');
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -94,12 +99,12 @@ export default function AdminUsersPage() {
       if (session?.user?.role === 'admin') {
         fetchUsers();
       }
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(delayedSearch);
-  }, [searchTerm, roleFilter, session, fetchUsers]);
+  }, [searchTerm, roleFilter, session?.user?.role, fetchUsers]);
 
-  const updateUserRole = async (userId: string, newRole: 'participant' | 'admin') => {
+  const updateUserRole = async (userId: number, newRole: 'participant' | 'admin') => {
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
@@ -123,8 +128,7 @@ export default function AdminUsersPage() {
     setEditFormData({
       name: user.name,
       email: user.email,
-      role: user.role,
-      total_points: user.total_points
+      role: user.role
     });
     setShowEditModal(true);
     setError(null);
@@ -168,7 +172,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const deleteUser = async (userId: string, userName: string) => {
+  const deleteUser = async (userId: number, userName: string) => {
     if (!confirm(`Are you sure you want to delete "${userName}"? This action cannot be undone.`)) {
       return;
     }
@@ -186,6 +190,47 @@ export default function AdminUsersPage() {
       setUsers(users.filter(user => user.id !== userId));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete user');
+    }
+  };
+
+  const openLinkModal = (user: UserData) => {
+    setLinkingUser(user);
+    setSelectedTargetUser('');
+    setShowLinkModal(true);
+  };
+
+  const handleLinkUsers = async () => {
+    if (!linkingUser || !selectedTargetUser) return;
+
+    if (!confirm(`Are you sure you want to create a partnership between "${linkingUser.name}" and the selected user? Partners will share points and leaderboard ranking.`)) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const response = await fetch('/api/admin/users/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceUserId: linkingUser.id,
+          targetUserId: parseInt(selectedTargetUser)
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to link users');
+      }
+
+      // Refresh users list
+      await fetchUsers();
+      setShowLinkModal(false);
+      setLinkingUser(null);
+      setSelectedTargetUser('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to link users');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -316,6 +361,9 @@ export default function AdminUsersPage() {
                     Telegram
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Partner
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Joined
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -344,7 +392,7 @@ export default function AdminUsersPage() {
                             ? 'bg-amber-100 text-amber-800' 
                             : 'bg-green-100 text-green-800'
                         }`}
-                        disabled={user.id === session.user?.id}
+                        disabled={user.id.toString() === session.user?.id}
                       >
                         <option value="participant">Participant</option>
                         <option value="admin">Admin</option>
@@ -374,6 +422,18 @@ export default function AdminUsersPage() {
                         <span className="text-sm text-gray-500">Not linked</span>
                       )}
                     </td>
+                    <td className="px-6 py-4">
+                      {user.partner_id ? (
+                        <div className="text-sm">
+                          <div className="text-blue-600 font-medium">🤝 {user.partner_name}</div>
+                          {user.partner_telegram && (
+                            <div className="text-gray-500">@{user.partner_telegram}</div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">No partner</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {new Date(user.created_at).toLocaleDateString()}
                     </td>
@@ -386,7 +446,14 @@ export default function AdminUsersPage() {
                         >
                           <Edit className="w-4 h-4" />
                         </button>
-                        {user.id !== session.user?.id && (
+                        <button
+                          onClick={() => openLinkModal(user)}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="Create partnership with another user"
+                        >
+                          <Link className="w-4 h-4" />
+                        </button>
+                        {user.id.toString() !== session.user?.id && (
                           <button
                             onClick={() => deleteUser(user.id, user.name)}
                             className="text-red-600 hover:text-red-700"
@@ -494,12 +561,12 @@ export default function AdminUsersPage() {
                     value={editFormData.role}
                     onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as 'participant' | 'admin' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    disabled={editingUser.id === session.user?.id}
+                    disabled={editingUser.id.toString() === session.user?.id}
                   >
                     <option value="participant">Participant</option>
                     <option value="admin">Admin</option>
                   </select>
-                  {editingUser.id === session.user?.id && (
+                  {editingUser.id.toString() === session.user?.id && (
                     <p className="text-xs text-gray-500 mt-1">You cannot change your own role</p>
                   )}
                 </div>
@@ -508,13 +575,10 @@ export default function AdminUsersPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Total Points
                   </label>
-                  <input
-                    type="number"
-                    value={editFormData.total_points}
-                    onChange={(e) => setEditFormData({ ...editFormData, total_points: parseInt(e.target.value) || 0 })}
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  <div className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-gray-600">
+                    {editingUser?.total_points || 0} points (auto-calculated)
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Points are automatically calculated from approved submissions</p>
                 </div>
 
                 {error && (
@@ -546,6 +610,90 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Link Users Modal */}
+      {showLinkModal && linkingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Link User: {linkingUser.name}
+                </h2>
+                <button 
+                  onClick={() => setShowLinkModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">
+                  Select a user to partner with &quot;{linkingUser.name}&quot;. Partners will share points and appear together on the leaderboard while maintaining separate accounts.
+                </p>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target User
+                  </label>
+                  <select
+                    value={selectedTargetUser}
+                    onChange={(e) => setSelectedTargetUser(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="">Select a user...</option>
+                    {users
+                      .filter(user => user.id !== linkingUser.id)
+                      .map(user => (
+                        <option key={user.id} value={user.id}>
+                          {user.name} ({user.email})
+                          {user.telegram_username ? ` - @${user.telegram_username}` : ''}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0" />
+                    <div className="text-sm text-blue-700">
+                      <strong>Partnership Benefits:</strong>
+                      <ul className="mt-1 list-disc list-inside space-y-1">
+                        <li>Shared points and leaderboard ranking</li>
+                        <li>Both accounts remain active and separate</li>
+                        <li>Can be unlinked by admin if needed</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowLinkModal(false)}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLinkUsers}
+                  disabled={!selectedTargetUser || submitting}
+                  className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg font-medium disabled:cursor-not-allowed flex items-center"
+                >
+                  {submitting ? (
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Link className="w-4 h-4 mr-2" />
+                  )}
+                  {submitting ? 'Linking...' : 'Link Users'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -13,9 +13,11 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Loader
+  Loader,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
+import ActivityFeed from '@/components/ActivityFeed';
 
 interface DashboardStats {
   totalUsers: number;
@@ -242,14 +244,9 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Recent Activity - Placeholder for future implementation */}
+      {/* Recent Activity */}
       <div className="card p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="text-center py-8 text-gray-500">
-          <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <p>Recent activity feed coming soon...</p>
-          <p className="text-sm">This will show recent submissions, user registrations, and quest activity.</p>
-        </div>
+        <ActivityFeed limit={5} />
       </div>
     </div>
   );

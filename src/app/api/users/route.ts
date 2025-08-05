@@ -17,11 +17,22 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // Get users with partner info using the view
     let query = supabaseAdmin
-      .from('users')
+      .from('user_points_view')
       .select(`
-        *,
-        submissions:submissions!submissions_user_id_fkey(count)
+        id,
+        name,
+        email,
+        role,
+        telegram_id,
+        telegram_username,
+        partner_id,
+        partner_name,
+        partner_telegram,
+        total_points,
+        created_at,
+        updated_at
       `)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);

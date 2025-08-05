@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Quest, Submission } from '@/types';
 import QuestCard from '@/components/QuestCard';
-import { Search, Filter, Target, Loader, X, Sparkles } from 'lucide-react';
+import { Search, Filter, Target, Loader, X, Sparkles, ArrowUpDown } from 'lucide-react';
+import { getNumericId } from '@/lib/questId';
 
 export default function QuestsPage() {
   const { data: session } = useSession();
@@ -13,6 +14,8 @@ export default function QuestsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [sortBy, setSortBy] = useState<'points' | 'id' | 'title' | 'created_at'>('points');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [error, setError] = useState<string | null>(null);
 
   const categories = ['Health', 'Education', 'Outdoor', 'Creative', 'Social'];
@@ -49,16 +52,47 @@ export default function QuestsPage() {
     }
   };
 
-  const filteredQuests = quests.filter(quest => {
-    const matchesSearch = quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         quest.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || quest.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const getUserSubmission = (questId: string) => {
+  const getUserSubmission = (questId: number) => {
     return submissions.find(sub => sub.quest_id === questId);
   };
+
+  const filteredQuests = quests
+    .filter(quest => {
+      const matchesSearch = quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           quest.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !selectedCategory || quest.category === selectedCategory;
+      
+      // Exclude quests that the user has already submitted (regardless of status)
+      const userSubmission = getUserSubmission(quest.id);
+      const notSubmitted = !userSubmission;
+      
+      return matchesSearch && matchesCategory && (notSubmitted || !session);
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'points':
+          comparison = a.points - b.points;
+          break;
+        case 'id':
+          // For ID sorting, we'll use the quest numeric ID
+          const aNumericId = getNumericId(a.id);
+          const bNumericId = getNumericId(b.id);
+          comparison = aNumericId - bNumericId;
+          break;
+        case 'title':
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case 'created_at':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
 
   if (loading) {
     return (
@@ -200,6 +234,41 @@ export default function QuestsPage() {
                   )}
                 </div>
               </div>
+
+              {/* Sort Controls */}
+              <div className="lg:w-80">
+                <label htmlFor="sort" className="block text-sm font-semibold text-gray-700 mb-3">
+                  Sort By
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative group flex-1">
+                    <ArrowUpDown className="w-5 h-5 text-gray-400 group-focus-within:text-primary-500 absolute left-4 top-1/2 transform -translate-y-1/2 transition-colors" />
+                    <select
+                      id="sort"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as 'points' | 'id' | 'title' | 'created_at')}
+                      className="w-full pl-12 pr-10 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 appearance-none bg-white cursor-pointer"
+                    >
+                      <option value="points">Points</option>
+                      <option value="id">Quest ID</option>
+                      <option value="title">Title</option>
+                      <option value="created_at">Date Created</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="px-4 py-3.5 border-2 border-gray-200 rounded-xl hover:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 text-gray-600 hover:text-primary-600"
+                    title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+                  >
+                    {sortOrder === 'asc' ? '↑' : '↓'}
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Active Filters Display */}
@@ -315,7 +384,7 @@ export default function QuestsPage() {
                 </div>
                 <h3 className="text-3xl font-bold mb-4">Submit Quests via Telegram</h3>
                 <p className="text-blue-100 text-lg max-w-2xl mx-auto">
-                  Use our intelligent Telegram bot to submit quest completions and get instant AI validation
+                  Use our Telegram bot to submit quest completions
                 </p>
               </div>
 
@@ -373,7 +442,7 @@ export default function QuestsPage() {
 
               <div className="text-center mt-8">
                 <p className="text-blue-100 text-sm">
-                  💡 <strong>Pro tip:</strong> Make sure your photos clearly show the quest completion for better AI validation results
+                  💡 <strong>Pro tip:</strong> Make sure your photos clearly show the quest completion for better validation results
                 </p>
               </div>
             </div>
