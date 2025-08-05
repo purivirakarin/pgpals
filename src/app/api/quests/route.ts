@@ -56,24 +56,31 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, category, points, requirements, validation_criteria } = body;
+    const { title, description, category, points, requirements, validation_criteria, expires_at } = body;
 
     if (!title || !category || !points) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const insertData: any = {
+      title,
+      description,
+      category,
+      points: parseInt(points),
+      requirements,
+      validation_criteria: validation_criteria || {},
+      created_by: session.user.id,
+      status: 'active'
+    };
+
+    // Only add expires_at if it's provided and not empty
+    if (expires_at && expires_at.trim() !== '') {
+      insertData.expires_at = expires_at;
+    }
+
     const { data: quest, error } = await supabaseAdmin
       .from('quests')
-      .insert({
-        title,
-        description,
-        category,
-        points: parseInt(points),
-        requirements,
-        validation_criteria: validation_criteria || {},
-        created_by: session.user.id,
-        status: 'active'
-      })
+      .insert(insertData)
       .select()
       .single();
 

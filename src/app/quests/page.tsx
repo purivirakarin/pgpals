@@ -15,7 +15,7 @@ export default function QuestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState(''); // New status filter
-  const [sortBy, setSortBy] = useState<'points' | 'id' | 'title' | 'created_at'>('points');
+  const [sortBy, setSortBy] = useState<'points' | 'id' | 'title' | 'created_at' | 'expires_at'>('points');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [error, setError] = useState<string | null>(null);
 
@@ -105,6 +105,12 @@ export default function QuestsPage() {
           break;
         case 'created_at':
           comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case 'expires_at':
+          // Handle quests without expiration dates (put them at the end)
+          const aExpires = a.expires_at ? new Date(a.expires_at).getTime() : Infinity;
+          const bExpires = b.expires_at ? new Date(b.expires_at).getTime() : Infinity;
+          comparison = aExpires - bExpires;
           break;
         default:
           comparison = 0;
@@ -302,13 +308,14 @@ export default function QuestsPage() {
                     <select
                       id="sort"
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value as 'points' | 'id' | 'title' | 'created_at')}
+                      onChange={(e) => setSortBy(e.target.value as 'points' | 'id' | 'title' | 'created_at' | 'expires_at')}
                       className="w-full pl-12 pr-10 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 appearance-none bg-white cursor-pointer"
                     >
                       <option value="points">Points</option>
                       <option value="id">Quest ID</option>
                       <option value="title">Title</option>
                       <option value="created_at">Date Created</option>
+                      <option value="expires_at">Expiration Date</option>
                     </select>
                     <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

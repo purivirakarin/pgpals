@@ -295,6 +295,46 @@ async function handlePhotoSubmission(
     
     console.log('Found quest:', quest.id, quest.title);
 
+    // Check for existing submissions
+    const { data: existingSubmissions } = await supabaseAdmin
+      .from('submissions')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('quest_id', questId)
+      .order('submitted_at', { ascending: false });
+
+    if (existingSubmissions && existingSubmissions.length > 0) {
+      const latestSubmission = existingSubmissions[0];
+      
+      // Handle different existing submission statuses
+      if (latestSubmission.status === 'approved' || latestSubmission.status === 'ai_approved') {
+        await bot.sendMessage(chatId, 
+          `🎉 This quest is already completed!\n\n` +
+          `Quest: ${quest.title}\n` +
+          `Status: ✅ Approved\n` +
+          `Points earned: ${quest.points}\n\n` +
+          `Your submission has been approved. No need to resubmit!`
+        );
+        return;
+      } else if (latestSubmission.status === 'pending_ai' || latestSubmission.status === 'manual_review') {
+        await bot.sendMessage(chatId, 
+          `⏳ You already have a pending submission for this quest.\n\n` +
+          `Quest: ${quest.title}\n` +
+          `Status: ${latestSubmission.status === 'pending_ai' ? '🔄 Pending AI Review' : '👁️ Under Manual Review'}\n` +
+          `Submitted: ${new Date(latestSubmission.submitted_at).toLocaleDateString()}\n\n` +
+          `Please wait for your current submission to be reviewed before submitting again.`
+        );
+        return;
+      } else if (latestSubmission.status === 'rejected' || latestSubmission.status === 'ai_rejected') {
+        await bot.sendMessage(chatId, 
+          `🔄 Thank you for resubmitting!\n\n` +
+          `Quest: ${quest.title}\n` +
+          `Previous submission was not approved. Processing your new submission...\n\n` +
+          `💡 Tip: Make sure your photo clearly shows the quest requirement!`
+        );
+      }
+    }
+
     const largestPhoto = photo[photo.length - 1];
     const fileId = largestPhoto.file_id;
     console.log('Photo file ID:', fileId);

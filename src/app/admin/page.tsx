@@ -234,7 +234,7 @@ export default function AdminDashboard() {
                 {stats.pendingSubmissions} submissions need review
               </h3>
               <p className="text-orange-800 mt-1">
-                Some quest submissions are waiting for manual review. 
+                Some quest submissions are waiting for review. 
                 <Link href="/admin/submissions" className="ml-1 font-medium underline">
                   Review now →
                 </Link>

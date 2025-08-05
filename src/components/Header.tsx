@@ -69,7 +69,7 @@ export default function Header() {
                     <span className="hidden xl:inline">{item.name}</span>
                     <span className="xl:hidden">
                       {item.name === 'Admin Dashboard' ? 'Admin' : 
-                       item.name === 'Manage Users' ? 'Users' : 'Quests'}
+                       item.name === 'Manage Quests' ? 'Quests' : 'Submissions'}
                     </span>
                   </Link>
                 ))}

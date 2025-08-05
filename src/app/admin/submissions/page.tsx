@@ -25,6 +25,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { Submission } from '@/types';
+import Dropdown from '@/components/Dropdown';
 
 interface SubmissionWithDetails extends Omit<Submission, 'user' | 'quest'> {
   user: {
@@ -163,7 +164,18 @@ export default function AdminSubmissionsPage() {
       submission.quest.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (submission.user.telegram_username && submission.user.telegram_username.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesStatus = !statusFilter || submission.status === statusFilter;
+    let matchesStatus = true;
+    if (statusFilter) {
+      if (statusFilter === 'pending_review') {
+        matchesStatus = submission.status === 'manual_review' || submission.status === 'pending_ai';
+      } else if (statusFilter === 'approved') {
+        matchesStatus = submission.status === 'approved' || submission.status === 'ai_approved';
+      } else if (statusFilter === 'rejected') {
+        matchesStatus = submission.status === 'rejected' || submission.status === 'ai_rejected';
+      } else {
+        matchesStatus = submission.status === statusFilter;
+      }
+    }
     
     return matchesSearch && matchesStatus;
   });
@@ -180,7 +192,7 @@ export default function AdminSubmissionsPage() {
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
 
-  const pendingCount = (submissions || []).filter(s => s.status === 'manual_review' || s.status === 'ai_rejected').length;
+  const pendingCount = (submissions || []).filter(s => s.status === 'manual_review' || s.status === 'pending_ai').length;
 
   if (status === 'loading' || loading) {
     return (
@@ -227,7 +239,7 @@ export default function AdminSubmissionsPage() {
 
       {/* Filters */}
       <div className="mb-6 card p-6">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row md:items-end gap-4">
           <div className="flex-1">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
               Search Submissions
@@ -248,31 +260,30 @@ export default function AdminSubmissionsPage() {
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Status
             </label>
-            <div className="relative">
-              <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <select
-                id="status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="pending_ai">Pending AI</option>
-                <option value="manual_review">Manual Review</option>
-                <option value="ai_approved">AI Approved</option>
-                <option value="ai_rejected">AI Rejected</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-              </select>
-            </div>
+            <Dropdown
+              options={[
+                { value: "", label: "All Statuses" },
+                { value: "pending_review", label: "Pending Review" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+                { value: "pending_ai", label: "Pending AI" },
+                { value: "manual_review", label: "Manual Review" },
+                { value: "ai_approved", label: "AI Approved" },
+                { value: "ai_rejected", label: "AI Rejected" }
+              ]}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="All Statuses"
+              icon={<Filter className="w-5 h-5" />}
+            />
           </div>
 
-          <div className="flex items-center space-x-4 md:ml-auto">
+          <div className="flex items-center space-x-4">
             <button
-              onClick={() => setStatusFilter('manual_review')}
+              onClick={() => setStatusFilter('pending_review')}
               className="btn-primary"
             >
-              Show Pending Review ({(submissions || []).filter(s => s.status === 'manual_review').length})
+              Show Pending Review ({(submissions || []).filter(s => s.status === 'manual_review' || s.status === 'pending_ai').length})
             </button>
             <button
               onClick={() => setStatusFilter('')}
@@ -309,119 +320,255 @@ export default function AdminSubmissionsPage() {
         ) : (
           <div className="space-y-4 p-6">
           {paginatedSubmissions.map((submission) => (
-            <div key={submission.id} className="card p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <User className="w-5 h-5 text-gray-400 mr-2" />
-                    <span className="font-medium text-gray-900">{submission.user.name}</span>
-                    {submission.user.telegram_username && (
-                      <span className="ml-2 text-sm text-gray-500">@{submission.user.telegram_username}</span>
-                    )}
-                    <span className={`ml-4 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(submission.status)}`}>
+            <div key={submission.id} className="card p-4 sm:p-6">
+              {/* Mobile Layout */}
+              <div className="block lg:hidden">
+                <div className="space-y-4">
+                  {/* User Info */}
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <User className="w-5 h-5 text-gray-400 mr-2 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-medium text-gray-900 block truncate">{submission.user.name}</span>
+                        {submission.user.telegram_username && (
+                          <span className="text-sm text-gray-500 block truncate">@{submission.user.telegram_username}</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ml-2 ${getStatusColor(submission.status)}`}>
                       {getStatusIcon(submission.status)}
-                      <span className="ml-1">{submission.status.replace('_', ' ')}</span>
+                      <span className="ml-1 hidden sm:inline">{submission.status.replace('_', ' ')}</span>
                     </span>
                   </div>
 
-                  <div className="flex items-center mb-2">
-                    <Target className="w-5 h-5 text-gray-400 mr-2" />
-                    <span className="text-gray-700">{submission.quest.title}</span>
-                    <span className="ml-2 text-sm text-gray-500">({submission.quest.category})</span>
-                    <div className="ml-4 flex items-center text-primary-600">
-                      <Award className="w-4 h-4 mr-1" />
-                      {submission.quest.points} pts
+                  {/* Quest Info */}
+                  <div className="flex items-start">
+                    <Target className="w-5 h-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-gray-700 block">{submission.quest.title}</span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-sm text-gray-500">({submission.quest.category})</span>
+                        <div className="flex items-center text-primary-600 flex-shrink-0">
+                          <Award className="w-4 h-4 mr-1" />
+                          {submission.quest.points} pts
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    Submitted {new Date(submission.submitted_at).toLocaleString()}
+                  {/* Timestamps */}
+                  <div className="text-sm text-gray-500">
+                    <div className="flex items-center">
+                      <Calendar className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span className="truncate">Submitted {new Date(submission.submitted_at).toLocaleDateString()}</span>
+                    </div>
                     {submission.reviewed_at && (
-                      <>
-                        <span className="mx-2">•</span>
-                        Reviewed {new Date(submission.reviewed_at).toLocaleString()}
-                      </>
+                      <div className="mt-1 ml-5">
+                        Reviewed {new Date(submission.reviewed_at).toLocaleDateString()}
+                      </div>
                     )}
                   </div>
 
+                  {/* Admin Feedback */}
                   {submission.admin_feedback && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center mb-1">
-                        <MessageCircle className="w-4 h-4 text-gray-500 mr-1" />
+                        <MessageCircle className="w-4 h-4 text-gray-500 mr-1 flex-shrink-0" />
                         <span className="text-sm font-medium text-gray-700">Admin Feedback:</span>
                       </div>
-                      <p className="text-sm text-gray-600">{submission.admin_feedback}</p>
+                      <p className="text-sm text-gray-600 break-words">{submission.admin_feedback}</p>
                     </div>
                   )}
 
+                  {/* AI Analysis */}
                   {submission.ai_analysis && Object.keys(submission.ai_analysis).length > 0 && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-center mb-1">
-                        <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
-                        <span className="text-sm font-medium text-blue-700">AI Analysis:</span>
+                    <div className="p-3 bg-blue-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="w-4 h-4 bg-blue-500 rounded mr-2 flex-shrink-0"></div>
+                          <span className="text-sm font-medium text-blue-700">AI Analysis</span>
+                        </div>
                         {submission.ai_confidence_score && (
-                          <span className="ml-2 text-sm text-blue-600">
-                            {Math.round(submission.ai_confidence_score * 100)}% confidence
+                          <span className="text-sm text-blue-600 flex-shrink-0">
+                            {Math.round(submission.ai_confidence_score * 100)}%
                           </span>
                         )}
                       </div>
                     </div>
                   )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col space-y-2">
+                    {submission.telegram_file_id && (
+                      <button
+                        onClick={() => setSelectedImage(submission.telegram_file_id)}
+                        className="flex items-center justify-center text-sm text-primary-600 hover:text-primary-700 py-2 px-3 border border-primary-200 rounded-lg hover:bg-primary-50"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Image
+                      </button>
+                    )}
+
+                    {canOverride(submission.status) && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => reviewSubmission(submission.id, 'approve')}
+                          disabled={reviewLoading === submission.id || submission.status === 'approved'}
+                          className={`flex-1 flex items-center justify-center px-3 py-2 text-white rounded-lg text-sm disabled:opacity-50 ${
+                            submission.status === 'approved' 
+                              ? 'bg-green-800 cursor-not-allowed' 
+                              : 'bg-green-600 hover:bg-green-700'
+                          }`}
+                        >
+                          {reviewLoading === submission.id ? (
+                            <Loader className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                          <span className="ml-1">
+                            {submission.status === 'approved' ? 'Approved' : 'Approve'}
+                          </span>
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            if (submission.status === 'rejected') return;
+                            const feedback = prompt('Rejection reason (optional):');
+                            reviewSubmission(submission.id, 'reject', feedback || undefined);
+                          }}
+                          disabled={reviewLoading === submission.id || submission.status === 'rejected'}
+                          className={`flex-1 flex items-center justify-center px-3 py-2 text-white rounded-lg text-sm disabled:opacity-50 ${
+                            submission.status === 'rejected' 
+                              ? 'bg-red-800 cursor-not-allowed' 
+                              : 'bg-red-600 hover:bg-red-700'
+                          }`}
+                        >
+                          <X className="w-4 h-4" />
+                          <span className="ml-1">
+                            {submission.status === 'rejected' ? 'Rejected' : 'Reject'}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <div className="flex flex-col items-end space-y-2 ml-6">
-                  {submission.telegram_file_id && (
-                    <button
-                      onClick={() => setSelectedImage(submission.telegram_file_id)}
-                      className="flex items-center text-sm text-primary-600 hover:text-primary-700"
-                    >
-                      <Eye className="w-4 h-4 mr-1" />
-                      View Image
-                    </button>
-                  )}
-
-                  {canOverride(submission.status) && (
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => reviewSubmission(submission.id, 'approve')}
-                        disabled={reviewLoading === submission.id || submission.status === 'approved'}
-                        className={`flex items-center px-3 py-1 text-white rounded text-sm disabled:opacity-50 ${
-                          submission.status === 'approved' 
-                            ? 'bg-green-800 cursor-not-allowed' 
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                      >
-                        {reviewLoading === submission.id ? (
-                          <Loader className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Check className="w-4 h-4" />
-                        )}
-                        <span className="ml-1">
-                          {submission.status === 'approved' ? 'Approved' : 'Approve'}
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => {
-                          if (submission.status === 'rejected') return;
-                          const feedback = prompt('Rejection reason (optional):');
-                          reviewSubmission(submission.id, 'reject', feedback || undefined);
-                        }}
-                        disabled={reviewLoading === submission.id || submission.status === 'rejected'}
-                        className={`flex items-center px-3 py-1 text-white rounded text-sm disabled:opacity-50 ${
-                          submission.status === 'rejected' 
-                            ? 'bg-red-800 cursor-not-allowed' 
-                            : 'bg-red-600 hover:bg-red-700'
-                        }`}
-                      >
-                        <X className="w-4 h-4" />
-                        <span className="ml-1">
-                          {submission.status === 'rejected' ? 'Rejected' : 'Reject'}
-                        </span>
-                      </button>
+              {/* Desktop Layout */}
+              <div className="hidden lg:block">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center mb-2">
+                      <User className="w-5 h-5 text-gray-400 mr-2" />
+                      <span className="font-medium text-gray-900">{submission.user.name}</span>
+                      {submission.user.telegram_username && (
+                        <span className="ml-2 text-sm text-gray-500">@{submission.user.telegram_username}</span>
+                      )}
+                      <span className={`ml-4 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(submission.status)}`}>
+                        {getStatusIcon(submission.status)}
+                        <span className="ml-1">{submission.status.replace('_', ' ')}</span>
+                      </span>
                     </div>
-                  )}
+
+                    <div className="flex items-center mb-2">
+                      <Target className="w-5 h-5 text-gray-400 mr-2" />
+                      <span className="text-gray-700">{submission.quest.title}</span>
+                      <span className="ml-2 text-sm text-gray-500">({submission.quest.category})</span>
+                      <div className="ml-4 flex items-center text-primary-600">
+                        <Award className="w-4 h-4 mr-1" />
+                        {submission.quest.points} pts
+                      </div>
+                    </div>
+
+                    <div className="flex items-center text-sm text-gray-500">
+                      <Calendar className="w-4 h-4 mr-1" />
+                      Submitted {new Date(submission.submitted_at).toLocaleString()}
+                      {submission.reviewed_at && (
+                        <>
+                          <span className="mx-2">•</span>
+                          Reviewed {new Date(submission.reviewed_at).toLocaleString()}
+                        </>
+                      )}
+                    </div>
+
+                    {submission.admin_feedback && (
+                      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center mb-1">
+                          <MessageCircle className="w-4 h-4 text-gray-500 mr-1" />
+                          <span className="text-sm font-medium text-gray-700">Admin Feedback:</span>
+                        </div>
+                        <p className="text-sm text-gray-600">{submission.admin_feedback}</p>
+                      </div>
+                    )}
+
+                    {submission.ai_analysis && Object.keys(submission.ai_analysis).length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                        <div className="flex items-center mb-1">
+                          <div className="w-4 h-4 bg-blue-500 rounded mr-2"></div>
+                          <span className="text-sm font-medium text-blue-700">AI Analysis:</span>
+                          {submission.ai_confidence_score && (
+                            <span className="ml-2 text-sm text-blue-600">
+                              {Math.round(submission.ai_confidence_score * 100)}% confidence
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col items-end space-y-2 ml-6">
+                    {submission.telegram_file_id && (
+                      <button
+                        onClick={() => setSelectedImage(submission.telegram_file_id)}
+                        className="flex items-center text-sm text-primary-600 hover:text-primary-700"
+                      >
+                        <Eye className="w-4 h-4 mr-1" />
+                        View Image
+                      </button>
+                    )}
+
+                    {canOverride(submission.status) && (
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => reviewSubmission(submission.id, 'approve')}
+                          disabled={reviewLoading === submission.id || submission.status === 'approved'}
+                          className={`flex items-center px-3 py-1 text-white rounded text-sm disabled:opacity-50 ${
+                            submission.status === 'approved' 
+                              ? 'bg-green-800 cursor-not-allowed' 
+                              : 'bg-green-600 hover:bg-green-700'
+                          }`}
+                        >
+                          {reviewLoading === submission.id ? (
+                            <Loader className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                          <span className="ml-1">
+                            {submission.status === 'approved' ? 'Approved' : 'Approve'}
+                          </span>
+                        </button>
+                        
+                        <button
+                          onClick={() => {
+                            if (submission.status === 'rejected') return;
+                            const feedback = prompt('Rejection reason (optional):');
+                            reviewSubmission(submission.id, 'reject', feedback || undefined);
+                          }}
+                          disabled={reviewLoading === submission.id || submission.status === 'rejected'}
+                          className={`flex items-center px-3 py-1 text-white rounded text-sm disabled:opacity-50 ${
+                            submission.status === 'rejected' 
+                              ? 'bg-red-800 cursor-not-allowed' 
+                              : 'bg-red-600 hover:bg-red-700'
+                          }`}
+                        >
+                          <X className="w-4 h-4" />
+                          <span className="ml-1">
+                            {submission.status === 'rejected' ? 'Rejected' : 'Reject'}
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
