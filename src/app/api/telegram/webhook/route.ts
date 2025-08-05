@@ -330,7 +330,7 @@ async function handlePhotoSubmission(
         await bot.sendMessage(chatId, 
           `⏳ You already have a pending submission for this quest.\n\n` +
           `Quest: ${quest.title}\n` +
-          `Status: ${latestSubmission.status === 'pending_ai' ? '🔄 Pending AI Review' : '👁️ Under Manual Review'}\n` +
+          `Status: Pending Review` +
           `Submitted: ${new Date(latestSubmission.submitted_at).toLocaleDateString()}\n\n` +
           `Please wait for your current submission to be reviewed before submitting again.`
         );
@@ -374,8 +374,7 @@ async function handlePhotoSubmission(
     await bot.sendMessage(chatId, 
       `✅ Submission received!\n\n` +
       `Quest: ${quest.title}\n` +
-      `Submission ID: ${submission.id}\n` +
-      `Status: Pending AI validation\n\n` +
+      `Status: Pending validation\n\n` +
       `You'll be notified when it's processed.`
     );
 

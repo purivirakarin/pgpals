@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Target, Plus, Edit, Trash2, Loader, X, Save, AlertCircle, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Target, Plus, Edit, Trash2, Loader, X, Save, AlertCircle, Search, Filter, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import Dropdown from '@/components/Dropdown';
 
 interface Quest {
@@ -22,7 +22,7 @@ interface Quest {
 interface QuestFormData {
   title: string;
   description: string;
-  points: number;
+  points: string; // Keep as string for form input handling
   category: string;
   requirements: string;
   status: 'active' | 'inactive';
@@ -44,7 +44,7 @@ export default function AdminQuestsPage() {
   const [formData, setFormData] = useState<QuestFormData>({
     title: '',
     description: '',
-    points: 0,
+    points: '0',
     category: '',
     requirements: '',
     status: 'active',
@@ -86,14 +86,44 @@ export default function AdminQuestsPage() {
     setFormData({
       title: '',
       description: '',
-      points: 0,
       category: '',
+      points: '',
       requirements: '',
       status: 'active',
       expires_at: ''
     });
     setShowModal(true);
-    setError(null);
+  };
+
+  const expireQuests = async () => {
+    if (!confirm('Are you sure you want to expire all quests that have passed their expiration date?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/expire-quests', {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to expire quests');
+      }
+
+      const result = await response.json();
+      
+      // Refresh the quests list
+      await fetchQuests();
+      
+      // Show success message
+      if (result.expired_count > 0) {
+        alert(`Successfully expired ${result.expired_count} quest(s).`);
+      } else {
+        alert('No quests needed to be expired.');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to expire quests');
+    }
   };
 
   const openEditModal = (quest: Quest) => {
@@ -101,11 +131,11 @@ export default function AdminQuestsPage() {
     setFormData({
       title: quest.title,
       description: quest.description,
-      points: quest.points,
+      points: quest.points.toString(),
       category: quest.category,
       requirements: quest.requirements || '',
       status: quest.status,
-      expires_at: quest.expires_at ? quest.expires_at.slice(0, 16) : '' // Format for datetime-local input
+      expires_at: quest.expires_at ? new Date(quest.expires_at).toISOString().slice(0, 16) : '' // Format for datetime-local input with proper timezone
     });
     setShowModal(true);
     setError(null);
@@ -279,13 +309,23 @@ export default function AdminQuestsPage() {
             <Target className="w-8 h-8 text-green-600 mr-3" />
             <h1 className="text-3xl font-bold text-gray-900">Quest Management</h1>
           </div>
-          <button 
-            onClick={openCreateModal}
-            className="btn-primary flex items-center"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Quest
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={expireQuests}
+              className="btn-secondary flex items-center"
+              title="Manually expire quests that have passed their expiration date"
+            >
+              <Clock className="w-4 h-4 mr-2" />
+              Expire Quests
+            </button>
+            <button 
+              onClick={openCreateModal}
+              className="btn-primary flex items-center"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Quest
+            </button>
+          </div>
         </div>
         <p className="text-lg text-gray-600">
           Manage quests and challenges for your platform.
@@ -607,7 +647,7 @@ export default function AdminQuestsPage() {
                     <input
                       type="number"
                       value={formData.points}
-                      onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, points: e.target.value })}
                       min="1"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                       required

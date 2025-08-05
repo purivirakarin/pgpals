@@ -11,6 +11,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const category = searchParams.get('category');
 
+    // First, expire any quests that have passed their expiration date
+    await supabaseAdmin.rpc('expire_quests');
+
     let query = supabase
       .from('quests')
       .select('*')
@@ -75,7 +78,9 @@ export async function POST(request: NextRequest) {
 
     // Only add expires_at if it's provided and not empty
     if (expires_at && expires_at.trim() !== '') {
-      insertData.expires_at = expires_at;
+      // Convert datetime-local input to UTC for database storage
+      // datetime-local gives us YYYY-MM-DDTHH:mm format in local time
+      insertData.expires_at = new Date(expires_at).toISOString();
     }
 
     const { data: quest, error } = await supabaseAdmin
