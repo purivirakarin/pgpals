@@ -975,7 +975,7 @@ export default function AdminUsersPage() {
               </div>
               
               <p className="text-gray-600 mb-6">
-                Are you sure you want to change this user's role to{' '}
+                Are you sure you want to change this user&apos;s role to{' '}
                 <span className="font-semibold">
                   {pendingUpdate.newRole === 'admin' ? 'Admin' : 'Participant'}
                 </span>
@@ -986,7 +986,7 @@ export default function AdminUsersPage() {
                 <div className="flex">
                   <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
                   <div className="text-sm text-yellow-700">
-                    <strong>Important:</strong> This action will immediately change the user's permissions and access level.
+                    <strong>Important:</strong> This action will immediately change the user&apos;s permissions and access level.
                   </div>
                 </div>
               </div>
