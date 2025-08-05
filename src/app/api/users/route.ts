@@ -52,7 +52,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }
 
-    return NextResponse.json(users || []);
+    // Get submission counts for each user
+    const usersWithSubmissions = await Promise.all((users || []).map(async (user) => {
+      const { data: submissionCount } = await supabaseAdmin
+        .from('submissions')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user.id);
+
+      return {
+        ...user,
+        submissions: [{ count: submissionCount || 0 }]
+      };
+    }));
+
+    return NextResponse.json(usersWithSubmissions || []);
   } catch (error) {
     console.error('Users API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

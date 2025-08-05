@@ -15,7 +15,7 @@ export async function GET(
     }
 
     // Users can view their own profile, admins can view any profile
-    if (session.user.id !== params.id && session.user.role !== 'admin') {
+    if (parseInt(session.user.id) !== parseInt(params.id) && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -70,7 +70,7 @@ export async function PUT(
     const { name, role, telegram_id, telegram_username } = body;
 
     // Users can update their own profile (limited fields), admins can update any profile
-    if (session.user.id !== params.id && session.user.role !== 'admin') {
+    if (parseInt(session.user.id) !== parseInt(params.id) && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -118,7 +118,7 @@ export async function DELETE(
     }
 
     // Prevent admin from deleting themselves
-    if (session.user.id === params.id) {
+    if (parseInt(session.user.id) === parseInt(params.id)) {
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
     }
 
