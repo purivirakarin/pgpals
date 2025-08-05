@@ -304,8 +304,8 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
                   <ol className="text-sm text-blue-800 space-y-1">
                     <li>1. Find our bot on Telegram</li>
                     <li>2. Send <code className="bg-blue-100 px-1 rounded">/start</code> to get your Telegram ID</li>
-                    <li>3. Copy the Telegram ID from the bot's message</li>
-                    <li>4. Paste it in the field below and click "Link Account"</li>
+                    <li>3. Copy the Telegram ID from the bot&apos;s message</li>
+                    <li>4. Paste it in the field below and click &quot;Link Account&quot;</li>
                   </ol>
                   <div className="mt-2 p-2 bg-blue-100 rounded text-xs text-blue-700">
                     <strong>Note:</strong> You must create your website account first before linking Telegram!
