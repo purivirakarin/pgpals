@@ -184,9 +184,9 @@ export default function SignUpPage() {
             </div>
 
             <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-900 mb-2">🤖 Telegram Integration</h3>
+              <h3 className="text-sm font-medium text-blue-900 mb-2">🤖 Next: Link Telegram</h3>
               <p className="text-sm text-blue-800">
-                After signing up, find our Telegram bot and use <code className="bg-blue-100 px-1 rounded">/start</code> to link your account for easy quest submissions!
+                After creating your account, find our Telegram bot and use <code className="bg-blue-100 px-1 rounded">/start</code> to get your Telegram ID. Then enter that ID in your Profile page to link your account for quest submissions!
               </p>
             </div>
           </div>

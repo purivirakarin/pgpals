@@ -120,9 +120,9 @@ export default function SignInPage() {
           </div>
 
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-900 mb-2">🤖 Prefer Telegram?</h3>
+            <h3 className="text-sm font-medium text-blue-900 mb-2">🤖 Telegram Integration</h3>
             <p className="text-sm text-blue-800">
-              You can also link your account via our Telegram bot. Just search for our bot and use <code className="bg-blue-100 px-1 rounded">/start</code>
+              After signing in, go to your Profile page to link your Telegram account. Use our bot's <code className="bg-blue-100 px-1 rounded">/start</code> command to get your Telegram ID!
             </p>
           </div>
         </div>
