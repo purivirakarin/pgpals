@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Target, Plus, Edit, Trash2, Loader, X, Save, AlertCircle, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import Dropdown from '@/components/Dropdown';
 
 interface Quest {
   id: string;
@@ -14,6 +15,7 @@ interface Quest {
   status: 'active' | 'inactive';
   requirements?: string;
   validation_criteria?: any;
+  expires_at?: string;
   created_at: string;
 }
 
@@ -24,6 +26,7 @@ interface QuestFormData {
   category: string;
   requirements: string;
   status: 'active' | 'inactive';
+  expires_at: string;
 }
 
 export default function AdminQuestsPage() {
@@ -34,6 +37,8 @@ export default function AdminQuestsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [sortBy, setSortBy] = useState<'title' | 'points' | 'category' | 'created_at' | 'expires_at'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showModal, setShowModal] = useState(false);
   const [editingQuest, setEditingQuest] = useState<Quest | null>(null);
   const [formData, setFormData] = useState<QuestFormData>({
@@ -42,7 +47,8 @@ export default function AdminQuestsPage() {
     points: 0,
     category: '',
     requirements: '',
-    status: 'active'
+    status: 'active',
+    expires_at: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,7 +89,8 @@ export default function AdminQuestsPage() {
       points: 0,
       category: '',
       requirements: '',
-      status: 'active'
+      status: 'active',
+      expires_at: ''
     });
     setShowModal(true);
     setError(null);
@@ -97,7 +104,8 @@ export default function AdminQuestsPage() {
       points: quest.points,
       category: quest.category,
       requirements: quest.requirements || '',
-      status: quest.status
+      status: quest.status,
+      expires_at: quest.expires_at ? quest.expires_at.slice(0, 16) : '' // Format for datetime-local input
     });
     setShowModal(true);
     setError(null);
@@ -187,17 +195,52 @@ export default function AdminQuestsPage() {
     }
   };
 
-  const filteredQuests = quests.filter(quest => {
-    const matchesSearch = !searchTerm || 
-      quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quest.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quest.category.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = !statusFilter || quest.status === statusFilter;
-    const matchesCategory = !categoryFilter || quest.category === categoryFilter;
-    
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+  const filteredQuests = quests
+    .filter(quest => {
+      const matchesSearch = !searchTerm || 
+        quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        quest.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        quest.category.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = !statusFilter || quest.status === statusFilter;
+      const matchesCategory = !categoryFilter || quest.category === categoryFilter;
+      
+      return matchesSearch && matchesStatus && matchesCategory;
+    })
+    .sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortBy) {
+        case 'title':
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
+        case 'points':
+          aValue = a.points || 0;
+          bValue = b.points || 0;
+          break;
+        case 'category':
+          aValue = a.category?.toLowerCase() || '';
+          bValue = b.category?.toLowerCase() || '';
+          break;
+        case 'expires_at':
+          aValue = a.expires_at ? new Date(a.expires_at).getTime() : Infinity;
+          bValue = b.expires_at ? new Date(b.expires_at).getTime() : Infinity;
+          break;
+        case 'created_at':
+        default:
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+      } else {
+        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+      }
+    });
 
   // Pagination logic
   const totalFilteredQuests = filteredQuests.length;
@@ -209,7 +252,7 @@ export default function AdminQuestsPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, categoryFilter]);
+  }, [searchTerm, statusFilter, categoryFilter, sortBy, sortOrder]);
 
   const categories = ['Health', 'Education', 'Outdoor', 'Creative', 'Social', 'Daily', 'Weekly', 'Special', 'Community', 'Challenge'];
 
@@ -264,7 +307,7 @@ export default function AdminQuestsPage() {
 
       {/* Filters */}
       <div className="mb-6 card p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="md:col-span-1">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
               Search Quests
@@ -286,39 +329,68 @@ export default function AdminQuestsPage() {
             <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Category
             </label>
-            <div className="relative">
-              <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <select
-                id="category"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">All Categories</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
+            <Dropdown
+              options={[
+                { value: "", label: "All Categories" },
+                ...categories.map(category => ({ value: category, label: category }))
+              ]}
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              placeholder="All Categories"
+              icon={<Filter className="w-5 h-5" />}
+            />
           </div>
 
           <div>
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Status
             </label>
-            <div className="relative">
-              <Filter className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <select
-                id="status"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
+            <Dropdown
+              options={[
+                { value: "", label: "All Statuses" },
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" }
+              ]}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              placeholder="All Statuses"
+              icon={<Filter className="w-5 h-5" />}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-2">
+              Sort By
+            </label>
+            <Dropdown
+              options={[
+                { value: "created_at", label: "Created Date" },
+                { value: "title", label: "Title" },
+                { value: "points", label: "Points" },
+                { value: "category", label: "Category" },
+                { value: "expires_at", label: "Expiration Date" }
+              ]}
+              value={sortBy}
+              onChange={(value) => setSortBy(value as typeof sortBy)}
+              placeholder="Sort by..."
+              icon={<Filter className="w-5 h-5" />}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-2">
+              Sort Order
+            </label>
+            <Dropdown
+              options={[
+                { value: "desc", label: "Descending" },
+                { value: "asc", label: "Ascending" }
+              ]}
+              value={sortOrder}
+              onChange={(value) => setSortOrder(value as typeof sortOrder)}
+              placeholder="Sort order..."
+              icon={<Filter className="w-5 h-5" />}
+            />
           </div>
         </div>
       </div>
@@ -362,6 +434,17 @@ export default function AdminQuestsPage() {
                     <div className="flex flex-wrap items-center gap-4 mt-3">
                       <span className="text-sm text-gray-500">Points: {quest.points}</span>
                       <span className="text-sm text-gray-500">Category: {quest.category}</span>
+                      {quest.expires_at && (
+                        <span className={`text-sm px-2 py-1 rounded-full font-medium ${
+                          new Date(quest.expires_at) < new Date() 
+                            ? 'bg-red-100 text-red-800' 
+                            : new Date(quest.expires_at) < new Date(Date.now() + 24 * 60 * 60 * 1000)
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          🕐 Expires: {new Date(quest.expires_at).toLocaleDateString()}
+                        </span>
+                      )}
                       <button
                         onClick={() => toggleQuestStatus(quest)}
                         className={`text-sm px-2 py-1 rounded-full cursor-pointer hover:opacity-75 ${
@@ -502,19 +585,19 @@ export default function AdminQuestsPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Category *
                     </label>
-                    <select
+                    <Dropdown
+                      options={[
+                        { value: "", label: "Select Category" },
+                        { value: "daily", label: "Daily" },
+                        { value: "weekly", label: "Weekly" },
+                        { value: "special", label: "Special" },
+                        { value: "community", label: "Community" },
+                        { value: "challenge", label: "Challenge" }
+                      ]}
                       value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      required
-                    >
-                      <option value="">Select Category</option>
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="special">Special</option>
-                      <option value="community">Community</option>
-                      <option value="challenge">Challenge</option>
-                    </select>
+                      onChange={(value) => setFormData({ ...formData, category: value })}
+                      placeholder="Select Category"
+                    />
                   </div>
 
                   <div>
@@ -536,14 +619,14 @@ export default function AdminQuestsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
-                  <select
+                  <Dropdown
+                    options={[
+                      { value: "active", label: "Active" },
+                      { value: "inactive", label: "Inactive" }
+                    ]}
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as 'active' | 'inactive' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                    onChange={(value) => setFormData({ ...formData, status: value as 'active' | 'inactive' })}
+                  />
                 </div>
 
                 <div>
@@ -557,6 +640,22 @@ export default function AdminQuestsPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="Optional requirements or instructions..."
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Expiration Date (Optional)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={formData.expires_at}
+                    onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                    min={new Date().toISOString().slice(0, 16)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Quest will automatically become inactive after this date
+                  </p>
                 </div>
 
                 {error && (

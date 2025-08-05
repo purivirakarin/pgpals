@@ -24,6 +24,7 @@ export interface Quest {
   status: 'active' | 'inactive' | 'archived';
   requirements: string;
   validation_criteria: Record<string, any>;
+  expires_at?: string;
   created_by: number;
   created_at: string;
   updated_at: string;

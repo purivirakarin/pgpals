@@ -37,7 +37,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, description, category, points, requirements, validation_criteria, status } = body;
+    const { title, description, category, points, requirements, validation_criteria, status, expires_at } = body;
 
     // Get current quest data to check if points are changing
     const { data: currentQuest, error: fetchError } = await supabaseAdmin
@@ -58,6 +58,11 @@ export async function PUT(
     if (requirements !== undefined) updateData.requirements = requirements;
     if (validation_criteria !== undefined) updateData.validation_criteria = validation_criteria;
     if (status !== undefined) updateData.status = status;
+    
+    // Handle expires_at - allow setting it to null if empty string is provided
+    if (expires_at !== undefined) {
+      updateData.expires_at = expires_at && expires_at.trim() !== '' ? expires_at : null;
+    }
 
     const { data: quest, error } = await supabaseAdmin
       .from('quests')
