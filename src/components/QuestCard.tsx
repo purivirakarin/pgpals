@@ -186,7 +186,7 @@ export default function QuestCard({
                 title={`Click to copy: /submit ${numericId}`}
               >
                 <span className="mr-1">📱</span>
-                <code className="font-mono mr-2">/submit #{numericId}</code>
+                <code className="font-mono mr-2">/submit {numericId}</code>
                 {copied ? (
                   <Check className="w-3 h-3 text-green-600" />
                 ) : (
@@ -196,7 +196,7 @@ export default function QuestCard({
               
               {/* Tooltip showing full command */}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                <code>/submit #{numericId}</code>
+                <code>/submit {numericId}</code>
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
               </div>
             </div>

@@ -354,44 +354,44 @@ export default function AdminQuestsPage() {
         ) : (
           <div className="p-6 space-y-4">
             {paginatedQuests.map((quest) => (
-          <div key={quest.id} className="card p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">{quest.title}</h3>
-                <p className="text-gray-600 mt-1">{quest.description}</p>
-                <div className="flex items-center space-x-4 mt-3">
-                  <span className="text-sm text-gray-500">Points: {quest.points}</span>
-                  <span className="text-sm text-gray-500">Category: {quest.category}</span>
-                  <button
-                    onClick={() => toggleQuestStatus(quest)}
-                    className={`text-sm px-2 py-1 rounded-full cursor-pointer hover:opacity-75 ${
-                      quest.status === 'active'
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {quest.status === 'active' ? 'Active' : 'Inactive'}
-                  </button>
+              <div key={quest.id} className="card p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex-1 mb-4 lg:mb-0">
+                    <h3 className="text-lg font-semibold text-gray-900">{quest.title}</h3>
+                    <p className="text-gray-600 mt-1">{quest.description}</p>
+                    <div className="flex flex-wrap items-center gap-4 mt-3">
+                      <span className="text-sm text-gray-500">Points: {quest.points}</span>
+                      <span className="text-sm text-gray-500">Category: {quest.category}</span>
+                      <button
+                        onClick={() => toggleQuestStatus(quest)}
+                        className={`text-sm px-2 py-1 rounded-full cursor-pointer hover:opacity-75 ${
+                          quest.status === 'active'
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {quest.status === 'active' ? 'Active' : 'Inactive'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <button 
+                      onClick={() => openEditModal(quest)}
+                      className="btn-secondary flex items-center justify-center"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Edit
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(quest.id, quest.title)}
+                      className="btn-danger flex items-center justify-center"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <button 
-                  onClick={() => openEditModal(quest)}
-                  className="btn-secondary flex items-center"
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </button>
-                <button 
-                  onClick={() => handleDelete(quest.id, quest.title)}
-                  className="btn-danger flex items-center"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
             ))}
           </div>
         )}
