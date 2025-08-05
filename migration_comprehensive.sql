@@ -14,12 +14,15 @@ CREATE TABLE IF NOT EXISTS users_new (
     password_hash VARCHAR,
     telegram_id VARCHAR UNIQUE,
     telegram_username VARCHAR,
-    partner_id INTEGER REFERENCES users_new(id),
+    partner_id INTEGER,
     role VARCHAR CHECK (role IN ('participant', 'admin')) DEFAULT 'participant',
     streak_count INTEGER DEFAULT 0,
     last_submission_date TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Named foreign key constraint for partner relationship
+    CONSTRAINT users_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES users_new(id)
 );
 
 -- Quests table with integer ID
@@ -32,43 +35,58 @@ CREATE TABLE IF NOT EXISTS quests_new (
     status VARCHAR CHECK (status IN ('active', 'inactive', 'archived')) DEFAULT 'active',
     requirements TEXT,
     validation_criteria JSONB DEFAULT '{}',
-    created_by INTEGER REFERENCES users_new(id),
+    created_by INTEGER,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Named foreign key constraint
+    CONSTRAINT quests_created_by_fkey FOREIGN KEY (created_by) REFERENCES users_new(id)
 );
 
 -- Submissions table with integer IDs
 CREATE TABLE IF NOT EXISTS submissions_new (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users_new(id) NOT NULL,
-    quest_id INTEGER REFERENCES quests_new(id) NOT NULL,
+    user_id INTEGER NOT NULL,
+    quest_id INTEGER NOT NULL,
     telegram_file_id VARCHAR NOT NULL,
     telegram_message_id INTEGER,
     status VARCHAR CHECK (status IN ('pending_ai', 'ai_approved', 'ai_rejected', 'manual_review', 'approved', 'rejected')) DEFAULT 'pending_ai',
     ai_analysis JSONB DEFAULT '{}',
     ai_confidence_score FLOAT,
     admin_feedback TEXT,
-    reviewed_by INTEGER REFERENCES users_new(id),
+    reviewed_by INTEGER,
     points_awarded INTEGER DEFAULT 0,
     submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     reviewed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Named foreign key constraints for Supabase compatibility
+    CONSTRAINT submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users_new(id),
+    CONSTRAINT submissions_quest_id_fkey FOREIGN KEY (quest_id) REFERENCES quests_new(id),
+    CONSTRAINT submissions_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES users_new(id)
 );
 
 -- Activities table with integer IDs for comprehensive tracking
 CREATE TABLE IF NOT EXISTS activities_new (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users_new(id) NOT NULL,
+    user_id INTEGER NOT NULL,
     activity_type VARCHAR NOT NULL,
     description TEXT NOT NULL,
     points_change INTEGER DEFAULT 0,
-    quest_id INTEGER REFERENCES quests_new(id),
-    submission_id INTEGER REFERENCES submissions_new(id),
-    target_user_id INTEGER REFERENCES users_new(id),
+    quest_id INTEGER,
+    submission_id INTEGER,
+    target_user_id INTEGER,
     metadata JSONB DEFAULT '{}',
-    created_by INTEGER REFERENCES users_new(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_by INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    -- Named foreign key constraints
+    CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES users_new(id),
+    CONSTRAINT activities_quest_id_fkey FOREIGN KEY (quest_id) REFERENCES quests_new(id),
+    CONSTRAINT activities_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submissions_new(id),
+    CONSTRAINT activities_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES users_new(id),
+    CONSTRAINT activities_created_by_fkey FOREIGN KEY (created_by) REFERENCES users_new(id)
 );
 
 -- 2. Migrate data from old tables (if they exist)
@@ -92,7 +110,7 @@ WHERE EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'quests
 -- Migrate submissions
 INSERT INTO submissions_new (user_id, quest_id, telegram_file_id, telegram_message_id, status, ai_analysis, ai_confidence_score, admin_feedback, reviewed_by, points_awarded, submitted_at, reviewed_at, created_at, updated_at)
 SELECT u_new.id, q_new.id, s.telegram_file_id, s.telegram_message_id, s.status, s.ai_analysis, s.ai_confidence_score, s.admin_feedback,
-       reviewer_new.id, s.points_awarded, s.submitted_at, s.reviewed_at, s.created_at, s.updated_at
+       reviewer_new.id, s.points_awarded, s.submitted_at, s.reviewed_at, s.submitted_at, COALESCE(s.reviewed_at, s.submitted_at)
 FROM submissions s
 LEFT JOIN users u_old ON s.user_id = u_old.id
 LEFT JOIN users_new u_new ON u_old.email = u_new.email
@@ -112,6 +130,31 @@ ALTER TABLE users_new RENAME TO users;
 ALTER TABLE quests_new RENAME TO quests;
 ALTER TABLE submissions_new RENAME TO submissions;
 ALTER TABLE activities_new RENAME TO activities;
+
+-- 3.1. Update foreign key constraints to reference the renamed tables
+-- Drop existing constraints that reference the old table names
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_partner_id_fkey;
+ALTER TABLE quests DROP CONSTRAINT IF EXISTS quests_created_by_fkey;
+ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_user_id_fkey;
+ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_quest_id_fkey;
+ALTER TABLE submissions DROP CONSTRAINT IF EXISTS submissions_reviewed_by_fkey;
+ALTER TABLE activities DROP CONSTRAINT IF EXISTS activities_user_id_fkey;
+ALTER TABLE activities DROP CONSTRAINT IF EXISTS activities_quest_id_fkey;
+ALTER TABLE activities DROP CONSTRAINT IF EXISTS activities_submission_id_fkey;
+ALTER TABLE activities DROP CONSTRAINT IF EXISTS activities_target_user_id_fkey;
+ALTER TABLE activities DROP CONSTRAINT IF EXISTS activities_created_by_fkey;
+
+-- Recreate constraints with correct table references
+ALTER TABLE users ADD CONSTRAINT users_partner_id_fkey FOREIGN KEY (partner_id) REFERENCES users(id);
+ALTER TABLE quests ADD CONSTRAINT quests_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id);
+ALTER TABLE submissions ADD CONSTRAINT submissions_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE submissions ADD CONSTRAINT submissions_quest_id_fkey FOREIGN KEY (quest_id) REFERENCES quests(id);
+ALTER TABLE submissions ADD CONSTRAINT submissions_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES users(id);
+ALTER TABLE activities ADD CONSTRAINT activities_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+ALTER TABLE activities ADD CONSTRAINT activities_quest_id_fkey FOREIGN KEY (quest_id) REFERENCES quests(id);
+ALTER TABLE activities ADD CONSTRAINT activities_submission_id_fkey FOREIGN KEY (submission_id) REFERENCES submissions(id);
+ALTER TABLE activities ADD CONSTRAINT activities_target_user_id_fkey FOREIGN KEY (target_user_id) REFERENCES users(id);
+ALTER TABLE activities ADD CONSTRAINT activities_created_by_fkey FOREIGN KEY (created_by) REFERENCES users(id);
 
 -- 4. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);
@@ -144,6 +187,14 @@ SELECT
             -- Individual points
             COALESCE(user_points.total, 0)
     END as total_points,
+    CASE 
+        WHEN u.partner_id IS NOT NULL THEN 
+            -- Combined completed quests for partners
+            COALESCE(user_quests.completed, 0) + COALESCE(partner_quests.completed, 0)
+        ELSE 
+            -- Individual completed quests
+            COALESCE(user_quests.completed, 0)
+    END as completed_quests,
     u.role,
     u.streak_count,
     u.last_submission_date,
@@ -156,11 +207,20 @@ FROM users u
 LEFT JOIN (
     SELECT 
         user_id,
-        SUM(points_awarded) as total
+        SUM(points_awarded) as total,
+        COUNT(DISTINCT quest_id) as completed
     FROM submissions 
     WHERE status IN ('approved', 'ai_approved')
     GROUP BY user_id
 ) user_points ON u.id = user_points.user_id
+LEFT JOIN (
+    SELECT 
+        user_id,
+        COUNT(DISTINCT quest_id) as completed
+    FROM submissions 
+    WHERE status IN ('approved', 'ai_approved')
+    GROUP BY user_id
+) user_quests ON u.id = user_quests.user_id
 LEFT JOIN users p ON u.partner_id = p.id
 LEFT JOIN (
     SELECT 
@@ -169,7 +229,15 @@ LEFT JOIN (
     FROM submissions 
     WHERE status IN ('approved', 'ai_approved')
     GROUP BY user_id
-) partner_points ON u.partner_id = partner_points.user_id;
+) partner_points ON u.partner_id = partner_points.user_id
+LEFT JOIN (
+    SELECT 
+        user_id,
+        COUNT(DISTINCT quest_id) as completed
+    FROM submissions 
+    WHERE status IN ('approved', 'ai_approved')
+    GROUP BY user_id
+) partner_quests ON u.partner_id = partner_quests.user_id;
 
 -- Create recent activities view with proper joins
 CREATE OR REPLACE VIEW recent_activities_view AS

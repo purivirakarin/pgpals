@@ -70,10 +70,12 @@ export interface Activity {
 }
 
 export interface LeaderboardEntry {
-  user_id: string;
+  user_id: string | number;
   name: string;
   telegram_username?: string;
   total_points: number;
   completed_quests: number;
   rank: number;
+  is_partnership?: boolean;
+  partner_names?: string[];
 }

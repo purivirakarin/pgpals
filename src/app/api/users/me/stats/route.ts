@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const { data: userStats, error: userError } = await supabaseAdmin
       .from('user_points_view')
       .select('*')
-      .eq('user_id', session.user.id)
+      .eq('id', session.user.id)
       .single();
 
     if (userError || !userStats) {

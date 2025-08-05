@@ -11,6 +11,7 @@ interface QuestCardProps {
   onEdit?: (quest: Quest) => void;
   onDelete?: (questId: number) => void;
   userSubmission?: any;
+  showStatusBadge?: boolean; // New prop to control status badge visibility
 }
 
 export default function QuestCard({ 
@@ -18,7 +19,8 @@ export default function QuestCard({
   showActions = false, 
   onEdit, 
   onDelete,
-  userSubmission 
+  userSubmission,
+  showStatusBadge = false
 }: QuestCardProps) {
   const [copied, setCopied] = useState(false);
 
@@ -128,9 +130,11 @@ export default function QuestCard({
               <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
                 {quest.category}
               </span>
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(quest.status)}`}>
-                {quest.status}
-              </span>
+              {showStatusBadge && (
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(quest.status)}`}>
+                  {quest.status}
+                </span>
+              )}
             </div>
           </div>
         </div>
