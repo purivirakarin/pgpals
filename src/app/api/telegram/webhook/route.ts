@@ -68,13 +68,17 @@ async function handleMessage(message: any) {
     } else {
       console.log('Sending help message');
       await bot.sendMessage(chatId, 
-        'Available commands:\n' +
-        '/start - Link your account\n' +
-        '/submit [quest_id] - Submit with photo\n' +
-        '/status - Check your submissions\n' +
+        '🤖 **PGPals Bot Commands**\n\n' +
+        '📋 **Setup Commands:**\n' +
+        '/start - Get your Telegram ID for account linking\n\n' +
+        '🎮 **Quest Commands:**\n' +
         '/quests - List top 5 available quests\n' +
         '/quests all - List more available quests\n' +
-        '/leaderboard - View top participants'
+        '/submit [quest_id] - Submit quest with photo\n' +
+        '/status - Check your submissions\n' +
+        '/leaderboard - View top participants\n\n' +
+        '⚠️ **Note:** You must create a web account first at ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + ' and link it before using quest commands!',
+        { parse_mode: 'Markdown' }
       );
     }
   } catch (error) {
@@ -132,17 +136,19 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
       console.log('New user, sending welcome message');
       await bot.sendMessage(chatId, 
         `Welcome to PGPals! 🎮\n\n` +
-        `To link your account:\n` +
+        `📋 **Important: Create your web account first!**\n\n` +
+        `To get started:\n` +
         `1. Visit: ${process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app'}\n` +
-        `2. Sign up or sign in\n` +
+        `2. Create your account (Sign Up)\n` +
         `3. Go to your Profile page\n` +
         `4. Enter this Telegram ID: \`${telegramId}\`\n` +
         `${username ? `5. Optional: Enter username: \`${username}\`\n` : ''}` +
-        `\n🔗 Once linked, you can:\n` +
+        `6. Click "Link Account" to connect\n\n` +
+        `🔗 Once linked, you can:\n` +
         `• Submit quest photos directly here\n` +
         `• Check your status with /status\n` +
         `• View quests with /quests\n\n` +
-        `Try /quests to see what's available!`, 
+        `⚠️ You must have a web account before using Telegram features!`, 
         { parse_mode: 'Markdown' }
       );
     }
@@ -273,7 +279,11 @@ async function handlePhotoSubmission(
     if (!user) {
       console.log('User not found for telegram_id:', telegramId);
       await bot.sendMessage(chatId, 
-        'Please link your account first using /start command.'
+        '🚫 Account not linked!\n\n' +
+        '1. Create account at: ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + '\n' +
+        '2. Use /start to get your Telegram ID\n' +
+        '3. Enter that ID in your Profile page\n\n' +
+        'You must link your account before submitting quests!'
       );
       return;
     }
@@ -394,7 +404,13 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       .single();
 
     if (!user) {
-      await bot.sendMessage(chatId, 'Please link your account first using /start command.');
+      await bot.sendMessage(chatId, 
+        '🚫 Account not linked!\n\n' +
+        '1. Create account at: ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + '\n' +
+        '2. Use /start to get your Telegram ID\n' +
+        '3. Enter that ID in your Profile page\n\n' +
+        'You must link your account before checking status!'
+      );
       return;
     }
 

@@ -106,14 +106,19 @@ curl -X POST https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook \
      - 🔴 **Rejected**: Submission did not meet criteria
    - Monitor expiration dates with color-coded warnings
 
-3. **Telegram Submission Workflow**:
-   - Start bot: `/start`
+3. **Telegram Integration Process**:
+   - **Step 1**: Create account on the website first
+   - **Step 2**: Find the Telegram bot and send `/start` to get your Telegram ID
+   - **Step 3**: Enter the Telegram ID in your website Profile page
+   - **Step 4**: Click "Link Account" to connect
+
+4. **Telegram Submission Workflow** (after linking):
    - Browse available quests: `/quests`
    - Submit proof: Send photo with `/submit [quest_id]`
    - Check submission status: `/status`
    - View personal leaderboard position: `/leaderboard`
 
-4. **Progress Tracking**:
+5. **Progress Tracking**:
    - Personal profile showing total points and completion streak
    - Submission history with timestamps and status updates
    - Real-time leaderboard positioning
