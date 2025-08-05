@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { bot } from '@/lib/telegram';
 import { supabaseAdmin } from '@/lib/supabase';
 import { User, Quest, Submission } from '@/types';
+import { parseQuestId, getQuestByNumericId } from '@/lib/questId';
 
 export async function POST(request: NextRequest) {
   try {
@@ -110,11 +111,21 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
     }
 
     if (existingUser) {
-      console.log('Found existing user, sending welcome back message');
+      console.log('Found existing user, getting points from view');
+      
+      // Get current points from the view
+      const { data: userStats } = await supabaseAdmin
+        .from('user_points_view')
+        .select('total_points')
+        .eq('user_id', existingUser.id)
+        .single();
+        
+      const currentPoints = userStats?.total_points || 0;
+      
       await bot.sendMessage(chatId, 
         `Welcome back, ${existingUser.name}! 🎉\n` +
         `Your account is already linked.\n` +
-        `Points: ${existingUser.total_points}\n\n` +
+        `Points: ${currentPoints}\n\n` +
         `Try /quests to see available challenges!`
       );
     } else {
@@ -235,14 +246,23 @@ async function handlePhotoSubmission(
   messageId: number
 ) {
   try {
-    const questIdMatch = caption.match(/\/submit\s+([a-zA-Z0-9-]+)/);
+    const questIdMatch = caption.match(/\/submit\s+([a-zA-Z0-9-#]+)/);
     if (!questIdMatch) {
-      await bot.sendMessage(chatId, 'Invalid format. Use: Send photo with caption `/submit [quest_id]`');
+      await bot.sendMessage(chatId, 'Invalid format. Use: Send photo with caption `/submit [quest_id]` or `/submit #[number]`');
       return;
     }
 
-    const questId = questIdMatch[1];
-    console.log('Processing quest submission for ID:', questId);
+    const questIdInput = questIdMatch[1];
+    console.log('Processing quest submission for input:', questIdInput);
+    
+    // Parse the quest ID input (now expecting integers)
+    const questId = parseQuestId(questIdInput);
+    if (!questId) {
+      await bot.sendMessage(chatId, `Invalid quest ID: ${questIdInput}. Please use a valid quest number (e.g., /submit 1 or /submit #1).`);
+      return;
+    }
+    
+    console.log('Parsed quest ID:', questId);
     
     const { data: user } = await supabaseAdmin
       .from('users')
@@ -326,9 +346,10 @@ async function handlePhotoSubmission(
 
 async function handleStatusCommand(chatId: number, telegramId: number) {
   try {
+    // Get user and their current points
     const { data: user } = await supabaseAdmin
       .from('users')
-      .select('*')
+      .select('id, name, streak_count')
       .eq('telegram_id', telegramId.toString())
       .single();
 
@@ -336,6 +357,15 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       await bot.sendMessage(chatId, 'Please link your account first using /start command.');
       return;
     }
+
+    // Get current points from view
+    const { data: userStats } = await supabaseAdmin
+      .from('user_points_view')
+      .select('total_points')
+      .eq('user_id', user.id)
+      .single();
+
+    const currentPoints = userStats?.total_points || 0;
 
     const { data: submissions } = await supabaseAdmin
       .from('submissions')
@@ -348,7 +378,7 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       .limit(10);
 
     let message = `📊 **Your Status:**\n\n`;
-    message += `Total Points: ${user.total_points}\n`;
+    message += `Total Points: ${currentPoints}\n`;
     message += `Streak: ${user.streak_count}\n\n`;
 
     if (submissions && submissions.length > 0) {
@@ -371,7 +401,7 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
 async function handleLeaderboardCommand(chatId: number) {
   try {
     const { data: topUsers } = await supabaseAdmin
-      .from('users')
+      .from('user_points_view')
       .select('name, telegram_username, total_points')
       .eq('role', 'participant')
       .order('total_points', { ascending: false })

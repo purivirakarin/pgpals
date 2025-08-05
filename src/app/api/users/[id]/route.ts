@@ -19,25 +19,34 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { data: user, error } = await supabaseAdmin
-      .from('users')
-      .select(`
-        *,
-        submissions:submissions!submissions_user_id_fkey(
-          id,
-          quest_id,
-          status,
-          points_awarded,
-          submitted_at,
-          quest:quests(title, category)
-        )
-      `)
+    // Get user info from the view which includes partner information
+    const { data: userFromView, error: viewError } = await supabaseAdmin
+      .from('user_points_view')
+      .select('*')
       .eq('id', params.id)
       .single();
 
-    if (error || !user) {
+    if (viewError || !userFromView) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    // Get submissions separately since they're not in the view
+    const { data: submissions } = await supabaseAdmin
+      .from('submissions')
+      .select(`
+        id,
+        quest_id,
+        status,
+        points_awarded,
+        submitted_at,
+        quest:quests(title, category)
+      `)
+      .eq('user_id', params.id);
+
+    const user = {
+      ...userFromView,
+      submissions: submissions || []
+    };
 
     return NextResponse.json(user);
   } catch (error) {
@@ -58,7 +67,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, role, telegram_id, telegram_username, total_points } = body;
+    const { name, role, telegram_id, telegram_username } = body;
 
     // Users can update their own profile (limited fields), admins can update any profile
     if (session.user.id !== params.id && session.user.role !== 'admin') {
@@ -75,7 +84,7 @@ export async function PUT(
     // Fields that only admins can update
     if (session.user.role === 'admin') {
       if (role !== undefined) updateData.role = role;
-      if (total_points !== undefined) updateData.total_points = total_points;
+      // Note: total_points is now automatically calculated via database view
     }
 
     const { data: user, error } = await supabaseAdmin

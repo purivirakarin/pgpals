@@ -16,10 +16,14 @@ export default function Header() {
     { name: 'Leaderboard', href: '/leaderboard' },
   ];
 
+  const userNavigation = [
+    { name: 'My Submissions', href: '/my-submissions' },
+  ];
+
   const adminNavigation = [
     { name: 'Admin Dashboard', href: '/admin' },
-    { name: 'Manage Users', href: '/admin/users' },
     { name: 'Manage Quests', href: '/admin/quests' },
+    { name: 'Manage Submissions', href: '/admin/submissions' },
   ];
 
   return (
@@ -35,6 +39,15 @@ export default function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
             {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-gray-700 hover:text-primary-600 px-2 xl:px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                {item.name}
+              </Link>
+            ))}
+            {session && session.user?.role !== 'admin' && userNavigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -127,6 +140,17 @@ export default function Header() {
           <div className="lg:hidden border-t border-gray-200 py-4">
             <div className="space-y-2">
               {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              
+              {session && session.user?.role !== 'admin' && userNavigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}

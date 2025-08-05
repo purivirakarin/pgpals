@@ -8,8 +8,16 @@ import { StatsProvider } from '@/contexts/StatsContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'PGPals - Prince George\'s Park Residence Event',
+  title: 'PGPals - Prince George\'s Park Residence',
   description: 'Complete quests, earn points, and climb the leaderboard!',
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/favicon.png',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({

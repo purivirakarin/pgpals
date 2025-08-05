@@ -1,16 +1,22 @@
 import Leaderboard from '@/components/Leaderboard';
+import { Trophy } from 'lucide-react';
 
 export default function LeaderboardPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
-          🏆 Leaderboard
-        </h1>
-        <p className="text-lg text-gray-600">
-          See how you rank against other participants in the quest challenge!
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 rounded-2xl mb-6">
+            <Trophy className="w-8 h-8 text-primary-600" />
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
+            Leaderboard
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            See how you rank against other participants in the quest challenge!
+          </p>
+        </div>
 
       <Leaderboard limit={20} className="max-w-none" />
       
@@ -34,6 +40,7 @@ export default function LeaderboardPage() {
             </ul>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
