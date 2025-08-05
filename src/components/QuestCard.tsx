@@ -3,12 +3,13 @@
 import { Quest } from '@/types';
 import { Target, Calendar, Award, Users, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
+import { getNumericId } from '@/lib/questId';
 
 interface QuestCardProps {
   quest: Quest;
   showActions?: boolean;
   onEdit?: (quest: Quest) => void;
-  onDelete?: (questId: string) => void;
+  onDelete?: (questId: number) => void;
   userSubmission?: any;
 }
 
@@ -21,8 +22,11 @@ export default function QuestCard({
 }: QuestCardProps) {
   const [copied, setCopied] = useState(false);
 
+  // Generate a consistent numeric ID based on quest.id
+  const numericId = getNumericId(quest.id);
+
   const copySubmitCommand = async () => {
-    const command = `/submit ${quest.id}`;
+    const command = `/submit ${numericId}`;
     try {
       await navigator.clipboard.writeText(command);
       setCopied(true);
@@ -175,10 +179,10 @@ export default function QuestCard({
               <button
                 onClick={copySubmitCommand}
                 className="flex items-center bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-medium border border-blue-200 transition-colors cursor-pointer"
-                title={`Click to copy: /submit ${quest.id}`}
+                title={`Click to copy: /submit ${numericId}`}
               >
                 <span className="mr-1">📱</span>
-                <code className="font-mono mr-2">/submit {quest.id.slice(0, 8)}...</code>
+                <code className="font-mono mr-2">/submit #{numericId}</code>
                 {copied ? (
                   <Check className="w-3 h-3 text-green-600" />
                 ) : (
@@ -188,7 +192,7 @@ export default function QuestCard({
               
               {/* Tooltip showing full command */}
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                <code>/submit {quest.id}</code>
+                <code>/submit #{numericId}</code>
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
               </div>
             </div>

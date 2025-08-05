@@ -52,7 +52,7 @@ export default function AdminSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [reviewLoading, setReviewLoading] = useState<string | null>(null);
+  const [reviewLoading, setReviewLoading] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const fetchSubmissions = useCallback(async () => {
@@ -94,7 +94,7 @@ export default function AdminSubmissionsPage() {
     return () => clearTimeout(delayedFetch);
   }, [statusFilter, session, fetchSubmissions]);
 
-  const reviewSubmission = async (submissionId: string, action: 'approve' | 'reject', feedback?: string) => {
+  const reviewSubmission = async (submissionId: number, action: 'approve' | 'reject', feedback?: string) => {
     setReviewLoading(submissionId);
     try {
       const response = await fetch(`/api/admin/submissions/${submissionId}/review`, {

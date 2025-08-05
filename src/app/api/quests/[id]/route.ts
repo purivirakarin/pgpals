@@ -39,6 +39,17 @@ export async function PUT(
     const body = await request.json();
     const { title, description, category, points, requirements, validation_criteria, status } = body;
 
+    // Get current quest data to check if points are changing
+    const { data: currentQuest, error: fetchError } = await supabaseAdmin
+      .from('quests')
+      .select('points')
+      .eq('id', params.id)
+      .single();
+
+    if (fetchError || !currentQuest) {
+      return NextResponse.json({ error: 'Quest not found' }, { status: 404 });
+    }
+
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
@@ -60,6 +71,11 @@ export async function PUT(
       return NextResponse.json({ error: 'Failed to update quest' }, { status: 500 });
     }
 
+    // If points were changed, the user_points_view will automatically reflect the new totals
+    if (points !== undefined && parseInt(points) !== currentQuest.points) {
+      console.log(`Quest ${params.id} points changed from ${currentQuest.points} to ${parseInt(points)}. User points will be automatically updated via database view.`);
+    }
+
     return NextResponse.json(quest);
   } catch (error) {
     console.error('Quest update API error:', error);
@@ -78,6 +94,20 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // First, get all users who have approved submissions for this quest
+    // so we can recalculate their points after deletion
+    const { data: affectedSubmissions, error: submissionsError } = await supabaseAdmin
+      .from('submissions')
+      .select('user_id, points_awarded')
+      .eq('quest_id', params.id)
+      .eq('status', 'approved');
+
+    if (submissionsError) {
+      console.error('Error fetching affected submissions:', submissionsError);
+      // Continue with deletion even if we can't fetch submissions
+    }
+
+    // Delete the quest (this will also cascade delete submissions if FK is set up with CASCADE)
     const { error } = await supabaseAdmin
       .from('quests')
       .delete()
@@ -86,6 +116,12 @@ export async function DELETE(
     if (error) {
       console.error('Quest deletion error:', error);
       return NextResponse.json({ error: 'Failed to delete quest' }, { status: 500 });
+    }
+
+    // Points are now automatically calculated via database view
+    // No manual recalculation needed when quest is deleted
+    if (affectedSubmissions && affectedSubmissions.length > 0) {
+      console.log(`Quest ${params.id} deleted. Points for ${affectedSubmissions.length} submissions will be automatically updated in user_points_view`);
     }
 
     return NextResponse.json({ success: true });
