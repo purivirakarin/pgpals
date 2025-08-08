@@ -1,5 +1,6 @@
 node_modules/
 .next/
 .env.*
+!.env.example
 .vercel
 service.txt
