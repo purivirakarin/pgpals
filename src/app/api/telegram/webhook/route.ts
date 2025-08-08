@@ -3,6 +3,7 @@ import { bot } from '@/lib/telegram';
 import { supabaseAdmin } from '@/lib/supabase';
 import { User, Quest, Submission } from '@/types';
 import { parseQuestId, getQuestByNumericId } from '@/lib/questId';
+import { nsfwDetection } from '@/lib/nsfw-detection';
 
 export async function POST(request: NextRequest) {
   try {
@@ -431,6 +432,68 @@ async function handlePhotoSubmission(
     const largestPhoto = photo[photo.length - 1];
     const fileId = largestPhoto.file_id;
     console.log('Photo file ID:', fileId);
+
+    // NSFW DETECTION PART
+    console.log('Starting NSFW detection...');
+    let nsfwResult = null;
+
+    try {
+      nsfwResult = await nsfwDetection.checkTelegramPhoto(fileId);
+      
+      if (nsfwResult.isNSFW) {
+        console.log('NSFW content detected:', nsfwResult);
+        
+        // Log the incident for monitoring
+        await supabaseAdmin
+          .from('submissions')
+          .insert({
+            user_id: user.id,
+            quest_id: questId,
+            telegram_file_id: fileId,
+            telegram_message_id: messageId,
+            status: 'rejected',
+            ai_analysis: {
+              nsfw_detection: nsfwResult,
+              rejection_reason: 'NSFW content detected',
+              detected_at: new Date().toISOString()
+            },
+            submitted_at: new Date().toISOString()
+          });
+
+        // Notify user with helpful message
+        await bot.sendMessage(chatId, 
+          `Submission rejected!\n\n` +
+          `Your photo was flagged as inappropriate content.\n` +
+          `Reason: ${nsfwResult.reason}\n\n` +
+          `If you believe this was an error, contact one of our event organizers.`
+        );
+
+        // Alert admins for high-confidence violations
+        if (nsfwResult.confidence > 0.8 && process.env.ADMIN_TELEGRAM_ID) {
+          await bot.sendMessage(process.env.ADMIN_TELEGRAM_ID, 
+            `NSFW content detected!\n` +
+            `User: ${user.name} (${user.id})\n` +
+            `Quest: ${quest.title}\n` +
+            `Confidence: ${(nsfwResult.confidence * 100).toFixed(1)}%\n` +
+            `Details: ${nsfwResult.reason}\n` +
+            `Primary: ${nsfwResult.details?.primaryViolation || 'Unknown'}`
+          );
+        }
+
+        return;
+      }
+
+      console.log('NSFW check passed, proceeding with submission...');
+      
+    } catch (error) {
+      console.error('NSFW detection failed:', error);
+      nsfwResult = { 
+        isNSFW: false, 
+        confidence: 0, 
+        reason: 'NSFW detection service unavailable',
+        error: error.message 
+      };
+    }
 
     console.log('Inserting submission into database...');
     const { data: submission, error } = await supabaseAdmin

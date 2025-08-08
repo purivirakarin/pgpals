@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@google-cloud/vision": "^5.3.3",
     "@next-auth/supabase-adapter": "^0.2.1",
     "@supabase/supabase-js": "^2.45.4",
     "@types/bcryptjs": "^2.4.6",
