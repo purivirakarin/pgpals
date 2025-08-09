@@ -28,7 +28,7 @@ export const LeaderboardItem = memo<LeaderboardItemProps>(
         </div>
         <div className="text-right">
           <div className="text-lg font-bold text-emerald-100">{pair.score}</div>
-          <p className="text-emerald-300 text-xs">activities</p>
+          <p className="text-emerald-300 text-xs">pts</p>
         </div>
       </div>
     )

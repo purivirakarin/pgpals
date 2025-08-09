@@ -28,8 +28,11 @@ const SubmissionModal = lazy(() => import("./components/submission-modal"))
 
 // Grid configuration moved to constants file
 
-// Activities data - moved to a separate constant to avoid re-creation on renders
-const ACTIVITIES = [
+// API base URL for backend
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || ''
+
+// Fallback activities used if API is unavailable
+const FALLBACK_ACTIVITIES = [
   { task: "Create a Team Name & Catchphrase with your partner!", points: 15 },
   { task: "Make a drawing of each other", points: 20 },
   { task: "Film a TikTok video challenge or Instagram story with your partner and tag PGPR Instagram", points: 25 },
@@ -62,19 +65,7 @@ const ACTIVITIES = [
   { task: "Try local street food at a hawker center", points: 15 },
 ].slice(0, GRID_SIZE)
 
-// Leaderboard data - moved to a separate constant
-const LEADERBOARD_DATA = [
-  { name: "Grace & Yijie", score: 18, avatar: "🏆" },
-  { name: "Jason & Trump", score: 16, avatar: "🥈" },
-  { name: "Sarah & Ming", score: 14, avatar: "🥉" },
-  { name: "Alex & Priya", score: 12, avatar: "⭐" },
-  { name: "Chen & Maria", score: 10, avatar: "🌟" },
-  { name: "David & Aisha", score: 8, avatar: "✨" },
-  { name: "Kevin & Lisa", score: 6, avatar: "💫" },
-  { name: "Ryan & Zoe", score: 4, avatar: "🎪" },
-  { name: "Emma & Raj", score: 2, avatar: "🎨" },
-  { name: "Sam & Noor", score: 1, avatar: "🎨" },
-]
+// No leaderboard fallback; we rely on API and show empty/loading states
 
 
 
@@ -86,6 +77,9 @@ const LEADERBOARD_DATA = [
 
 // Main component
 export default function PGPals() {
+  const [activities, setActivities] = useState<{ task: string; points: number }[]>(FALLBACK_ACTIVITIES)
+  const [leaderboard, setLeaderboard] = useState<{ name: string; score: number; avatar: string }[]>([])
+  const [leaderboardLoading, setLeaderboardLoading] = useState<boolean>(true)
   const [flippedTiles, setFlippedTiles] = useState<Set<number>>(new Set())
   const [currentView, setCurrentView] = useState<"profile" | "bingo" | "leaderboard">("bingo")
   const [showCompletionAnimation, setShowCompletionAnimation] = useState(false)
@@ -137,8 +131,8 @@ export default function PGPals() {
 
   // Memoized total points calculation - moved before gameStats
   const totalPoints = useMemo(
-    () => Array.from(flippedTiles).reduce((sum, index) => sum + ACTIVITIES[index].points, 0),
-    [flippedTiles],
+    () => Array.from(flippedTiles).reduce((sum, index) => sum + (activities[index]?.points || 0), 0),
+    [flippedTiles, activities],
   )
 
   // Game statistics for achievements - now totalPoints is available
@@ -163,6 +157,47 @@ export default function PGPals() {
       setUserProfile(cloudUserProfile)
     }
   }, [cloudUserProfile])
+
+  // Load activities from API
+  useEffect(() => {
+    const loadActivities = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/quests`)
+        if (!res.ok) throw new Error('Failed to fetch quests')
+        const quests: Array<{ title?: string; description?: string; points?: number }> = await res.json()
+        const mapped = quests
+          .slice(0, GRID_SIZE)
+          .map(q => ({ task: q.title || q.description || 'Quest', points: Number(q.points) || 0 }))
+        setActivities(mapped.length ? mapped : FALLBACK_ACTIVITIES)
+      } catch (e) {
+        setActivities(FALLBACK_ACTIVITIES)
+      }
+    }
+    loadActivities()
+  }, [])
+
+  // Load leaderboard from API
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      try {
+        setLeaderboardLoading(true)
+        const res = await fetch(`${API_BASE}/api/leaderboard?limit=10`)
+        if (!res.ok) throw new Error('Failed to fetch leaderboard')
+        const entries: Array<{ name?: string; total_points?: number; rank?: number }> = await res.json()
+        const mapped = entries.map((e) => ({
+          name: e.name || 'Participant',
+          score: Number(e.total_points) || 0,
+          avatar: e.rank === 1 ? '🏆' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : '⭐'
+        }))
+        setLeaderboard(mapped)
+      } catch (e) {
+        setLeaderboard([])
+      } finally {
+        setLeaderboardLoading(false)
+      }
+    }
+    loadLeaderboard()
+  }, [])
 
 
 
@@ -437,14 +472,14 @@ export default function PGPals() {
       {zoomedTile !== null && <div className="fixed inset-0 bg-black/70 z-40 animate-in fade-in duration-500"></div>}
 
       {/* Zoomed Tile Display - Responsive */}
-      {zoomedTile !== null && (
+      {zoomedTile !== null && activities[zoomedTile] && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center pointer-events-none p-4">
           {/* Achievement Title - Responsive */}
           <div className="mb-4 text-center animate-in fade-in duration-500 delay-300">
             <h2 className="text-2xl font-bold text-white mb-2 drop-shadow-2xl">Achievement Unlocked!</h2>
             <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black px-3 py-2 rounded-full text-sm font-bold shadow-2xl border-2 border-yellow-300">
               <Sparkles className="inline h-4 w-4 mr-1" />
-              {ACTIVITIES[zoomedTile].points} Points
+              {activities[zoomedTile]?.points ?? 0} Points
               <Star className="inline h-4 w-4 ml-1" />
             </div>
           </div>
@@ -453,7 +488,7 @@ export default function PGPals() {
           <ZoomedTile
             tileIndex={zoomedTile}
             isFlipped={flippedTiles.has(zoomedTile)}
-            activity={ACTIVITIES[zoomedTile]}
+            activity={activities[zoomedTile]}
             bgPosition={zoomedTileBgPosition}
           />
         </div>
@@ -477,7 +512,7 @@ export default function PGPals() {
             onImageUpload={handleImageUpload}
             onCaptionChange={setSubmissionCaption}
             onSubmit={handleSubmissionSubmit}
-            activity={submissionTileIndex !== null ? ACTIVITIES[submissionTileIndex] : null}
+            activity={submissionTileIndex !== null ? activities[submissionTileIndex] : null}
           />
         )}
       </Suspense>
@@ -595,7 +630,7 @@ export default function PGPals() {
                 }}
                 data-grid-container="true"
               >
-                {ACTIVITIES.map((activity, index) => (
+                {activities.map((activity, index) => (
                   <Tile
                     key={index}
                     activity={activity}
@@ -672,7 +707,13 @@ export default function PGPals() {
             {/* Leaderboard - Responsive */}
             <div className="max-w-2xl mx-auto">
               <div className="bg-emerald-800/30 rounded-2xl backdrop-blur-sm border border-emerald-400/20 shadow-2xl p-3">
-                {LEADERBOARD_DATA.map((pair, index) => (
+                {leaderboardLoading && (
+                  <div className="text-center text-emerald-200 text-sm py-4">Loading leaderboard...</div>
+                )}
+                {!leaderboardLoading && leaderboard.length === 0 && (
+                  <div className="text-center text-emerald-200 text-sm py-4">No leaderboard entries yet.</div>
+                )}
+                {leaderboard.map((pair, index) => (
                   <LeaderboardItem key={index} pair={pair} index={index} />
                 ))}
               </div>

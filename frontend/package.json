@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "concurrently -k -n BACKEND,FRONTEND -c blue,green \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "next dev -p 3001",
+    "dev:backend": "cd .. && npm run dev",
     "lint": "next lint",
     "start": "next start"
   },
