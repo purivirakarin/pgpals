@@ -71,4 +71,3 @@ SELECT user1_id, user2_id
 FROM paired
 ON CONFLICT DO NOTHING;
 
-

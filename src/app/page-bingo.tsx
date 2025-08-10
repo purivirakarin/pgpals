@@ -5,8 +5,10 @@ import type React from "react"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { Trophy, Users, Sparkles, Star, TextIcon as Telegram } from 'lucide-react'
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-import { GRID_CONFIG, GRID_SIZE, ANIMATIONS, DEFAULT_PROFILE } from "@/lib/constants"
+import { GRID_CONFIG, GRID_SIZE, ANIMATIONS } from "@/lib/constants"
 import BottomNav from "@/app/components/bottom-nav"
 import { Tile } from "@/app/components/tile"
 import { ProfileCard, type ProfileData } from "@/app/components/profile-card"
@@ -21,6 +23,9 @@ import { useCloudStorage } from '@/hooks/use-cloud-storage'
 import TelegramShareButton from '@/app/components/telegram-share-button'
 import AchievementSystem from '@/app/components/achievement-system'
 import styles from "@/styles/animations.module.css"
+import { useSession } from 'next-auth/react'
+import { signIn, signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 
 import CompletionAnimation from "@/app/components/completion-animation"
 import SubmissionModal from "@/app/components/submission-modal"
@@ -31,6 +36,8 @@ const FALLBACK_ACTIVITIES = [
 ].slice(0, GRID_SIZE)
 
 export default function BingoPage() {
+  const { data: session, update } = useSession()
+  const router = useRouter()
   const [activities, setActivities] = useState<{ task: string; points: number }[]>(FALLBACK_ACTIVITIES)
   const [leaderboard, setLeaderboard] = useState<Array<{ name: string; score: number; avatar: string; users?: Array<{ id: string; name: string; telegram_username?: string | null }>; completed?: number; rank?: number }>>([])
   const [maxLeaderboardPoints, setMaxLeaderboardPoints] = useState<number>(0)
@@ -41,16 +48,10 @@ export default function BingoPage() {
   const [editingUser, setEditingUser] = useState(false)
   const [bingoCompleted, setBingoCompleted] = useState(false)
 
-  const [userProfile, setUserProfile] = useState<ProfileData>({
-    name: DEFAULT_PROFILE.USER_NAME,
-    major: DEFAULT_PROFILE.USER_MAJOR,
-    hobby: DEFAULT_PROFILE.USER_HOBBY,
-  })
+  const [userProfile, setUserProfile] = useState<ProfileData>({ name: '' })
 
   const [partnerProfile, setPartnerProfile] = useState<ProfileData>({
-    name: DEFAULT_PROFILE.PARTNER_NAME,
-    major: DEFAULT_PROFILE.PARTNER_MAJOR,
-    hobby: DEFAULT_PROFILE.PARTNER_HOBBY,
+    name: '',
   })
 
   const [tempUserProfile, setTempUserProfile] = useState<ProfileData>(userProfile)
@@ -63,6 +64,45 @@ export default function BingoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [zoomedTile, setZoomedTile] = useState<number | null>(null)
 
+  // Inline signup state
+  const [signEmail, setSignEmail] = useState('')
+  const [signName, setSignName] = useState('')
+  const [signPassword, setSignPassword] = useState('')
+  const [signConfirm, setSignConfirm] = useState('')
+  const [signLoading, setSignLoading] = useState(false)
+  const [signError, setSignError] = useState('')
+  const [signFaculty, setSignFaculty] = useState('')
+  const [signMajor, setSignMajor] = useState('')
+  const [signImageUrl, setSignImageUrl] = useState('')
+  const [signImageFile, setSignImageFile] = useState<File | null>(null)
+  const [signImagePreviewUrl, setSignImagePreviewUrl] = useState<string>('')
+
+  const FACULTIES: string[] = [
+    'Arts and Social Sciences',
+    'Business (NUS Business School)',
+    'Computing (School of Computing)',
+    'Dentistry',
+    'Design and Engineering (CDE)',
+    'Law',
+    'Medicine (Yong Loo Lin School of Medicine)',
+    'Science',
+    'Public Health (SSHSPH)',
+    'Integrative Sciences and Engineering (NUS Graduate School)',
+  ]
+
+  const MAJORS_BY_FACULTY: Record<string, string[]> = {
+    'Arts and Social Sciences': ['Economics', 'English Language', 'English Literature', 'Geography', 'History', 'Philosophy', 'Political Science', 'Psychology', 'Social Work', 'Sociology', 'Communications and New Media'],
+    'Business (NUS Business School)': ['Accounting', 'Business Administration', 'Business Analytics', 'Finance', 'Management', 'Marketing', 'Operations and Supply Chain'],
+    'Computing (School of Computing)': ['Computer Science', 'Information Security', 'Information Systems', 'Business Analytics', 'Computer Engineering'],
+    'Dentistry': ['Dentistry'],
+    'Design and Engineering (CDE)': ['Biomedical Engineering', 'Chemical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Industrial and Systems Engineering', 'Materials Science and Engineering', 'Mechanical Engineering', 'Architecture', 'Industrial Design'],
+    'Law': ['Law'],
+    'Medicine (Yong Loo Lin School of Medicine)': ['Medicine', 'Nursing'],
+    'Science': ['Chemistry', 'Life Sciences', 'Mathematics', 'Physics', 'Data Science and Analytics', 'Pharmaceutical Science', 'Food Science and Technology', 'Statistics'],
+    'Public Health (SSHSPH)': ['Public Health'],
+    'Integrative Sciences and Engineering (NUS Graduate School)': ['ISEP'],
+  }
+
   // Telegram integration
   const telegram = useTelegram()
   const { isDark } = useTelegramTheme()
@@ -74,15 +114,8 @@ export default function BingoPage() {
     isUsingLocalStorage: tilesUsingLocal 
   } = useCloudStorage<number[]>('flipped_tiles', [])
   
-  const { 
-    data: cloudUserProfile, 
-    setData: setCloudUserProfile,
-    isUsingLocalStorage: profileUsingLocal 
-  } = useCloudStorage<ProfileData>('user_profile', {
-    name: telegram.user?.first_name || DEFAULT_PROFILE.USER_NAME,
-    major: DEFAULT_PROFILE.USER_MAJOR,
-    hobby: DEFAULT_PROFILE.USER_HOBBY
-  })
+  // Deprecated: local profile mock storage removed
+  const profileUsingLocal = false
 
   // Memoized total points calculation - moved before gameStats
   const totalPoints = useMemo(
@@ -107,11 +140,31 @@ export default function BingoPage() {
     }
   }, [cloudFlippedTiles])
 
+  // Removed mock profile sync
+
+  // Load real profile from API when signed in
   useEffect(() => {
-    if (cloudUserProfile.name !== DEFAULT_PROFILE.USER_NAME) {
-      setUserProfile(cloudUserProfile)
+    const loadProfile = async () => {
+      if (!session?.user) return
+      try {
+        const res = await fetch('/api/users/me')
+        if (!res.ok) return
+        const me = await res.json()
+        setUserProfile({
+          name: me.name,
+          faculty: me.faculty || undefined,
+          major: me.major || undefined,
+          imageUrl: me.profile_image_url || undefined,
+        })
+        if (me.partner_name) {
+          setPartnerProfile({
+            name: me.partner_name,
+          })
+        }
+      } catch {}
     }
-  }, [cloudUserProfile])
+    loadProfile()
+  }, [session?.user])
 
   // Load activities from API
   useEffect(() => {
@@ -188,6 +241,68 @@ export default function BingoPage() {
       setSubmissionImageUrl(url)
     }
   }, [])
+
+  const handleInlineSignup = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSignError('')
+    if (signPassword !== signConfirm) {
+      setSignError('Passwords do not match')
+      return
+    }
+    if (signPassword.length < 6) {
+      setSignError('Password must be at least 6 characters')
+      return
+    }
+    try {
+      setSignLoading(true)
+      // 1) If a file was selected, upload it first to get a URL
+      let uploadedUrl: string | undefined
+      if (signImageFile) {
+        const fd = new FormData()
+        fd.append('file', signImageFile)
+        const upRes = await fetch('/api/upload/profile-image', { method: 'POST', body: fd })
+        if (upRes.ok) {
+          const { url } = await upRes.json()
+          uploadedUrl = url
+        }
+      }
+
+      const res = await signIn('credentials', {
+        redirect: false,
+        email: signEmail,
+        name: signName,
+        password: signPassword,
+        isSignUp: 'true',
+        faculty: signFaculty,
+        major: signMajor,
+        profileImageUrl: uploadedUrl || signImageUrl,
+      })
+      if (res?.error) {
+        setSignError('Failed to create account. Email may already be in use.')
+      } else {
+        // Refresh auth session and load profile immediately
+        try { await update?.({}); } catch {}
+        router.refresh()
+        try {
+          const meRes = await fetch('/api/users/me')
+          if (meRes.ok) {
+            const me = await meRes.json()
+            setUserProfile({
+              name: me.name,
+              faculty: me.faculty || undefined,
+              major: me.major || undefined,
+              imageUrl: me.profile_image_url || undefined,
+            })
+            if (me.partner_name) setPartnerProfile({ name: me.partner_name })
+          }
+        } catch {}
+      }
+    } catch {
+      setSignError('Unexpected error. Please try again.')
+    } finally {
+      setSignLoading(false)
+    }
+  }, [signEmail, signName, signPassword, signConfirm])
 
   const handleSubmissionSubmit = useCallback(async () => {
     if (!submissionImage || !submissionCaption.trim() || submissionTileIndex === null) return
@@ -302,14 +417,76 @@ export default function BingoPage() {
               <p className="text-sm font-medium text-emerald-200">Your Partnership Details</p>
               <div className="w-12 h-0.5 bg-gradient-to-r from-emerald-400 to-green-300 mx-auto mt-2 rounded-full"></div>
             </div>
-            <div className="flex flex-col max-w-md gap-8 mx-auto">
-              <ProfileCard profile={userProfile} isUser={true} isEditing={editingUser} tempProfile={tempUserProfile} onEdit={() => { setTempUserProfile(userProfile); setEditingUser(true) }} onSave={() => { setUserProfile(tempUserProfile); setCloudUserProfile(tempUserProfile); setEditingUser(false); telegram.notificationFeedback('success') }} onCancel={() => { setTempUserProfile(userProfile); setEditingUser(false) }} onProfileChange={(field, value) => setTempUserProfile((prev) => ({ ...prev, [field]: value }))} />
-              <ProfileCard profile={partnerProfile} isUser={false} />
-            </div>
-            <div className="mt-6 text-center">
-              <Button onClick={() => window.open("https://t.me/pgpals_bot", "_blank")} className="flex items-center gap-2 px-4 py-2 mx-auto text-sm font-semibold text-white transition-all duration-300 transform shadow-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl hover:scale-105"><Telegram className="text-lg" />Join PGPals Telegram</Button>
-              <p className="mt-2 text-xs text-emerald-200">Connect with your PGPals community!</p>
-            </div>
+            {session?.user ? (
+              <>
+                <div className="flex flex-col max-w-md gap-8 mx-auto">
+                  <ProfileCard profile={userProfile} isUser={true} isEditing={editingUser} tempProfile={tempUserProfile} onEdit={() => { setTempUserProfile(userProfile); setEditingUser(true) }} onSave={() => { setUserProfile(tempUserProfile); setEditingUser(false); telegram.notificationFeedback('success') }} onCancel={() => { setTempUserProfile(userProfile); setEditingUser(false) }} onProfileChange={(field, value) => setTempUserProfile((prev) => ({ ...prev, [field]: value }))} />
+                  <ProfileCard profile={partnerProfile} isUser={false} />
+                </div>
+                <div className="mt-6 text-center space-y-2">
+                  <Button onClick={() => window.open("https://t.me/pgpals_bot", "_blank")} className="flex items-center gap-2 px-4 py-2 mx-auto text-sm font-semibold text-white transition-all duration-300 transform shadow-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl hover:scale-105"><Telegram className="text-lg" />Join PGPals Telegram</Button>
+                  <p className="mt-2 text-xs text-emerald-200">Connect with your PGPals community!</p>
+                  <div>
+                    <Button onClick={() => signOut({ callbackUrl: '/' })} variant="outline" className="mt-2 border-emerald-400/50 text-emerald-200 hover:bg-emerald-800/50 rounded-xl">
+                      Log out
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={handleInlineSignup} className="mx-auto w-full max-w-md">
+                <div className="relative rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-800/40 to-emerald-900/40 p-4 shadow-2xl">
+                  <h3 className="mb-3 text-center text-lg font-bold text-emerald-100">Create your account</h3>
+                  {signError && <div className="mb-3 rounded-md border border-red-300/50 bg-red-100/20 px-3 py-2 text-xs text-red-200">{signError}</div>}
+                  <div className="grid gap-3">
+                    <Input value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Name" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
+                    <Input value={signEmail} onChange={(e) => setSignEmail(e.target.value)} placeholder="Email" type="email" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
+                    <div className="grid gap-2">
+                      <Input value={signImageUrl} onChange={(e) => setSignImageUrl(e.target.value)} placeholder="Profile image URL (optional)" type="url" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
+                      <div className="rounded-xl border border-emerald-400/30 bg-emerald-900/20 p-3">
+                        {signImagePreviewUrl ? (
+                          <div className="flex items-center gap-3">
+                            <img src={signImagePreviewUrl} alt="Preview" className="w-12 h-12 rounded-full object-cover border border-emerald-400/30" />
+                            <div className="text-xs text-emerald-200 truncate">{signImageFile?.name}</div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-emerald-300/80">No image selected</div>
+                        )}
+                        <div className="mt-2">
+                          <label htmlFor="profile-file" className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-800/40 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-800/60 cursor-pointer">
+                            Choose file
+                          </label>
+                          <input id="profile-file" type="file" accept="image/*" hidden onChange={(e) => {
+                            const f = e.target.files?.[0] || null
+                            setSignImageFile(f)
+                            if (f) {
+                              const url = URL.createObjectURL(f)
+                              setSignImagePreviewUrl(url)
+                            } else {
+                              setSignImagePreviewUrl('')
+                            }
+                          }} />
+                        </div>
+                      </div>
+                    </div>
+                    <Select value={signFaculty} onChange={(e) => { const v = (e.target as HTMLSelectElement).value; setSignFaculty(v); setSignMajor('') }}>
+                      <option value="">Select faculty</option>
+                      {FACULTIES.map(f => (<option key={f} value={f}>{f}</option>))}
+                    </Select>
+                    <Select value={signMajor} onChange={(e) => setSignMajor((e.target as HTMLSelectElement).value)} disabled={!signFaculty}>
+                      <option value="">Select major</option>
+                      {(MAJORS_BY_FACULTY[signFaculty] || []).map(m => (<option key={m} value={m}>{m}</option>))}
+                    </Select>
+                    <Input value={signPassword} onChange={(e) => setSignPassword(e.target.value)} placeholder="Password" type="password" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
+                    <Input value={signConfirm} onChange={(e) => setSignConfirm(e.target.value)} placeholder="Confirm Password" type="password" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
+                    <Button disabled={signLoading} className="mt-1 w-full rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60">
+                      {signLoading ? 'Creating...' : 'Create Account'}
+                    </Button>
+                  </div>
+                  <p className="mt-3 text-center text-[11px] text-emerald-200">Already have an account? Use the top-right menu to sign in.</p>
+                </div>
+              </form>
+            )}
           </div>
         )}
         {currentView === "bingo" && (

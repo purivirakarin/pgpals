@@ -30,6 +30,9 @@ interface UserProfile {
   partner_id?: number;
   partner_name?: string;
   partner_telegram?: string;
+  faculty?: string;
+  major?: string;
+  profile_image_url?: string;
   total_points: number;
   streak_count: number;
   created_at: string;

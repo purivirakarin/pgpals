@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input"
 
 export interface ProfileData {
   name: string
-  major: string
-  hobby: string
+  major?: string
+  faculty?: string
+  hobby?: string
+  imageUrl?: string
 }
 
 interface ProfileCardProps {
@@ -35,7 +37,7 @@ export const ProfileCard = memo<ProfileCardProps>(
     onProfileChange,
   }) => {
     const displayProfile = isEditing && tempProfile ? tempProfile : profile
-    const imageSrc = isUser ? "/user-profile.png" : "/partner-profile.png"
+    const imageSrc = displayProfile.imageUrl || (isUser ? "/user-profile.png" : "/partner-profile.png")
     const altText = isUser ? "User Profile" : "Partner Profile"
 
     return (
@@ -98,12 +100,21 @@ export const ProfileCard = memo<ProfileCardProps>(
               <h3 className="text-lg font-bold text-emerald-100 mb-1 drop-shadow-lg">
                 {displayProfile.name}
               </h3>
-              <p className="text-emerald-200 text-sm mb-1">
-                <span className="font-medium">Major:</span> {displayProfile.major}
-              </p>
-              <p className="text-emerald-200 text-sm mb-3">
-                <span className="font-medium">Hobby:</span> {displayProfile.hobby}
-              </p>
+              {displayProfile.faculty && (
+                <p className="text-emerald-200 text-sm mb-1">
+                  <span className="font-medium">Faculty:</span> {displayProfile.faculty}
+                </p>
+              )}
+              {displayProfile.major && (
+                <p className="text-emerald-200 text-sm mb-1">
+                  <span className="font-medium">Major:</span> {displayProfile.major}
+                </p>
+              )}
+              {displayProfile.hobby && (
+                <p className="text-emerald-200 text-sm mb-3">
+                  <span className="font-medium">Hobby:</span> {displayProfile.hobby}
+                </p>
+              )}
               {isUser && onEdit && (
                 <Button
                   onClick={onEdit}

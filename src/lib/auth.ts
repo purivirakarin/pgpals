@@ -16,7 +16,10 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
         name: { label: 'Name', type: 'text' },
-        isSignUp: { label: 'Is Sign Up', type: 'hidden' }
+        isSignUp: { label: 'Is Sign Up', type: 'hidden' },
+        faculty: { label: 'Faculty', type: 'text' },
+        major: { label: 'Major', type: 'text' },
+        profileImageUrl: { label: 'Profile Image URL', type: 'text' }
       },
       async authorize(credentials) {
         if (!credentials?.email) return null;
@@ -43,12 +46,21 @@ export const authOptions: NextAuthOptions = {
                 email: credentials.email,
                 name: credentials.name || 'Anonymous',
                 password_hash: hashedPassword,
-                role: 'participant'
+                role: 'participant',
+                faculty: credentials.faculty || null,
+                major: credentials.major || null,
+                profile_image_url: credentials.profileImageUrl || null
               })
               .select()
               .single();
 
-            if (error) throw error;
+            if (error) {
+              // Handle unique constraint gracefully
+              if ((error as any).code === '23505') {
+                throw new Error('User already exists');
+              }
+              throw error;
+            }
 
             return {
               id: newUser.id,
