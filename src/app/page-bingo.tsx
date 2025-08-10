@@ -508,7 +508,7 @@ export default function BingoPage() {
                   </h1>
                 </div>
                 <div className="relative">
-                  <p className="mb-2 text-sm font-medium duration-1000 delay-300 text-emerald-200 animate-in fade-in">Prince George's Park Pair Activities</p>
+                  <p className="mb-2 text-sm font-medium duration-1000 delay-300 text-emerald-200 animate-in fade-in">Prince George&apos;s Park Pair Activities</p>
                   <div className="w-12 h-0.5 bg-gradient-to-r from-emerald-400 to-green-300 mx-auto rounded-full animate-in slide-in-from-bottom duration-1000 delay-500 relative overflow-hidden"><div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-[shimmer_2s_ease-in-out_infinite] w-full h-full"></div></div>
                 </div>
               </div>
