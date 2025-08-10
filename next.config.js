@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
+  // experimental: {}
   // Production optimizations
   swcMinify: true,
   poweredByHeader: false,

@@ -387,7 +387,8 @@ export default function BingoPage() {
               <Star className="inline w-4 h-4 ml-1" />
             </div>
           </div>
-          <ZoomedTile tileIndex={zoomedTile} isFlipped={flippedTiles.has(zoomedTile)} activity={activities[zoomedTile]} bgPosition={useMemo(() => ({ left: 0, top: 0 }), [])} />
+          {/* Move useMemo outside JSX to avoid conditional hook call */}
+          <ZoomedTile tileIndex={zoomedTile} isFlipped={flippedTiles.has(zoomedTile)} activity={activities[zoomedTile]} bgPosition={{ left: 0, top: 0 }} />
         </div>
       )}
       {showCompletionAnimation && <CompletionAnimation totalPoints={totalPoints} gridSize={GRID_SIZE} />}

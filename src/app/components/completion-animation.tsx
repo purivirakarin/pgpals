@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { Trophy, Star, Sparkles } from "lucide-react"
 
 interface CompletionAnimationProps { totalPoints: number; gridSize: number }
@@ -12,10 +13,12 @@ export default function CompletionAnimation({ totalPoints, gridSize }: Completio
           <div className="absolute -bottom-10 -left-8 animate-ping" style={{ animationDelay: "1s" }}><Star className="h-7 w-7 text-green-400" /></div>
           <div className="absolute -bottom-8 -right-12 animate-ping" style={{ animationDelay: "1.5s" }}><Sparkles className="h-5 w-5 text-yellow-300" /></div>
           <div className="bg-gradient-to-br from-emerald-600 to-green-500 p-6 rounded-2xl border-2 border-yellow-400 shadow-2xl">
-            <img src="/pgp-logo.png" alt="PGP Logo" className="h-16 w-16 object-contain mx-auto mb-3 animate-bounce" loading="lazy" />
+            <div className="mx-auto mb-3 h-16 w-16 relative animate-bounce">
+              <Image src="/pgp-logo.png" alt="PGP Logo" fill sizes="64px" className="object-contain" />
+            </div>
             <h1 className="text-3xl font-bold text-white mb-2 animate-pulse">BINGO!</h1>
             <p className="text-lg text-emerald-100 mb-3">Congratulations PGPals!</p>
-            <p className="text-sm text-emerald-200 mb-3">You've completed all {gridSize} activities!</p>
+            <p className="text-sm text-emerald-200 mb-3">You&apos;ve completed all {gridSize} activities!</p>
             <p className="text-lg text-yellow-200 mb-2 font-bold">Total Points: {totalPoints}</p>
             <div className="flex justify-center gap-2 text-2xl animate-bounce">
               <Trophy className="text-yellow-400" />
