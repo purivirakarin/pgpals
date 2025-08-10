@@ -11,6 +11,7 @@ import BottomNav from "@/app/components/bottom-nav"
 import { Tile } from "@/app/components/tile"
 import { ProfileCard, type ProfileData } from "@/app/components/profile-card"
 import LeaderboardItem from "@/app/components/leaderboard-item"
+import LeaderboardPodium from "@/app/components/leaderboard-podium"
 import { ZoomedTile } from "@/app/components/zoomed-tile"
 import { StorageStatus } from "@/app/components/storage-status"
 import { TelegramDetector, TelegramGuide } from "@/app/components/telegram-detector"
@@ -31,7 +32,8 @@ const FALLBACK_ACTIVITIES = [
 
 export default function BingoPage() {
   const [activities, setActivities] = useState<{ task: string; points: number }[]>(FALLBACK_ACTIVITIES)
-  const [leaderboard, setLeaderboard] = useState<{ name: string; score: number; avatar: string }[]>([])
+  const [leaderboard, setLeaderboard] = useState<Array<{ name: string; score: number; avatar: string; users?: Array<{ id: string; name: string; telegram_username?: string | null }>; completed?: number; rank?: number }>>([])
+  const [maxLeaderboardPoints, setMaxLeaderboardPoints] = useState<number>(0)
   const [leaderboardLoading, setLeaderboardLoading] = useState<boolean>(true)
   const [flippedTiles, setFlippedTiles] = useState<Set<number>>(new Set())
   const [currentView, setCurrentView] = useState<"profile" | "bingo" | "leaderboard">("bingo")
@@ -140,9 +142,13 @@ export default function BingoPage() {
         const mapped = entries.map((e) => ({
           name: e.name || 'Participant',
           score: Number(e.total_points) || 0,
-          avatar: e.rank === 1 ? '🏆' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : '⭐'
+          avatar: e.rank === 1 ? '🏆' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : '⭐',
+          users: e.users || [],
+          completed: Number(e.completed_quests) || 0,
+          rank: e.rank || 0,
         }))
         setLeaderboard(mapped)
+        setMaxLeaderboardPoints(mapped.reduce((m, p) => Math.max(m, p.score), 0))
       } catch (e) {
         setLeaderboard([])
       } finally {
@@ -361,11 +367,16 @@ export default function BingoPage() {
               <p className="text-sm font-medium text-emerald-200">Top PGPals Pairs</p>
               <div className="w-12 h-0.5 bg-gradient-to-r from-yellow-400 to-emerald-300 mx-auto mt-2 rounded-full"></div>
             </div>
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-3xl mx-auto space-y-4">
+              {leaderboard.length >= 1 && (
+                <LeaderboardPodium entries={leaderboard.slice(0,3)} max={maxLeaderboardPoints || 1} />
+              )}
               <div className="p-3 border shadow-2xl bg-emerald-800/30 rounded-2xl backdrop-blur-sm border-emerald-400/20">
                 {leaderboardLoading && (<div className="py-4 text-sm text-center text-emerald-200">Loading leaderboard...</div>)}
                 {!leaderboardLoading && leaderboard.length === 0 && (<div className="py-4 text-sm text-center text-emerald-200">No leaderboard entries yet.</div>)}
-                {leaderboard.map((pair, index) => (<LeaderboardItem key={index} pair={pair} index={index} />))}
+                {leaderboard.slice(3).map((pair, index) => (
+                  <LeaderboardItem key={index} pair={pair} index={index+3} max={maxLeaderboardPoints || 1} />
+                ))}
               </div>
             </div>
           </div>
