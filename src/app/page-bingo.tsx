@@ -191,7 +191,14 @@ export default function BingoPage() {
         setLeaderboardLoading(true)
         const res = await fetch('/api/leaderboard?limit=10')
         if (!res.ok) throw new Error('Failed to fetch leaderboard')
-        const entries: Array<{ name?: string; total_points?: number; rank?: number }> = await res.json()
+        type LeaderboardEntryResponse = {
+          name?: string;
+          total_points?: number;
+          rank?: number;
+          users?: Array<{ id: string; name: string; telegram_username?: string | null }>;
+          completed_quests?: number;
+        }
+        const entries: LeaderboardEntryResponse[] = await res.json()
         const mapped = entries.map((e) => ({
           name: e.name || 'Participant',
           score: Number(e.total_points) || 0,
