@@ -44,7 +44,7 @@ export default function Dropdown({
   }, []);
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className={`relative ${className}`} ref={dropdownRef} style={{ zIndex: 50 }}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

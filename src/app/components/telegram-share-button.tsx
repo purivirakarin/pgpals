@@ -17,7 +17,7 @@ export default function TelegramShareButton({ completedActivities, totalActiviti
     shareToChat(shareText)
   }
   return (
-    <Button onClick={handleShare} className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-2xl transform transition-all duration-300 hover:scale-105 flex items-center gap-2 mx-auto">
+    <Button onClick={handleShare} className="relative z-50 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-2xl transform transition-all duration-300 hover:scale-105 flex items-center gap-2 mx-auto">
       <Telegram className="text-lg" />
       Share to Telegram
     </Button>

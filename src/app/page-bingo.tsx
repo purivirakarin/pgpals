@@ -222,6 +222,15 @@ export default function BingoPage() {
   const handleTileClick = useCallback(
     (index: number) => {
       telegram.selectionFeedback()
+      // Require authentication before opening submission modal
+      if (!session?.user) {
+        // Prefer a gentle nudge instead of opening modal
+        telegram.notificationFeedback('warning')
+        // Route to sign in page
+        router.push('/auth/signin')
+        return
+      }
+
       if (flippedTiles.has(index)) {
         setFlippedTiles((prev) => {
           const newSet = new Set(prev)
@@ -237,7 +246,7 @@ export default function BingoPage() {
         setSubmissionCaption("")
       }
     },
-    [flippedTiles, telegram, setCloudFlippedTiles],
+    [flippedTiles, telegram, setCloudFlippedTiles, session?.user, router],
   )
 
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -379,7 +388,7 @@ export default function BingoPage() {
   }, [showCompletionAnimation])
 
   return (
-    <div className={`min-h-screen relative overflow-hidden ${isDark ? 'text-gray-100' : 'text-white'}`}>
+    <div className={`min-h-screen relative overflow-hidden pb-24 ${isDark ? 'text-gray-100' : 'text-white'}`}>
       <TelegramDetector />
       <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-br from-gray-950 via-slate-900 to-gray-800' : 'bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-800'}`}></div>
       <div className="absolute inset-0 bg-gradient-to-tr from-green-800/50 via-transparent to-emerald-600/30"></div>
@@ -555,6 +564,9 @@ export default function BingoPage() {
             <div className="max-w-3xl mx-auto space-y-4">
               {leaderboard.length >= 1 && (
                 <LeaderboardPodium entries={leaderboard.slice(0,3)} max={maxLeaderboardPoints || 1} />
+              )}
+              {leaderboard.length > 0 && leaderboard.length < 3 && (
+                <p className="mt-2 text-xs text-emerald-200 text-center">Not enough participants for full podium display.</p>
               )}
               <div className="p-3 border shadow-2xl bg-emerald-800/30 rounded-2xl backdrop-blur-sm border-emerald-400/20">
                 {leaderboardLoading && (<div className="py-4 text-sm text-center text-emerald-200">Loading leaderboard...</div>)}

@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
       query = query.eq('category', category);
     }
 
+    // Ensure expired quests are not returned (in case status wasn't updated yet)
+    query = query.or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+
     const { data: quests, error } = await query;
 
     if (error) {

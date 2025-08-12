@@ -10,7 +10,7 @@ interface BottomNavProps {
 
 const navItems = [
   { id: "profile", label: "Profile", icon: Users },
-  { id: "bingo", label: "Bingo", icon: LayoutGrid },
+  { id: "bingo", label: "Quest Grid", icon: LayoutGrid },
   { id: "leaderboard", label: "Ranks", icon: Trophy },
 ] as const
 
