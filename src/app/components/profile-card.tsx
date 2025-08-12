@@ -3,7 +3,6 @@
 import type React from "react"
 import { memo, useEffect, useState } from "react"
 import { Edit3, Save, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
