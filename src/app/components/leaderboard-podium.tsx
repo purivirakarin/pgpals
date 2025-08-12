@@ -74,7 +74,48 @@ function PodiumCard({ entry, place, max }: { entry: PodiumEntry; place: 1 | 2 | 
 }
 
 export default function LeaderboardPodium({ entries, max }: LeaderboardPodiumProps) {
-  const hasAny = entries.length > 0
+  function PlaceholderPodiumCard({ place }: { place: 1 | 2 | 3 }) {
+    const label = place === 1 ? 'No champion yet' : place === 2 ? 'No 2nd place yet' : 'No 3rd place yet'
+    const medal = place === 1 ? '🥇' : place === 2 ? '🥈' : '🥉'
+    const badgeText = place === 1 ? 'Champion' : place === 2 ? 'Runner-Up' : 'Third Place'
+    return (
+      <div className={cn(
+        'relative rounded-2xl p-4 shadow-2xl backdrop-blur-md border-2 border-dashed border-emerald-300/50 bg-emerald-900/40'
+      )}>
+        {/* Ring progress (0%) */}
+        <div className="mx-auto mb-3 h-24 w-24 relative">
+          <div className="absolute inset-0 rounded-full bg-emerald-700/30" />
+          <div className="absolute inset-0 rounded-full overflow-hidden">
+            <div className={cn('absolute inset-0 bg-yellow-400/20')} style={{ clipPath: 'polygon(0 0, 0% 0, 0% 100%, 0% 100%)' }} />
+          </div>
+          <div className="absolute inset-2 rounded-full bg-emerald-950/60 border border-emerald-400/20 flex items-center justify-center">
+            <span className="text-3xl select-none">{medal}</span>
+          </div>
+          <div className="absolute -top-3 -right-3 rounded-full bg-emerald-100 text-emerald-900 text-[10px] font-black px-2 py-1 shadow">
+            0%
+          </div>
+        </div>
+        {/* Place badge */}
+        <div className={cn('mx-auto mb-2 inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-extrabold shadow border bg-gradient-to-r from-emerald-200 to-emerald-300 text-emerald-950 border-emerald-200/40')}>
+          <Trophy className="h-3 w-3" />
+          {badgeText}
+        </div>
+        {/* Names */}
+        <h3 className="text-center text-emerald-100/80 font-bold text-sm truncate">{label}</h3>
+        {/* Numbers */}
+        <div className="mt-3 flex items-end justify-center gap-4">
+          <div className="text-center">
+            <div className="text-[10px] text-emerald-300/80">Points</div>
+            <div className="text-lg font-extrabold text-emerald-100">0</div>
+          </div>
+          <div className="text-center">
+            <div className="text-[10px] text-emerald-300/80">Quests</div>
+            <div className="text-lg font-extrabold text-emerald-100">0</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="relative">
       {/* Decorative glows */}
@@ -82,45 +123,13 @@ export default function LeaderboardPodium({ entries, max }: LeaderboardPodiumPro
       <div className="pointer-events-none absolute -bottom-12 left-10 h-32 w-32 rounded-full bg-green-300/10 blur-2xl" />
       <div className="grid grid-cols-3 gap-4 items-end">
         <div className="pt-6">
-          {hasAny ? (
-            entries[1] ? (
-              <PodiumCard entry={entries[1]} place={2} max={max} />
-            ) : (
-              <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md text-center text-emerald-200/70">
-                <div className="text-xs">No 2nd place yet</div>
-              </div>
-            )
-          ) : (
-            <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md" />
-          )}
+          {entries[1] ? <PodiumCard entry={entries[1]} place={2} max={max} /> : <PlaceholderPodiumCard place={2} />}
         </div>
         <div>
-          {hasAny ? (
-            entries[0] ? (
-              <PodiumCard entry={entries[0]} place={1} max={max} />
-            ) : (
-              <div className="rounded-2xl p-8 border-2 border-dashed border-emerald-300/50 bg-emerald-900/40 backdrop-blur-md text-center text-emerald-200/80">
-                <div className="text-sm font-semibold">No champion yet</div>
-              </div>
-            )
-          ) : (
-            <div className="rounded-2xl p-8 border-2 border-dashed border-emerald-300/50 bg-emerald-900/40 backdrop-blur-md text-center text-emerald-200/80">
-              <div className="text-sm font-semibold">No entries yet</div>
-            </div>
-          )}
+          {entries[0] ? <PodiumCard entry={entries[0]} place={1} max={max} /> : <PlaceholderPodiumCard place={1} />}
         </div>
         <div className="pt-10">
-          {hasAny ? (
-            entries[2] ? (
-              <PodiumCard entry={entries[2]} place={3} max={max} />
-            ) : (
-              <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md text-center text-emerald-200/70">
-                <div className="text-xs">No 3rd place yet</div>
-              </div>
-            )
-          ) : (
-            <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md" />
-          )}
+          {entries[2] ? <PodiumCard entry={entries[2]} place={3} max={max} /> : <PlaceholderPodiumCard place={3} />}
         </div>
       </div>
     </div>
