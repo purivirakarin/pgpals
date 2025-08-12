@@ -17,7 +17,7 @@ import LeaderboardPodium from "@/app/components/leaderboard-podium"
 import { ZoomedTile } from "@/app/components/zoomed-tile"
 // Removed StorageStatus per request
 // import { StorageStatus } from "@/app/components/storage-status"
-import { TelegramDetector, TelegramGuide } from "@/app/components/telegram-detector"
+// Removed TelegramDetector/TelegramGuide per request
 import { useTelegram } from '@/hooks/use-telegram'
 import { useTelegramTheme } from '@/hooks/use-telegram-theme'
 import { useCloudStorage } from '@/hooks/use-cloud-storage'
@@ -67,6 +67,7 @@ export default function BingoPage() {
   const [submissionCaption, setSubmissionCaption] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [zoomedTile, setZoomedTile] = useState<number | null>(null)
+  const [isTelegramContext, setIsTelegramContext] = useState(false)
 
   // Inline signup state
   const [signEmail, setSignEmail] = useState('')
@@ -185,9 +186,10 @@ export default function BingoPage() {
       if (session?.user) return
       const anyWindow = window as any
       const initData = anyWindow?.Telegram?.WebApp?.initData
+      setIsTelegramContext(!!initData)
       if (!initData) return
       try {
-        await signIn('credentials', { isTelegram: 'true', telegramInitData: initData, redirect: false })
+        const res = await signIn('credentials', { isTelegram: 'true', telegramInitData: initData, redirect: false })
         await update?.({})
       } catch {}
     }
@@ -252,10 +254,7 @@ export default function BingoPage() {
       telegram.selectionFeedback()
       // Require authentication before opening submission modal
       if (!session?.user) {
-        // Prefer a gentle nudge instead of opening modal
-        telegram.notificationFeedback('warning')
-        // Route to sign in page
-        router.push('/auth/signin')
+        // Not signed in; in Telegram context we will auto-login, otherwise ignore
         return
       }
 
@@ -417,7 +416,6 @@ export default function BingoPage() {
 
   return (
     <div className={`min-h-screen relative overflow-hidden pb-24 ${isDark ? 'text-gray-100' : 'text-white'}`}>
-      <TelegramDetector />
       <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-br from-gray-950 via-slate-900 to-gray-800' : 'bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-800'}`}></div>
       <div className="absolute inset-0 bg-gradient-to-tr from-green-800/50 via-transparent to-emerald-600/30"></div>
       {zoomedTile !== null && <div className="fixed inset-0 z-40 duration-500 bg-black/70 animate-in fade-in"></div>}
@@ -450,7 +448,6 @@ export default function BingoPage() {
           activity={submissionTileIndex !== null ? activities[submissionTileIndex] : null}
         />
       )}
-      <TelegramGuide />
       <div className="relative z-10">
         {currentView === "profile" && (
           <div className="container px-2 py-4 mx-auto duration-500 animate-in slide-in-from-left">
@@ -507,8 +504,14 @@ export default function BingoPage() {
               <div className="flex flex-col max-w-md gap-8 mx-auto">
                 <div className="rounded-2xl border border-emerald-400/30 bg-emerald-900/30 p-4 backdrop-blur-sm text-center">
                   <h4 className="text-emerald-100 font-semibold mb-1">Find your PGPal</h4>
-                  <p className="text-emerald-200/90 text-sm mb-3">Open this app inside Telegram to sign in automatically and view your partner code.</p>
-                  <Button onClick={() => window.open('https://t.me/pgpals_bot', '_blank')} className="bg-emerald-600 hover:bg-emerald-700 text-white">Open in Telegram</Button>
+                  {isTelegramContext ? (
+                    <p className="text-emerald-200/90 text-sm">Signing you in via Telegram...</p>
+                  ) : (
+                    <>
+                      <p className="text-emerald-200/90 text-sm mb-3">Open this app inside Telegram to sign in automatically and view your partner code.</p>
+                      <Button onClick={() => window.open('https://t.me/pgpals_bot', '_blank')} className="bg-emerald-600 hover:bg-emerald-700 text-white">Open in Telegram</Button>
+                    </>
+                  )}
                 </div>
               </div>
             )}

@@ -175,19 +175,8 @@ export default function QuestsPage() {
                 <p className="text-blue-100 mb-6">
                   Sign in to track your progress, submit quests, and compete with others!
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <a 
-                    href="/auth/signin" 
-                    className="inline-flex items-center justify-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors"
-                  >
-                    Sign In
-                  </a>
-                  <a 
-                    href="/auth/signup" 
-                    className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl border-2 border-white/20 hover:bg-blue-700 transition-colors"
-                  >
-                    Create Account
-                  </a>
+                <div className="flex flex-col sm:flex-row gap-3 text-blue-100">
+                  Open in Telegram to sign in automatically.
                 </div>
               </div>
             </div>

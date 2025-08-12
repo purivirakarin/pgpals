@@ -81,10 +81,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (status === 'loading') return;
     
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
+    if (!session) return;
 
     fetchProfile();
   }, [session, status, router, fetchProfile]);

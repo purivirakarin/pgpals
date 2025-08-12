@@ -57,14 +57,14 @@ export default function SignUpPage() {
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Join PGPals</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Telegram Sign-up</h1>
           <p className="mt-2 text-gray-600">
-            Create your account and start completing quests!
+            Open this Mini App inside Telegram to sign up automatically.
           </p>
         </div>
 
         <div className="card p-8">
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={(e)=>e.preventDefault()}>
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center">
                 <AlertCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
@@ -72,23 +72,8 @@ export default function SignUpPage() {
               </div>
             )}
 
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Enter your full name"
-                />
-              </div>
-            </div>
+            <div className="text-sm text-gray-600">Use the bot link below to launch the Mini App:</div>
+            <a href="https://t.me/pgpals_bot" className="w-full inline-flex items-center justify-center py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700">Open in Telegram</a>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -160,14 +145,7 @@ export default function SignUpPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/auth/signin" className="text-primary-600 hover:text-primary-700 font-medium">
-                Sign in here
-              </Link>
-            </p>
-          </div>
+          
 
           <div className="mt-6 space-y-4">
             <div className="p-4 bg-green-50 rounded-lg">

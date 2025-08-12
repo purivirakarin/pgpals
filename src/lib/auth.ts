@@ -154,9 +154,7 @@ export const authOptions: NextAuthOptions = {
       return session;
     }
   },
-  pages: {
-    signIn: '/auth/signin'
-  },
+  pages: {},
   session: {
     strategy: 'jwt'
   },
