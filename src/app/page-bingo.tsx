@@ -488,11 +488,11 @@ export default function BingoPage() {
                         </div>
                       </div>
                     </div>
-                    <Select className="w-full bg-emerald-900/30 border-emerald-400/30 text-emerald-100 rounded-md px-3 py-2" value={signFaculty} onChange={(e) => { const v = (e.target as HTMLSelectElement).value; setSignFaculty(v); setSignMajor('') }}>
+                    <Select value={signFaculty} onChange={(e) => { const v = (e.target as HTMLSelectElement).value; setSignFaculty(v); setSignMajor('') }}>
                       <option value="">Select faculty</option>
                       {FACULTIES.map(f => (<option key={f} value={f}>{f}</option>))}
                     </Select>
-                    <Select className="w-full bg-emerald-900/30 border-emerald-400/30 text-emerald-100 rounded-md px-3 py-2" value={signMajor} onChange={(e) => setSignMajor((e.target as HTMLSelectElement).value)} disabled={!signFaculty}>
+                    <Select value={signMajor} onChange={(e) => setSignMajor((e.target as HTMLSelectElement).value)} disabled={!signFaculty}>
                       <option value="">Select major</option>
                       {(MAJORS_BY_FACULTY[signFaculty] || []).map(m => (<option key={m} value={m}>{m}</option>))}
                     </Select>
