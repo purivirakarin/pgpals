@@ -15,12 +15,14 @@ import { ProfileCard, type ProfileData } from "@/app/components/profile-card"
 import LeaderboardItem from "@/app/components/leaderboard-item"
 import LeaderboardPodium from "@/app/components/leaderboard-podium"
 import { ZoomedTile } from "@/app/components/zoomed-tile"
-import { StorageStatus } from "@/app/components/storage-status"
+// Removed StorageStatus per request
+// import { StorageStatus } from "@/app/components/storage-status"
 import { TelegramDetector, TelegramGuide } from "@/app/components/telegram-detector"
 import { useTelegram } from '@/hooks/use-telegram'
 import { useTelegramTheme } from '@/hooks/use-telegram-theme'
 import { useCloudStorage } from '@/hooks/use-cloud-storage'
-import TelegramShareButton from '@/app/components/telegram-share-button'
+// Removed Share to Telegram per request
+// import TelegramShareButton from '@/app/components/telegram-share-button'
 import AchievementSystem from '@/app/components/achievement-system'
 import styles from "@/styles/animations.module.css"
 import { useSession } from 'next-auth/react'
@@ -539,13 +541,11 @@ export default function BingoPage() {
                 <p className="text-xs text-emerald-200">Completed: <span className="font-bold text-emerald-100">{flippedTiles.size}</span>/{GRID_SIZE}</p>
                 <p className="text-xs font-semibold text-yellow-300">Total Points: <span className="text-yellow-200">{totalPoints}</span></p>
                 <div className="w-32 h-1.5 bg-emerald-800/50 rounded-full mx-auto mt-1 overflow-hidden"><div className="h-full transition-all duration-500 ease-out rounded-full bg-gradient-to-r from-emerald-400 to-green-300" style={{ width: `${(flippedTiles.size / GRID_SIZE) * 100}%` }}></div></div>
-                <StorageStatus isUsingLocalStorage={tilesUsingLocal} className="justify-center mt-2" />
+                {/* Storage status removed */}
                 {flippedTiles.size === GRID_SIZE && (<p className="text-yellow-300 text-[10px] mt-1 animate-pulse font-bold">🎉 BINGO COMPLETE! 🎉</p>)}
               </div>
               <AchievementSystem gameStats={gameStats} onAchievementUnlocked={(achievement) => { telegram.showAlert(`🎉 Achievement Unlocked!\n\n${achievement.title}\n${achievement.description}\n\n+${achievement.points} points!`) }} />
-              <div className="mt-4 text-center">
-                <TelegramShareButton completedActivities={flippedTiles.size} totalActivities={GRID_SIZE} totalPoints={totalPoints} />
-              </div>
+              {/* Share to Telegram removed */}
             </div>
           </div>
         )}
