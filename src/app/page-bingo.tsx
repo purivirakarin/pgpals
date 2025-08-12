@@ -168,6 +168,21 @@ export default function BingoPage() {
     loadProfile()
   }, [session?.user])
 
+  // Auto sign-in inside Telegram Mini App (no manual signup)
+  useEffect(() => {
+    const maybeTelegramAutoLogin = async () => {
+      if (session?.user) return
+      const anyWindow = window as any
+      const initData = anyWindow?.Telegram?.WebApp?.initData
+      if (!initData) return
+      try {
+        await signIn('credentials', { isTelegram: 'true', telegramInitData: initData, redirect: false })
+        await update?.({})
+      } catch {}
+    }
+    maybeTelegramAutoLogin()
+  }, [session?.user, update])
+
   // Load activities from API
   useEffect(() => {
     const loadActivities = async () => {
@@ -452,60 +467,7 @@ export default function BingoPage() {
                   </div>
                 </div>
               </>
-            ) : (
-              <form onSubmit={handleInlineSignup} className="mx-auto w-full max-w-md">
-                <div className="relative rounded-2xl border border-emerald-400/30 bg-gradient-to-br from-emerald-800/40 to-emerald-900/40 p-4 shadow-2xl">
-                  <h3 className="mb-3 text-center text-lg font-bold text-emerald-100">Create your account</h3>
-                  {signError && <div className="mb-3 rounded-md border border-red-300/50 bg-red-100/20 px-3 py-2 text-xs text-red-200">{signError}</div>}
-                  <div className="grid gap-3">
-                    <Input value={signName} onChange={(e) => setSignName(e.target.value)} placeholder="Name" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
-                    <Input value={signEmail} onChange={(e) => setSignEmail(e.target.value)} placeholder="Email" type="email" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
-                    <div className="grid gap-2">
-                      <Input value={signImageUrl} onChange={(e) => setSignImageUrl(e.target.value)} placeholder="Profile image URL (optional)" type="url" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
-                      <div className="rounded-xl border border-emerald-400/30 bg-emerald-900/20 p-3">
-                        {signImagePreviewUrl ? (
-                          <div className="flex items-center gap-3">
-                            <img src={signImagePreviewUrl} alt="Preview" className="w-12 h-12 rounded-full object-cover border border-emerald-400/30" />
-                            <div className="text-xs text-emerald-200 truncate">{signImageFile?.name}</div>
-                          </div>
-                        ) : (
-                          <div className="text-xs text-emerald-300/80">No image selected</div>
-                        )}
-                        <div className="mt-2">
-                          <label htmlFor="profile-file" className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-800/40 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-800/60 cursor-pointer">
-                            Choose file
-                          </label>
-                          <input id="profile-file" type="file" accept="image/*" hidden onChange={(e) => {
-                            const f = e.target.files?.[0] || null
-                            setSignImageFile(f)
-                            if (f) {
-                              const url = URL.createObjectURL(f)
-                              setSignImagePreviewUrl(url)
-                            } else {
-                              setSignImagePreviewUrl('')
-                            }
-                          }} />
-                        </div>
-                      </div>
-                    </div>
-                    <Select value={signFaculty} onChange={(e) => { const v = (e.target as HTMLSelectElement).value; setSignFaculty(v); setSignMajor('') }}>
-                      <option value="">Select faculty</option>
-                      {FACULTIES.map(f => (<option key={f} value={f}>{f}</option>))}
-                    </Select>
-                    <Select value={signMajor} onChange={(e) => setSignMajor((e.target as HTMLSelectElement).value)} disabled={!signFaculty}>
-                      <option value="">Select major</option>
-                      {(MAJORS_BY_FACULTY[signFaculty] || []).map(m => (<option key={m} value={m}>{m}</option>))}
-                    </Select>
-                    <Input value={signPassword} onChange={(e) => setSignPassword(e.target.value)} placeholder="Password" type="password" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
-                    <Input value={signConfirm} onChange={(e) => setSignConfirm(e.target.value)} placeholder="Confirm Password" type="password" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
-                    <Button disabled={signLoading} className="mt-1 w-full rounded-xl bg-emerald-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-60">
-                      {signLoading ? 'Creating...' : 'Create Account'}
-                    </Button>
-                  </div>
-                  <p className="mt-3 text-center text-[11px] text-emerald-200">Already have an account? Use the top-right menu to sign in.</p>
-                </div>
-              </form>
-            )}
+            ) : null}
           </div>
         )}
         {currentView === "bingo" && (
