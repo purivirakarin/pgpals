@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { Trophy, Users, Sparkles, Star, TextIcon as Telegram } from 'lucide-react'
+import { Trophy, Users, Sparkles, Star, TextIcon as Telegram, Copy, Check } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select } from "@/components/ui/select"
@@ -55,6 +55,8 @@ export default function BingoPage() {
   const [partnerProfile, setPartnerProfile] = useState<ProfileData>({
     name: '',
   })
+  const [partnerCode, setPartnerCode] = useState<string>('')
+  const [codeCopied, setCodeCopied] = useState(false)
 
   const [tempUserProfile, setTempUserProfile] = useState<ProfileData>(userProfile)
 
@@ -162,6 +164,15 @@ export default function BingoPage() {
           setPartnerProfile({
             name: me.partner_name,
           })
+        } else {
+          // Load my partner code if no partner
+          try {
+            const codeRes = await fetch('/api/partners')
+            if (codeRes.ok) {
+              const data = await codeRes.json()
+              setPartnerCode(String(data.code || ''))
+            }
+          } catch {}
         }
       } catch {}
     }
@@ -455,7 +466,32 @@ export default function BingoPage() {
               <>
                 <div className="flex flex-col max-w-md gap-8 mx-auto">
                   <ProfileCard profile={userProfile} isUser={true} isEditing={editingUser} tempProfile={tempUserProfile} onEdit={() => { setTempUserProfile(userProfile); setEditingUser(true) }} onSave={() => { setUserProfile(tempUserProfile); setEditingUser(false); telegram.notificationFeedback('success') }} onCancel={() => { setTempUserProfile(userProfile); setEditingUser(false) }} onProfileChange={(field, value) => setTempUserProfile((prev) => ({ ...prev, [field]: value }))} />
-                  <ProfileCard profile={partnerProfile} isUser={false} />
+                  {partnerProfile.name ? (
+                    <ProfileCard profile={partnerProfile} isUser={false} />
+                  ) : (
+                    <div className="rounded-2xl border border-emerald-400/30 bg-emerald-900/30 p-4 backdrop-blur-sm text-center">
+                      <h4 className="text-emerald-100 font-semibold mb-1">Find your PGPal</h4>
+                      <p className="text-emerald-200/90 text-sm mb-3">Share your partner code and team up to climb the leaderboard together!</p>
+                      <div className="flex items-center justify-center gap-2">
+                        <code className="font-mono px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-950/40 text-emerald-100">{partnerCode || '—'}</code>
+                        <button
+                          onClick={async () => {
+                            if (!partnerCode) return
+                            try {
+                              await navigator.clipboard.writeText(partnerCode)
+                              setCodeCopied(true)
+                              setTimeout(() => setCodeCopied(false), 1500)
+                            } catch {}
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/30 bg-emerald-800/40 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-800/60"
+                          aria-label="Copy partner code"
+                        >
+                          {codeCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                          {codeCopied ? 'Copied' : 'Copy'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-6 text-center space-y-2">
                   <Button onClick={() => window.open("https://t.me/pgpals_bot", "_blank")} className="flex items-center gap-2 px-4 py-2 mx-auto text-sm font-semibold text-white transition-all duration-300 transform shadow-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl hover:scale-105"><Telegram className="text-lg" />Join PGPals Telegram</Button>
