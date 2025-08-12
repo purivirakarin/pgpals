@@ -74,7 +74,7 @@ function PodiumCard({ entry, place, max }: { entry: PodiumEntry; place: 1 | 2 | 
 }
 
 export default function LeaderboardPodium({ entries, max }: LeaderboardPodiumProps) {
-  const podium = [entries[1], entries[0], entries[2]].map((e, i) => ({ e, place: ([2,1,3] as const)[i] }))
+  const hasAny = entries.length > 0
   return (
     <div className="relative">
       {/* Decorative glows */}
@@ -82,13 +82,45 @@ export default function LeaderboardPodium({ entries, max }: LeaderboardPodiumPro
       <div className="pointer-events-none absolute -bottom-12 left-10 h-32 w-32 rounded-full bg-green-300/10 blur-2xl" />
       <div className="grid grid-cols-3 gap-4 items-end">
         <div className="pt-6">
-          {entries[1] && <PodiumCard entry={entries[1]} place={2} max={max} />}
+          {hasAny ? (
+            entries[1] ? (
+              <PodiumCard entry={entries[1]} place={2} max={max} />
+            ) : (
+              <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md text-center text-emerald-200/70">
+                <div className="text-xs">No 2nd place yet</div>
+              </div>
+            )
+          ) : (
+            <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md" />
+          )}
         </div>
         <div>
-          {entries[0] && <PodiumCard entry={entries[0]} place={1} max={max} />}
+          {hasAny ? (
+            entries[0] ? (
+              <PodiumCard entry={entries[0]} place={1} max={max} />
+            ) : (
+              <div className="rounded-2xl p-8 border-2 border-dashed border-emerald-300/50 bg-emerald-900/40 backdrop-blur-md text-center text-emerald-200/80">
+                <div className="text-sm font-semibold">No champion yet</div>
+              </div>
+            )
+          ) : (
+            <div className="rounded-2xl p-8 border-2 border-dashed border-emerald-300/50 bg-emerald-900/40 backdrop-blur-md text-center text-emerald-200/80">
+              <div className="text-sm font-semibold">No entries yet</div>
+            </div>
+          )}
         </div>
         <div className="pt-10">
-          {entries[2] && <PodiumCard entry={entries[2]} place={3} max={max} />}
+          {hasAny ? (
+            entries[2] ? (
+              <PodiumCard entry={entries[2]} place={3} max={max} />
+            ) : (
+              <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md text-center text-emerald-200/70">
+                <div className="text-xs">No 3rd place yet</div>
+              </div>
+            )
+          ) : (
+            <div className="rounded-2xl p-6 border-2 border-dashed border-emerald-300/40 bg-emerald-800/30 backdrop-blur-md" />
+          )}
         </div>
       </div>
     </div>
