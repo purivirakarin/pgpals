@@ -1,8 +1,9 @@
 "use client"
 
 import type React from "react"
-import { memo } from "react"
+import { memo, useEffect, useState } from "react"
 import { Edit3, Save, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -41,7 +42,7 @@ export const ProfileCard = memo<ProfileCardProps>(
     const altText = isUser ? "User Profile" : "Partner Profile"
 
     return (
-      <div className="bg-emerald-800/30 rounded-2xl backdrop-blur-sm border border-emerald-400/20 shadow-2xl p-4 transition-all duration-300 hover:shadow-3xl hover:scale-105 animate-in zoom-in duration-500">
+      <div className="bg-emerald-800/30 rounded-2xl backdrop-blur-sm border border-emerald-400/20 shadow-2xl p-4 transition-all duration-300 hover:shadow-3xl hover:scale-105 animate-in zoom-in">
         <div className="flex flex-col items-center text-center space-y-3">
           <div className="relative group">
             <div className="w-20 h-20 rounded-full overflow-hidden border-3 border-emerald-300/50 shadow-xl bg-gradient-to-br from-emerald-100 to-emerald-200 group-hover:border-emerald-200 transition-all duration-300">
@@ -75,6 +76,14 @@ export const ProfileCard = memo<ProfileCardProps>(
                 className="text-center bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60"
                 placeholder="Enter hobby"
               />
+              <div className="mt-3 p-3 rounded-lg border border-emerald-400/30 bg-emerald-900/20">
+                <div className="text-xs text-emerald-200 mb-2">Partnership</div>
+                <PartnerLinker />
+              </div>
+              <div className="mt-3 p-3 rounded-lg border border-emerald-400/30 bg-emerald-900/20">
+                <div className="text-xs text-emerald-200 mb-2">Partnership</div>
+                <PartnerLinker />
+              </div>
               <div className="flex gap-2 justify-center mt-3">
                 <Button
                   onClick={onSave}
@@ -136,5 +145,47 @@ export const ProfileCard = memo<ProfileCardProps>(
 )
 
 ProfileCard.displayName = "ProfileCard"
+
+function PartnerLinker() {
+  const [code, setCode] = useState('')
+  const [myCode, setMyCode] = useState<string>('')
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/partners')
+        if (res.ok) {
+          const data = await res.json()
+          setMyCode(String(data.code || ''))
+        }
+      } catch {}
+    }
+    load()
+  }, [])
+
+  return (
+    <div className="space-y-2">
+      <div className="text-emerald-300/80 text-xs">Your code</div>
+      <div className="font-mono text-emerald-100 text-sm select-all p-2 rounded border border-emerald-400/20 bg-emerald-900/30">{myCode || '—'}</div>
+      <div className="grid grid-cols-1 gap-2">
+        <Input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Enter partner code" className="bg-emerald-900/30 border-emerald-400/30 text-emerald-100 placeholder-emerald-300/60" />
+        <Button disabled={busy || !code} className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={async () => {
+          setBusy(true)
+          try {
+            const res = await fetch('/api/partners', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) })
+            if (res.ok) {
+              setCode('')
+            }
+          } finally { setBusy(false) }
+        }}>Join</Button>
+        <Button variant="outline" className="border-emerald-400/50 text-emerald-200 hover:bg-emerald-800/50" disabled={busy} onClick={async () => {
+          setBusy(true)
+          try { await fetch('/api/partners', { method: 'DELETE' }) } finally { setBusy(false) }
+        }}>Unlink</Button>
+      </div>
+    </div>
+  )
+}
 
 
