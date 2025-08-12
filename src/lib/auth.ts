@@ -169,9 +169,9 @@ import crypto from 'crypto'
 function parseTelegramInitData(initData: string): any {
   const search = new URLSearchParams(initData)
   const obj: Record<string, any> = {}
-  for (const [key, value] of search.entries()) {
+  search.forEach((value, key) => {
     obj[key] = value
-  }
+  })
   if (obj.user) {
     try { obj.user = JSON.parse(obj.user) } catch {}
   }
