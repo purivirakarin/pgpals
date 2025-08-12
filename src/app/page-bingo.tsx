@@ -505,7 +505,17 @@ export default function BingoPage() {
                 <div className="rounded-2xl border border-emerald-400/30 bg-emerald-900/30 p-4 backdrop-blur-sm text-center">
                   <h4 className="text-emerald-100 font-semibold mb-1">Find your PGPal</h4>
                   {isTelegramContext ? (
-                    <p className="text-emerald-200/90 text-sm">Signing you in via Telegram...</p>
+                    <div className="text-emerald-200/90 text-sm">
+                      {telegram?.user?.id ? (
+                        <>
+                          <p className="mb-2">Detected Telegram ID:</p>
+                          <code className="font-mono px-3 py-1.5 rounded-lg border border-emerald-400/30 bg-emerald-950/40 text-emerald-100">{telegram.user.id}</code>
+                          <p className="mt-3">Signing you in via Telegram...</p>
+                        </>
+                      ) : (
+                        <p>Signing you in via Telegram...</p>
+                      )}
+                    </div>
                   ) : (
                     <>
                       <p className="text-emerald-200/90 text-sm mb-3">Open this app inside Telegram to sign in automatically and view your partner code.</p>
