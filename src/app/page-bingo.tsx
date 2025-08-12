@@ -503,7 +503,15 @@ export default function BingoPage() {
                   </div>
                 </div>
               </>
-            ) : null}
+            ) : (
+              <div className="flex flex-col max-w-md gap-8 mx-auto">
+                <div className="rounded-2xl border border-emerald-400/30 bg-emerald-900/30 p-4 backdrop-blur-sm text-center">
+                  <h4 className="text-emerald-100 font-semibold mb-1">Find your PGPal</h4>
+                  <p className="text-emerald-200/90 text-sm mb-3">Open this app inside Telegram to sign in automatically and view your partner code.</p>
+                  <Button onClick={() => window.open('https://t.me/pgpals_bot', '_blank')} className="bg-emerald-600 hover:bg-emerald-700 text-white">Open in Telegram</Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {currentView === "bingo" && (
