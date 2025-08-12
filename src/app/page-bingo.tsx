@@ -472,7 +472,7 @@ export default function BingoPage() {
                           <div className="text-xs text-emerald-300/80">No image selected</div>
                         )}
                         <div className="mt-2">
-                          <label htmlFor="profile-file" className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-800/40 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-800/60 cursor-pointer">
+                          <label htmlFor="profile-file" className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-800/40 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-800/60 cursor-pointer">
                             Choose file
                           </label>
                           <input id="profile-file" type="file" accept="image/*" hidden onChange={(e) => {
@@ -488,11 +488,11 @@ export default function BingoPage() {
                         </div>
                       </div>
                     </div>
-                    <Select value={signFaculty} onChange={(e) => { const v = (e.target as HTMLSelectElement).value; setSignFaculty(v); setSignMajor('') }}>
+                    <Select className="w-full bg-emerald-900/30 border-emerald-400/30 text-emerald-100 rounded-md px-3 py-2" value={signFaculty} onChange={(e) => { const v = (e.target as HTMLSelectElement).value; setSignFaculty(v); setSignMajor('') }}>
                       <option value="">Select faculty</option>
                       {FACULTIES.map(f => (<option key={f} value={f}>{f}</option>))}
                     </Select>
-                    <Select value={signMajor} onChange={(e) => setSignMajor((e.target as HTMLSelectElement).value)} disabled={!signFaculty}>
+                    <Select className="w-full bg-emerald-900/30 border-emerald-400/30 text-emerald-100 rounded-md px-3 py-2" value={signMajor} onChange={(e) => setSignMajor((e.target as HTMLSelectElement).value)} disabled={!signFaculty}>
                       <option value="">Select major</option>
                       {(MAJORS_BY_FACULTY[signFaculty] || []).map(m => (<option key={m} value={m}>{m}</option>))}
                     </Select>
