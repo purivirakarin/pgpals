@@ -31,6 +31,7 @@ import { useRouter } from 'next/navigation'
 
 import CompletionAnimation from "@/app/components/completion-animation"
 import SubmissionModal from "@/app/components/submission-modal"
+import { getAppVersion } from '@/lib/buildInfo'
 
 // Fallback activities used if API is unavailable
 const FALLBACK_ACTIVITIES = [
@@ -416,8 +417,8 @@ export default function BingoPage() {
 
   return (
     <div className={`min-h-screen relative overflow-hidden pb-24 ${isDark ? 'text-gray-100' : 'text-white'}`}>
-      <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-br from-gray-950 via-slate-900 to-gray-800' : 'bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-800'}`}></div>
-      <div className="absolute inset-0 bg-gradient-to-tr from-green-800/50 via-transparent to-emerald-600/30"></div>
+      <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-gradient-to-br from-gray-950 via-slate-900 to-gray-800' : 'bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-800'}`}></div>
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-green-800/50 via-transparent to-emerald-600/30"></div>
       {zoomedTile !== null && <div className="fixed inset-0 z-40 duration-500 bg-black/70 animate-in fade-in"></div>}
       {zoomedTile !== null && activities[zoomedTile] && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 pointer-events-none">
@@ -457,6 +458,7 @@ export default function BingoPage() {
                 <h1 className="text-2xl font-bold tracking-wider text-emerald-100 drop-shadow-2xl">PGPals Profiles</h1>
               </div>
               <p className="text-sm font-medium text-emerald-200">Your Partnership Details</p>
+              <p className="text-xs text-emerald-300 mt-1">{getAppVersion()}</p>
               <div className="w-12 h-0.5 bg-gradient-to-r from-emerald-400 to-green-300 mx-auto mt-2 rounded-full"></div>
             </div>
             {session?.user ? (
@@ -551,7 +553,7 @@ export default function BingoPage() {
               </div>
             </div>
             <div className="px-1 mx-auto max-w-7xl">
-              <div className={`grid gap-1 p-2 bg-emerald-800/30 rounded-2xl backdrop-blur-sm border border-emerald-400/20 shadow-2xl animate-in zoom-in duration-700 delay-700`} style={{ gridTemplateColumns: `repeat(${GRID_CONFIG.COLS}, minmax(0, 1fr))` }} data-grid-container="true">
+              <div className={`grid gap-1 p-2 bg-emerald-800/30 rounded-2xl backdrop-blur-sm border border-emerald-400/20 shadow-2xl animate-in zoom-in duration-700 delay-700 pointer-events-auto`} style={{ gridTemplateColumns: `repeat(${GRID_CONFIG.COLS}, minmax(0, 1fr))` }} data-grid-container="true">
                 {activities.map((activity, index) => (
                   <Tile key={index} activity={activity} index={index} isFlipped={flippedTiles.has(index)} onTileClick={handleTileClick} animationDelay={ANIMATIONS.TILE_ANIMATION_BASE_DELAY + index * ANIMATIONS.TILE_ANIMATION_STEP_DELAY} />
                 ))}
