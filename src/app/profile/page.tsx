@@ -195,7 +195,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!session || !profile) {
+  if (!profile) {
     return null;
   }
 
