@@ -135,28 +135,24 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
         `Welcome back, ${existingUser.name}! 🎉\n` +
         `Your account is already linked.\n` +
         `Total Points: ${totalPoints}\n` +
-        `Team Quests Completed: ${completedQuests}\n\n` +
-        `Try /quests to see available challenges!`
+        `Team Quests Completed: ${completedQuests}`
       );
+
+      // Always provide a button to open the Mini App via Telegram deep link
+      const startAppUrl = process.env.TELEGRAM_DEEPLINK_URL || `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'pgpals_bot'}/pgpals_bot`
+      await bot.sendMessage(chatId, `Open the app:`, {
+        reply_markup: {
+          inline_keyboard: [[{ text: 'Start App', url: startAppUrl }]],
+        },
+      })
     } else {
       console.log('New user, sending welcome message');
-      await bot.sendMessage(chatId, 
-        `Welcome to PGPals! 🎮\n\n` +
-        `📋 **Important: Create your web account first!**\n\n` +
-        `To get started:\n` +
-        `1. Visit: ${process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app'}\n` +
-        `2. Create your account (Sign Up)\n` +
-        `3. Go to your Profile page\n` +
-        `4. Enter this Telegram ID: \`${telegramId}\`\n` +
-        `${username ? `5. Optional: Enter username: \`${username}\`\n` : ''}` +
-        `6. Click "Link Account" to connect\n\n` +
-        `🔗 Once linked, you can:\n` +
-        `• Submit quest photos directly here\n` +
-        `• Check your status with /status\n` +
-        `• View quests with /quests\n\n` +
-        `⚠️ You must have a web account before using Telegram features!`, 
-        { parse_mode: 'Markdown' }
-      );
+      const startAppUrl = process.env.TELEGRAM_DEEPLINK_URL || `https://t.me/${process.env.TELEGRAM_BOT_USERNAME || 'pgpals_bot'}/pgpals_bot`
+      await bot.sendMessage(chatId, `Welcome to PGPals!`, {
+        reply_markup: {
+          inline_keyboard: [[{ text: 'Start App', url: startAppUrl }]],
+        },
+      })
     }
   } catch (error) {
     console.error('Start command error:', error);

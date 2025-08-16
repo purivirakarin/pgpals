@@ -262,8 +262,8 @@ export default function QuestCard({
           )}
         </div>
 
-        {/* Copy Command - Full width below */}
-        {!userSubmission && quest.status === 'active' && (
+        {/* Copy Command - Full width below (only when authenticated) */}
+        {userSubmission === undefined ? null : !userSubmission && quest.status === 'active' && (
           <div className="w-full">
             <div className="relative group w-full max-w-xs">
               <button

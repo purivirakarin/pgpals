@@ -37,7 +37,7 @@ async function testSubmission() {
   try {
     console.log('Sending test photo submission...');
     
-    const response = await fetch('http://localhost:3001/api/telegram/webhook', {
+    const response = await fetch('http://localhost:3000/api/telegram/webhook', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

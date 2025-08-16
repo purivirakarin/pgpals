@@ -109,7 +109,7 @@ export default function Header() {
             ) : (
               <div className="flex items-center space-x-2 xl:space-x-3">
                 <Link
-                  href="/auth/signin"
+                  href="#"
                   className="text-gray-700 hover:text-primary-600 px-2 xl:px-3 py-2 text-sm font-medium whitespace-nowrap"
                 >
                   Sign In
@@ -209,7 +209,7 @@ export default function Header() {
                 ) : (
                   <div className="space-y-2">
                     <Link
-                      href="/auth/signin"
+                      href="#"
                       className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600"
                       onClick={() => setMobileMenuOpen(false)}
                     >

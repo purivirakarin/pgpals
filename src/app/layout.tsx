@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import AuthProvider from '@/components/AuthProvider';
-import Header from '@/components/Header';
 import { StatsProvider } from '@/contexts/StatsContext';
+import TelegramAutoLogin from '@/app/components/telegram-auto-login';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -31,7 +31,7 @@ export default function RootLayout({
         <AuthProvider>
           <StatsProvider>
             <div className="min-h-screen bg-gray-50">
-              <Header />
+              <TelegramAutoLogin />
               <main>{children}</main>
             </div>
           </StatsProvider>

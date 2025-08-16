@@ -1,0 +1,30 @@
+/* Copied from frontend/styles/animations.module.css */
+/* 3D transformation styles */
+.preserve3d { transform-style: preserve-3d; }
+.backfaceHidden { backface-visibility: hidden; }
+.rotateY180 { transform: rotateY(180deg); }
+.rotateY0 { transform: rotateY(0deg); }
+.bgGradientRadial { background: radial-gradient(circle, var(--tw-gradient-stops)); }
+@keyframes moveRight { 0% { transform: translateX(-20px); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateX(calc(100vw + 20px)); opacity: 0; } }
+@keyframes moveDown { 0% { transform: translateY(-20px); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(calc(100vh + 20px)); opacity: 0; } }
+@keyframes moveDiagonal { 0% { transform: translate(-20px, -20px); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translate(calc(100vw + 20px), calc(100vh + 20px)); opacity: 0; } }
+@keyframes titleGlow { 0%, 100% { text-shadow: 0 0 20px rgba(16, 185, 129, 0.3); } 50% { text-shadow: 0 0 30px rgba(16, 185, 129, 0.5), 0 0 40px rgba(34, 197, 94, 0.3); } }
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+.animateFloat { animation: float 3s ease-in-out infinite; }
+@keyframes blobPulse { 0%, 100% { transform: scale(1) rotate(0deg); border-radius: 50px; } 25% { transform: scale(1.05) rotate(1deg); border-radius: 60% 40% 50% 70%; } 50% { transform: scale(1.1) rotate(-1deg); border-radius: 40% 60% 70% 50%; } 75% { transform: scale(1.05) rotate(0.5deg); border-radius: 70% 50% 40% 60%; } }
+@keyframes blobMorph { 0%, 100% { border-radius: 50px; transform: scale(1); } 33% { border-radius: 60% 40% 50% 70%; transform: scale(0.95); } 66% { border-radius: 40% 60% 70% 50%; transform: scale(1.05); } }
+@keyframes floatParticle { 0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.6; } 50% { transform: translateY(-3px) translateX(1px); opacity: 1; } }
+@keyframes textGlow { 0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); } 50% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 15px rgba(255, 255, 255, 0.3); } }
+@keyframes shimmerBlob { 0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateX(100%) skewX(-15deg); opacity: 0; } }
+@keyframes arrowBounce { 0%, 100% { transform: translateY(0px) scale(1); } 50% { transform: translateY(-2px) scale(1.1); } }
+@keyframes glowPulse { 0%, 100% { opacity: 0.3; transform: scale(1.5); } 50% { opacity: 0.6; transform: scale(1.8); } }
+@keyframes modalSpinOut { 0% { transform: scale(1) rotateY(0deg); opacity: 1; } 25% { transform: scale(1.05) rotateY(90deg); opacity: 0.8; } 50% { transform: scale(1.1) rotateY(180deg); opacity: 0.6; } 75% { transform: scale(0.95) rotateY(270deg); opacity: 0.3; } 100% { transform: scale(0.1) rotateY(360deg); opacity: 0; } }
+.tileZoomDisplay { width: 80vw; height: 60vw; max-width: 300px; max-height: 225px; animation: tileZoomIn 2s ease-out forwards; transition: transform 1s cubic-bezier(0.25, 0.46, 0.45, 0.94); will-change: transform, opacity; }
+.tileDragToGrid { animation: tileDragToGrid 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; will-change: transform, opacity; }
+@keyframes tileZoomIn { 0% { transform: scale(0.2); opacity: 0; } 50% { transform: scale(1.1); opacity: 0.8; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes tileDragToGrid { 0% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 1; } 20% { transform: scale(0.8) translate(calc(var(--target-x) * 0.2), calc(var(--target-y) * 0.2)) rotate(5deg); opacity: 0.9; } 50% { transform: scale(0.6) translate(calc(var(--target-x) * 0.6), calc(var(--target-y) * 0.6)) rotate(-3deg); opacity: 0.7; } 80% { transform: scale(0.4) translate(calc(var(--target-x) * 0.9), calc(var(--target-y) * 0.9)) rotate(2deg); opacity: 0.4; } 100% { transform: scale(0.2) translate(var(--target-x), var(--target-y)) rotate(0deg); opacity: 0; } }
+.modalExit { animation: modalSpinOut 0.8s ease-in-out forwards; will-change: transform, opacity; }
+.willChangeTransform { will-change: transform; }
+
+

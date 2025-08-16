@@ -36,7 +36,6 @@ export async function GET(
     }
 
     // First, get the file path from Telegram
-    console.log('Getting file info for file ID:', fileId);
     const getFileResponse = await fetch(
       `https://api.telegram.org/bot${botToken}/getFile?file_id=${encodeURIComponent(fileId)}`
     );
@@ -53,7 +52,7 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid file response from Telegram' }, { status: 404 });
     }
 
-    console.log('File path from Telegram:', fileInfo.result.file_path);
+    
 
     // Now download the actual file from Telegram
     const fileUrl = `https://api.telegram.org/file/bot${botToken}/${fileInfo.result.file_path}`;
@@ -68,7 +67,6 @@ export async function GET(
     const fileBuffer = await fileResponse.arrayBuffer();
     const contentType = fileResponse.headers.get('content-type') || 'image/jpeg'; // Default to image/jpeg
 
-    console.log('Successfully served file, content-type:', contentType, 'size:', fileBuffer.byteLength);
 
     // Return the file with appropriate headers
     return new NextResponse(fileBuffer, {

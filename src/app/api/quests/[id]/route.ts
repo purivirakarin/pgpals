@@ -8,10 +8,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const questId = parseInt(params.id, 10);
+    if (Number.isNaN(questId)) {
+      return NextResponse.json({ error: 'Invalid quest id' }, { status: 400 });
+    }
+
     const { data: quest, error } = await supabaseAdmin
       .from('quests')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', questId)
       .single();
 
     if (error || !quest) {

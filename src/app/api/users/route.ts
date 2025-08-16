@@ -65,7 +65,12 @@ export async function GET(request: NextRequest) {
       };
     }));
 
-    return NextResponse.json(usersWithSubmissions || []);
+    return NextResponse.json(usersWithSubmissions || [], {
+      headers: {
+        'Cache-Control': 'private, s-maxage=10, stale-while-revalidate=60',
+        'Vary': 'Authorization, Cookie',
+      },
+    });
   } catch (error) {
     console.error('Users API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -131,10 +131,10 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
               )}
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center">
-                  <h3 className="font-semibold text-gray-900 truncate">
+                <div className="flex items-center whitespace-nowrap overflow-x-auto">
+                  <span className="font-semibold text-gray-900">
                     {entry.name}
-                  </h3>
+                  </span>
                   {entry.telegram_username && (
                     <span className="ml-2 text-sm text-gray-500">
                       @{entry.telegram_username}
