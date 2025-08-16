@@ -36,6 +36,7 @@ export const authOptions: NextAuthOptions = {
             if (!telegramId) return null
             const telegramUsername = parsed.user?.username || null
             const name = parsed.user?.first_name || parsed.user?.username || 'Telegram User'
+            const photoUrl = parsed.user?.photo_url || null
             // Upsert user by telegram_id
             const { data: existing } = await supabaseAdmin
               .from('users')
@@ -45,14 +46,18 @@ export const authOptions: NextAuthOptions = {
             if (!existing) {
               const { data: created, error } = await supabaseAdmin
                 .from('users')
-                .insert({ name, telegram_id: telegramId, telegram_username: telegramUsername, role: 'participant' })
+                .insert({ name, telegram_id: telegramId, telegram_username: telegramUsername, role: 'participant', profile_image_url: photoUrl })
                 .select()
                 .single()
               if (error || !created) return null
               return { id: created.id, email: created.email, name: created.name, role: created.role }
             }
-            // Update username/name best-effort
-            await supabaseAdmin.from('users').update({ name, telegram_username: telegramUsername }).eq('id', existing.id)
+            // Update username/name/photo best-effort
+            const updatePayload: Record<string, any> = { name, telegram_username: telegramUsername }
+            if (photoUrl && !existing.profile_image_url) {
+              updatePayload.profile_image_url = photoUrl
+            }
+            await supabaseAdmin.from('users').update(updatePayload).eq('id', existing.id)
             return { id: existing.id, email: existing.email, name: existing.name, role: existing.role }
           } catch (e) {
             console.error('Telegram authorize error', e)

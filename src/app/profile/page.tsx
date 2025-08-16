@@ -81,11 +81,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
     if (!session) return;
-
     fetchProfile();
-  }, [session, status, router, fetchProfile]);
+  }, [session, status, fetchProfile]);
 
   const linkTelegramAccount = async () => {
     if (!telegramId) {
