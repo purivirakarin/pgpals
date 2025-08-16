@@ -20,6 +20,7 @@ import {
   Activity
 } from 'lucide-react';
 import Image from 'next/image'
+import Script from 'next/script'
 import ActivityFeed from '@/components/ActivityFeed';
 
 interface UserProfile {
@@ -153,6 +154,36 @@ export default function ProfilePage() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  // Client-side enhancement: read Telegram Mini App user for immediate UI (name/photo)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // @ts-ignore
+    const tg = (window as any).Telegram?.WebApp;
+    const u = tg?.initDataUnsafe?.user;
+    if (!u) return;
+    // If backend profile lacks photo/username, display from Mini App immediately and fetch server fallback photo
+    setProfile((prev) => prev ? prev : ({
+      id: session?.user?.id || '',
+      name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'User',
+      email: '',
+      telegram_id: String(u.id),
+      telegram_username: u.username || undefined,
+      profile_image_url: u.photo_url || undefined,
+      total_points: 0,
+      streak_count: 0,
+      created_at: new Date().toISOString(),
+    } as any));
+
+    if (!u.photo_url && u.id) {
+      fetch(`/api/telegram/user-photo?user_id=${u.id}`)
+        .then(r => r.json())
+        .then(({ url }) => {
+          if (url) setProfile((p) => p ? { ...p, profile_image_url: url } : p);
+        })
+        .catch(() => {});
+    }
+  }, [session?.user?.id]);
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -172,6 +203,9 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
+      {/* Mini App inline read of Telegram user for immediate UI fallback */}
+      <div id="tg-miniapp-user" className="hidden" suppressHydrationWarning />
       <div className="mb-8">
         <div className="flex items-center gap-4">
           <div className="relative h-16 w-16 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
