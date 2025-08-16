@@ -16,12 +16,17 @@ export default function TelegramAutoLogin() {
       }
       if (!initData) return
       try {
-        await signIn('credentials', {
+        const res = await signIn('credentials', {
           isTelegram: 'true',
           telegramInitData: initData,
           redirect: false,
         })
-        await update?.({})
+        if (res?.error) {
+          anyWindow?.Telegram?.WebApp?.showAlert?.(`Sign-in failed: ${res.error}`)
+        } else {
+          anyWindow?.Telegram?.WebApp?.showAlert?.('Signed in')
+          await update?.({})
+        }
       } catch {
         // ignore
       }

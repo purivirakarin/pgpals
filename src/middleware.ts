@@ -23,6 +23,8 @@ function getClientKey(req: NextRequest): string {
 export function middleware(req: NextRequest) {
   // Only throttle API writes
   if (!req.nextUrl.pathname.startsWith('/api/')) return NextResponse.next()
+  // Never throttle NextAuth routes
+  if (req.nextUrl.pathname.startsWith('/api/auth')) return NextResponse.next()
   if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
     return NextResponse.next()
   }
