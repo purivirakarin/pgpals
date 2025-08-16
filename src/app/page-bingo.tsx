@@ -52,6 +52,7 @@ export default function BingoPage() {
   const [bingoCompleted, setBingoCompleted] = useState(false)
 
   const [userProfile, setUserProfile] = useState<ProfileData>({ name: '' })
+  const [sessionInfo, setSessionInfo] = useState<string | null>(null)
 
   const [partnerProfile, setPartnerProfile] = useState<ProfileData>({
     name: '',
@@ -198,6 +199,19 @@ export default function BingoPage() {
   }, [session?.user, update])
 
   // Load activities from API
+  // Fetch Telegram profile photo as fallback when Mini App is present but photo_url is missing
+  useEffect(() => {
+    if (!isTelegramContext) return
+    const uid = (telegram as any)?.user?.id
+    const hasPhoto = Boolean(userProfile.imageUrl)
+    if (!uid || hasPhoto) return
+    fetch(`/api/telegram/user-photo?user_id=${uid}`)
+      .then(r => r.json())
+      .then(({ url }) => {
+        if (url) setUserProfile(prev => ({ ...prev, imageUrl: url }))
+      })
+      .catch(() => {})
+  }, [isTelegramContext, telegram, userProfile.imageUrl])
   useEffect(() => {
     const loadActivities = async () => {
       try {
@@ -475,6 +489,36 @@ export default function BingoPage() {
               <div className="mt-3 text-emerald-100 text-lg font-semibold">
                 {telegram?.user?.username ? `@${telegram.user.username}` : (userProfile.name || 'User')}
               </div>
+              <Button
+                onClick={async () => {
+                  try {
+                    const res = await fetch('/api/auth/session')
+                    const json = await res.json()
+                    const text = JSON.stringify(json, null, 2)
+                    setSessionInfo(text)
+                    if ((telegram as any)?.showAlert) {
+                      (telegram as any).showAlert(text)
+                    } else {
+                      // Fallback if Telegram API not available
+                      // eslint-disable-next-line no-alert
+                      alert(text)
+                    }
+                  } catch {
+                    const msg = 'Failed to fetch session'
+                    if ((telegram as any)?.showAlert) (telegram as any).showAlert(msg)
+                    else alert(msg)
+                  }
+                }}
+                variant="outline"
+                className="mt-3 text-xs border-emerald-400/40 text-emerald-100 hover:bg-emerald-800/40"
+              >
+                Check session
+              </Button>
+              {sessionInfo && (
+                <pre className="mt-2 max-w-full overflow-auto text-[10px] text-emerald-200/80 bg-emerald-900/30 p-2 rounded">
+                  {sessionInfo}
+                </pre>
+              )}
             </div>
           </div>
         )}

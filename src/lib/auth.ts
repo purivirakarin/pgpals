@@ -27,13 +27,22 @@ export const authOptions: NextAuthOptions = {
         // Telegram Mini App branch: no manual signup, verify Telegram initData
         if (credentials?.isTelegram === 'true') {
           try {
-            if (!credentials.telegramInitData) return null
+            if (!credentials.telegramInitData) {
+              console.warn('[auth] Missing telegramInitData')
+              return null
+            }
             // Verify Telegram initData signature server-side
             const isValid = await verifyTelegramInitData(credentials.telegramInitData)
-            if (!isValid) return null
+            if (!isValid) {
+              console.warn('[auth] Telegram initData verification failed')
+              return null
+            }
             const parsed = parseTelegramInitData(credentials.telegramInitData)
             const telegramId = String(parsed.user?.id || '')
-            if (!telegramId) return null
+            if (!telegramId) {
+              console.warn('[auth] Parsed telegramId missing')
+              return null
+            }
             const telegramUsername = parsed.user?.username || null
             const name = parsed.user?.first_name || parsed.user?.username || 'Telegram User'
             const photoUrl = parsed.user?.photo_url || null
@@ -49,7 +58,10 @@ export const authOptions: NextAuthOptions = {
                 .insert({ name, telegram_id: telegramId, telegram_username: telegramUsername, role: 'participant', profile_image_url: photoUrl })
                 .select()
                 .single()
-              if (error || !created) return null
+              if (error || !created) {
+                console.error('[auth] Create user error', error)
+                return null
+              }
               return { id: created.id, email: created.email, name: created.name, role: created.role }
             }
             // Update username/name/photo best-effort
@@ -57,7 +69,8 @@ export const authOptions: NextAuthOptions = {
             if (photoUrl && !existing.profile_image_url) {
               updatePayload.profile_image_url = photoUrl
             }
-            await supabaseAdmin.from('users').update(updatePayload).eq('id', existing.id)
+            const { error: updErr } = await supabaseAdmin.from('users').update(updatePayload).eq('id', existing.id)
+            if (updErr) console.warn('[auth] Update user warning', updErr)
             return { id: existing.id, email: existing.email, name: existing.name, role: existing.role }
           } catch (e) {
             console.error('Telegram authorize error', e)

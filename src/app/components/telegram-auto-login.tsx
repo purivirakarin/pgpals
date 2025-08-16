@@ -11,6 +11,9 @@ export default function TelegramAutoLogin() {
       if (session?.user) return
       const anyWindow = window as any
       const initData = anyWindow?.Telegram?.WebApp?.initData
+      if (!anyWindow?.Telegram?.WebApp) {
+        console.warn('[tg] WebApp not present')
+      }
       if (!initData) return
       try {
         await signIn('credentials', {
