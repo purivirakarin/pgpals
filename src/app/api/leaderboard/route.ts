@@ -36,7 +36,13 @@ export async function GET(request: NextRequest) {
       ],
     }));
 
-    return NextResponse.json(leaderboardArray);
+    // Public leaderboard can be cached briefly
+    return NextResponse.json(leaderboardArray, {
+      headers: {
+        'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        'Vary': 'Authorization, Cookie',
+      },
+    });
   } catch (error) {
     console.error('Leaderboard API error:', error);
     return NextResponse.json(

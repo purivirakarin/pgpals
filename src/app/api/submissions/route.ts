@@ -45,7 +45,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 });
     }
 
-    return NextResponse.json(submissions || []);
+    // Cache briefly for non-admins to reduce load
+    const cacheHeader = session.user.role === 'admin'
+      ? 'private, no-store'
+      : 'private, max-age=30, stale-while-revalidate=120';
+    return NextResponse.json(submissions || [], {
+      headers: {
+        'Cache-Control': cacheHeader,
+        'Vary': 'Authorization, Cookie',
+      },
+    });
   } catch (error) {
     console.error('Submissions API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -255,7 +255,8 @@ export default function BingoPage() {
       telegram.selectionFeedback()
       // Require authentication before opening submission modal
       if (!session?.user) {
-        // Not signed in; in Telegram context we will auto-login, otherwise ignore
+        // Not signed in; redirect directly to signup page
+        try { router.push('/auth/signup') } catch {}
         return
       }
 
@@ -419,7 +420,7 @@ export default function BingoPage() {
     <div className={`min-h-screen relative overflow-hidden pb-24 ${isDark ? 'text-gray-100' : 'text-white'}`}>
       <div className={`absolute inset-0 pointer-events-none ${isDark ? 'bg-gradient-to-br from-gray-950 via-slate-900 to-gray-800' : 'bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-800'}`}></div>
       <div className="absolute inset-0 pointer-events-none bg-gradient-to-tr from-green-800/50 via-transparent to-emerald-600/30"></div>
-      {zoomedTile !== null && <div className="fixed inset-0 z-40 duration-500 bg-black/70 animate-in fade-in"></div>}
+      {zoomedTile !== null && <div className="fixed inset-0 z-40 duration-500 bg-black/70 animate-in fade-in pointer-events-none"></div>}
       {zoomedTile !== null && activities[zoomedTile] && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 pointer-events-none">
           <div className="mb-4 text-center duration-500 delay-300 animate-in fade-in">

@@ -7,7 +7,12 @@ import { supabaseAdmin } from '@/lib/supabase'
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  return NextResponse.json({ code: String(session.user.id) })
+  return NextResponse.json({ code: String(session.user.id) }, {
+    headers: {
+      'Cache-Control': 'private, max-age=300, stale-while-revalidate=1800',
+      'Vary': 'Authorization, Cookie',
+    },
+  })
 }
 
 // Join by partner code (MVP: partner code is the other user's id)

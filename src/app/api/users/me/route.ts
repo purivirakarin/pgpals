@@ -20,7 +20,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json(user)
+    return NextResponse.json(user, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
+        'Vary': 'Authorization, Cookie',
+      },
+    })
   } catch (e) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
