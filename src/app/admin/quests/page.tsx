@@ -11,7 +11,7 @@ interface Quest {
   title: string;
   description: string;
   points: number;
-  category: string;
+  category: 'pair' | 'multiple-pair' | 'bonus';
   status: 'active' | 'inactive';
   requirements?: string;
   validation_criteria?: any;
@@ -23,7 +23,7 @@ interface QuestFormData {
   title: string;
   description: string;
   points: string; // Keep as string for form input handling
-  category: string;
+  category: 'pair' | 'multiple-pair' | 'bonus';
   requirements: string;
   status: 'active' | 'inactive';
   expires_at: string;
@@ -45,7 +45,7 @@ export default function AdminQuestsPage() {
     title: '',
     description: '',
     points: '0',
-    category: '',
+    category: 'pair',
     requirements: '',
     status: 'active',
     expires_at: ''
@@ -86,7 +86,7 @@ export default function AdminQuestsPage() {
     setFormData({
       title: '',
       description: '',
-      category: '',
+      category: 'pair',
       points: '',
       requirements: '',
       status: 'active',
@@ -153,20 +153,30 @@ export default function AdminQuestsPage() {
     setError(null);
 
     try {
+      // Validate bonus task requirements
+      if (formData.category === 'bonus' && !formData.expires_at) {
+        throw new Error('Bonus tasks must have an expiration date');
+      }
+
       const url = editingQuest ? `/api/quests/${editingQuest.id}` : '/api/quests';
       const method = editingQuest ? 'PUT' : 'POST';
 
-      // Process the expires_at date to ensure it's set to 23:59 Singapore time
+      // Process the expires_at date
       let processedFormData = { ...formData };
       if (formData.expires_at) {
-        // Parse the date input (YYYY-MM-DD format from date input)
-        const dateStr = formData.expires_at;
-        
-        // Create date object and set to 23:59:59 local time
-        const expireDate = new Date(dateStr + 'T23:59:59');
+        // For datetime-local input, ensure the date is in future
+        const expireDate = new Date(formData.expires_at);
+        if (expireDate <= new Date()) {
+          throw new Error('Expiration date must be in the future');
+        }
         
         // Convert to UTC for storage
         processedFormData.expires_at = expireDate.toISOString();
+      } else if (formData.category === 'bonus') {
+        // Set default 2 days from now for bonus tasks without expiration
+        const defaultExpire = new Date();
+        defaultExpire.setDate(defaultExpire.getDate() + 2);
+        processedFormData.expires_at = defaultExpire.toISOString();
       }
 
       const response = await fetch(url, {
@@ -297,7 +307,11 @@ export default function AdminQuestsPage() {
     setCurrentPage(1);
   }, [searchTerm, statusFilter, categoryFilter, sortBy, sortOrder]);
 
-  const categories = ['Health', 'Education', 'Outdoor', 'Creative', 'Social', 'Daily', 'Weekly', 'Special', 'Community', 'Challenge'];
+  const categories = [
+    { value: 'pair', label: 'Pair Tasks' },
+    { value: 'multiple-pair', label: 'Multiple-Pair Tasks' },
+    { value: 'bonus', label: 'Bonus Tasks' }
+  ];
 
   if (status === 'loading' || loading) {
     return (
@@ -385,7 +399,7 @@ export default function AdminQuestsPage() {
             <Dropdown
               options={[
                 { value: "", label: "All Categories" },
-                ...categories.map(category => ({ value: category, label: category }))
+                ...categories
               ]}
               value={categoryFilter}
               onChange={setCategoryFilter}
@@ -660,15 +674,12 @@ export default function AdminQuestsPage() {
                     </label>
                     <Dropdown
                       options={[
-                        { value: "", label: "Select Category" },
-                        { value: "daily", label: "Daily" },
-                        { value: "weekly", label: "Weekly" },
-                        { value: "special", label: "Special" },
-                        { value: "community", label: "Community" },
-                        { value: "challenge", label: "Challenge" }
+                        { value: "pair", label: "Pair Task (2 people)" },
+                        { value: "multiple-pair", label: "Multiple-Pair Task (2-10 people)" },
+                        { value: "bonus", label: "Bonus Task (with expiration)" }
                       ]}
                       value={formData.category}
-                      onChange={(value) => setFormData({ ...formData, category: value })}
+                      onChange={(value) => setFormData({ ...formData, category: value as 'pair' | 'multiple-pair' | 'bonus' })}
                       placeholder="Select Category"
                     />
                   </div>
@@ -717,18 +728,23 @@ export default function AdminQuestsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Expiration Date (Optional)
+                    Expiration Date {formData.category === 'bonus' && <span className="text-red-500">*</span>}
+                    {formData.category === 'bonus' && <span className="text-sm text-gray-500">(Required for bonus tasks)</span>}
                   </label>
                   <input
-                    type="date"
+                    type="datetime-local"
                     value={formData.expires_at}
                     onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={new Date().toISOString().slice(0, 16)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Select date"
+                    placeholder="Select date and time"
+                    required={formData.category === 'bonus'}
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Quest will expire at 23:59 Singapore time on the selected date. Leave empty for no expiration.
+                    {formData.category === 'bonus' 
+                      ? 'Bonus tasks must have an expiration date. Default is 2 days from creation if not specified.'
+                      : 'Optional expiration date and time for the quest. Leave empty for no expiration.'
+                    }
                   </p>
                 </div>
 

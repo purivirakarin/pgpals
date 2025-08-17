@@ -19,7 +19,11 @@ export default function QuestsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [error, setError] = useState<string | null>(null);
 
-  const categories = ['Health', 'Education', 'Outdoor', 'Creative', 'Social'];
+  const categories = [
+    { value: 'pair', label: 'Pair Tasks' },
+    { value: 'multiple-pair', label: 'Multiple-Pair Tasks' },
+    { value: 'bonus', label: 'Bonus Tasks' }
+  ];
 
   useEffect(() => {
     fetchQuests();
@@ -239,8 +243,8 @@ export default function QuestsPage() {
                   >
                     <option value="">All Categories</option>
                     {categories.map(category => (
-                      <option key={category} value={category}>
-                        {category}
+                      <option key={category.value} value={category.value}>
+                        {category.label}
                       </option>
                     ))}
                   </select>
@@ -438,6 +442,7 @@ export default function QuestsPage() {
                 key={quest.id}
                 quest={quest}
                 userSubmission={session ? getUserSubmission(quest.id) : undefined}
+                showGroupStatus={true}
               />
             ))}
           </div>

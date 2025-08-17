@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
+import { sendSubmissionStatusNotification } from '@/lib/notifications';
 
 export async function POST(
   request: NextRequest,
@@ -59,6 +60,13 @@ export async function POST(
     // Points are now automatically calculated via database view
     // No manual recalculation needed
     console.log(`Submission ${params.id} updated. Points will be automatically reflected in user_points_view`);
+
+    // Send notifications to all relevant parties
+    await sendSubmissionStatusNotification(
+      parseInt(params.id),
+      newStatus,
+      feedback
+    );
 
     return NextResponse.json(updatedSubmission);
 

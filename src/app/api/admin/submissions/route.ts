@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const showDeleted = searchParams.get('showDeleted') === 'true';
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -24,10 +25,16 @@ export async function GET(request: NextRequest) {
         *,
         user:users!submissions_user_id_fkey(id, name, email, telegram_username),
         quest:quests(id, title, category, points),
-        reviewer:users!submissions_reviewed_by_fkey(id, name, email)
+        reviewer:users!submissions_reviewed_by_fkey(id, name, email),
+        deleter:users!submissions_deleted_by_fkey(id, name, email)
       `)
       .order('submitted_at', { ascending: false })
       .range(offset, offset + limit - 1);
+
+    // Filter by deletion status
+    if (!showDeleted) {
+      query = query.eq('is_deleted', false);
+    }
 
     if (status) {
       query = query.eq('status', status);
