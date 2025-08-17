@@ -18,20 +18,63 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // Build base query with explicit quest join
     let query = supabaseAdmin
       .from('submissions')
       .select(`
-        *,
-        user:users!submissions_user_id_fkey(id, name, email, telegram_username),
-        quest:quests(id, title, category, points, description),
-        reviewer:users!submissions_reviewed_by_fkey(id, name, email)
+        id,
+        user_id,
+        quest_id,
+        status,
+        telegram_file_id,
+        telegram_message_id,
+        submitted_at,
+        reviewed_at,
+        reviewed_by,
+        points_awarded,
+        admin_feedback,
+        ai_analysis,
+        ai_confidence_score,
+        is_group_submission,
+        group_submission_id,
+        represents_pairs
       `)
+      .not('is_deleted', 'eq', true)  // Filter out soft-deleted submissions
       .order('submitted_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    // If user is admin, show all submissions; otherwise, show only their own
+    // If user is admin, show all submissions; otherwise, show submissions visible to the user and their pair
     if (session.user.role !== 'admin') {
-      query = query.eq('user_id', session.user.id);
+      // Get user's partner ID
+      const { data: userData } = await supabaseAdmin
+        .from('users')
+        .select('partner_id')
+        .eq('id', session.user.id)
+        .single();
+
+      const partnerId = userData?.partner_id;
+
+      // Get group submission IDs where user is participating and not opted out
+      const { data: groupParticipations } = await supabaseAdmin
+        .from('group_participants')
+        .select('group_submission_id')
+        .eq('user_id', session.user.id)
+        .eq('opted_out', false);
+
+      const groupSubmissionIds = groupParticipations?.map(gp => gp.group_submission_id) || [];
+
+      // Build the filter conditions
+      let userIds = [session.user.id];
+      if (partnerId) {
+        userIds.push(partnerId);
+      }
+
+      // Apply filters - show submissions from user/partner OR group submissions they're part of
+      if (groupSubmissionIds.length > 0) {
+        query = query.or(`user_id.in.(${userIds.join(',')}),group_submission_id.in.(${groupSubmissionIds.join(',')})`);
+      } else {
+        query = query.in('user_id', userIds);
+      }
     }
 
     if (status) {
@@ -45,7 +88,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 });
     }
 
-    return NextResponse.json(submissions || []);
+    // Manually fetch quest data for each submission
+    const submissionsWithQuests = await Promise.all(
+      (submissions || []).map(async (submission) => {
+        const { data: quest } = await supabaseAdmin
+          .from('quests')
+          .select('id, title, category, points, description')
+          .eq('id', submission.quest_id)
+          .single();
+
+        const { data: user } = await supabaseAdmin
+          .from('users')
+          .select('id, name, telegram_username, email')
+          .eq('id', submission.user_id)
+          .single();
+
+        return {
+          ...submission,
+          quest: quest || { id: submission.quest_id, title: 'Unknown Quest', category: 'Unknown', points: 0, description: '' },
+          users: user || { id: submission.user_id, name: 'Unknown User', telegram_username: null, email: null }
+        };
+      })
+    );
+
+    return NextResponse.json(submissionsWithQuests);
   } catch (error) {
     console.error('Submissions API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

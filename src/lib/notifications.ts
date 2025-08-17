@@ -1,0 +1,198 @@
+import { bot } from './telegram';
+import { supabaseAdmin } from './supabase';
+
+interface NotificationRecipient {
+  telegram_id: string;
+  name: string;
+}
+
+export async function sendSubmissionStatusNotification(
+  submissionId: number,
+  newStatus: string,
+  reviewFeedback?: string
+) {
+  try {
+    // Get submission details with user and quest info
+    const { data: submission } = await supabaseAdmin
+      .from('submissions')
+      .select(`
+        id,
+        user_id,
+        quest_id,
+        status,
+        points_awarded,
+        admin_feedback,
+        is_group_submission,
+        group_submission_id,
+        users!submissions_user_id_fkey(id, name, telegram_id, partner_id),
+        quests!submissions_quest_id_fkey(id, title, points)
+      `)
+      .eq('id', submissionId)
+      .single();
+
+    if (!submission) {
+      console.error('Submission not found for notification:', submissionId);
+      return;
+    }
+
+    const submitter = submission.users as any;
+    const quest = submission.quests as any;
+    
+    // Prepare notification message based on status
+    const statusEmoji = getStatusEmoji(newStatus);
+    const statusText = getStatusText(newStatus);
+    
+    let message = `${statusEmoji} **Submission ${statusText}**\n\n`;
+    message += `Quest: ${quest.title}\n`;
+    message += `Status: ${statusText}\n`;
+    
+    if (newStatus === 'approved' || newStatus === 'ai_approved') {
+      message += `Points Awarded: ${submission.points_awarded || quest.points}\n`;
+    }
+    
+    if (reviewFeedback) {
+      message += `\nFeedback: ${reviewFeedback}`;
+    }
+
+    // Collect all recipients
+    const recipients: NotificationRecipient[] = [];
+    
+    // Add submitter
+    if (submitter.telegram_id) {
+      recipients.push({
+        telegram_id: submitter.telegram_id,
+        name: submitter.name
+      });
+    }
+
+    // Add submitter's partner
+    if (submitter.partner_id) {
+      const { data: partner } = await supabaseAdmin
+        .from('users')
+        .select('telegram_id, name')
+        .eq('id', submitter.partner_id)
+        .single();
+        
+      if (partner?.telegram_id) {
+        recipients.push({
+          telegram_id: partner.telegram_id,
+          name: partner.name
+        });
+      }
+    }
+
+    // If it's a group submission, add all group participants
+    if (submission.is_group_submission && submission.group_submission_id) {
+      const { data: groupParticipants } = await supabaseAdmin
+        .from('group_participants')
+        .select(`
+          user_id,
+          opted_out,
+          users!group_participants_user_id_fkey(telegram_id, name)
+        `)
+        .eq('group_submission_id', submission.group_submission_id)
+        .eq('opted_out', false);
+
+      if (groupParticipants) {
+        groupParticipants.forEach((participant: any) => {
+          if (participant.users?.telegram_id && 
+              !recipients.find(r => r.telegram_id === participant.users.telegram_id)) {
+            recipients.push({
+              telegram_id: participant.users.telegram_id,
+              name: participant.users.name
+            });
+          }
+        });
+      }
+    }
+
+    // Send notifications to all recipients
+    const notificationPromises = recipients.map(async (recipient) => {
+      try {
+        await bot.sendMessage(recipient.telegram_id, message, { parse_mode: 'Markdown' });
+        console.log(`Notification sent to ${recipient.name} (${recipient.telegram_id})`);
+      } catch (error) {
+        console.error(`Failed to send notification to ${recipient.name}:`, error);
+      }
+    });
+
+    await Promise.all(notificationPromises);
+    console.log(`Status notification sent for submission ${submissionId} to ${recipients.length} recipients`);
+    
+  } catch (error) {
+    console.error('Error sending submission status notification:', error);
+  }
+}
+
+export async function sendGroupSubmissionNotification(
+  groupSubmissionId: number,
+  submitterName: string,
+  questTitle: string
+) {
+  try {
+    // Get all group participants
+    const { data: groupParticipants } = await supabaseAdmin
+      .from('group_participants')
+      .select(`
+        user_id,
+        opted_out,
+        users!group_participants_user_id_fkey(telegram_id, name)
+      `)
+      .eq('group_submission_id', groupSubmissionId)
+      .eq('opted_out', false);
+
+    if (!groupParticipants || groupParticipants.length === 0) {
+      console.log('No participants found for group submission notification');
+      return;
+    }
+
+    const message = `🎯 **Group Submission Created**\n\n` +
+      `${submitterName} submitted a group quest on behalf of everyone:\n\n` +
+      `Quest: ${questTitle}\n` +
+      `Status: Pending validation\n\n` +
+      `All participants will receive credit when approved!\n` +
+      `Total participants: ${groupParticipants.length}`;
+
+    // Send to all participants
+    const notificationPromises = groupParticipants.map(async (participant: any) => {
+      if (participant.users?.telegram_id) {
+        try {
+          await bot.sendMessage(participant.users.telegram_id, message, { parse_mode: 'Markdown' });
+          console.log(`Group notification sent to ${participant.users.name}`);
+        } catch (error) {
+          console.error(`Failed to send group notification to ${participant.users.name}:`, error);
+        }
+      }
+    });
+
+    await Promise.all(notificationPromises);
+    console.log(`Group submission notification sent to ${groupParticipants.length} participants`);
+    
+  } catch (error) {
+    console.error('Error sending group submission notification:', error);
+  }
+}
+
+function getStatusEmoji(status: string): string {
+  switch (status) {
+    case 'pending_ai': return '⏳';
+    case 'ai_approved': 
+    case 'approved': return '✅';
+    case 'ai_rejected':
+    case 'rejected': return '❌';
+    case 'manual_review': return '👁️';
+    default: return '📄';
+  }
+}
+
+function getStatusText(status: string): string {
+  switch (status) {
+    case 'pending_ai': return 'Pending AI Review';
+    case 'ai_approved': return 'AI Approved';
+    case 'ai_rejected': return 'AI Rejected';
+    case 'manual_review': return 'Under Manual Review';
+    case 'approved': return 'Approved';
+    case 'rejected': return 'Rejected';
+    default: return status.replace('_', ' ');
+  }
+}

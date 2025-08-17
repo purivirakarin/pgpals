@@ -300,12 +300,36 @@ async function handlePhotoSubmission(
   try {
     const questIdMatch = caption.match(/\/submit\s+([a-zA-Z0-9-#]+)/);
     if (!questIdMatch) {
-      await bot.sendMessage(chatId, 'Invalid format. Use: Send photo with caption `/submit [quest_id]` or `/submit #[number]`');
+      await bot.sendMessage(chatId, 'Invalid format. Use: Send photo with caption `/submit [quest_id]` or `/submit #[number]`\n\nFor group submissions, add pair names:\n`/submit [quest_id] group:Name1&Name2,Name3&Name4`');
       return;
     }
 
     const questIdInput = questIdMatch[1];
     console.log('Processing quest submission for input:', questIdInput);
+    
+    // Check if this is a group submission
+    const groupMatch = caption.match(/group:(.+)/);
+    const isGroupSubmission = !!groupMatch;
+    let participantPairs: Array<{user1_name: string, user2_name: string}> = [];
+    
+    if (isGroupSubmission) {
+      const pairStrings = groupMatch[1].split(',');
+      participantPairs = pairStrings.map(pairStr => {
+        const [user1_name, user2_name] = pairStr.trim().split('&');
+        if (!user1_name || !user2_name) {
+          throw new Error('Invalid pair format. Use: Name1&Name2,Name3&Name4');
+        }
+        return { 
+          user1_name: user1_name.trim(), 
+          user2_name: user2_name.trim() 
+        };
+      });
+      
+      if (participantPairs.length < 2) {
+        await bot.sendMessage(chatId, 'Group submissions need at least 2 pairs (4 people).\n\nFormat: `/submit [quest_id] group:Name1&Name2,Name3&Name4`');
+        return;
+      }
+    }
     
     // Parse the quest ID input (now expecting integers)
     const questId = parseQuestId(questIdInput);
@@ -351,8 +375,33 @@ async function handlePhotoSubmission(
     
     console.log('Found quest:', quest.id, quest.title);
 
-    // Check for partner quest submission conflicts
-    if (user.partner_id) {
+    // Check if this is a group submission for a non-group quest
+    if (isGroupSubmission && quest.category !== 'multiple-pair') {
+      await bot.sendMessage(chatId, 
+        `🚫 This quest doesn't support group submissions!\n\n` +
+        `Quest: ${quest.title}\n` +
+        `Category: ${quest.category}\n\n` +
+        `Please submit individually or choose a group quest.`
+      );
+      return;
+    }
+
+    // Check if this is NOT a group submission for a group quest
+    if (!isGroupSubmission && quest.category === 'multiple-pair') {
+      await bot.sendMessage(chatId, 
+        `📋 This quest requires group submission!\n\n` +
+        `Quest: ${quest.title}\n` +
+        `Category: ${quest.category}\n\n` +
+        `Format: Send photo with caption:\n` +
+        `\`/submit ${questId} group:Name1&Name2,Name3&Name4\`\n\n` +
+        `Replace with actual participant names.`,
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    // For regular pair quests, check partner conflicts
+    if (!isGroupSubmission && user.partner_id) {
       console.log('User has partner, checking for partner quest conflicts');
       
       // Check if partner has already submitted or completed this quest
@@ -384,7 +433,7 @@ async function handlePhotoSubmission(
           return;
         }
       }
-    } else {
+    } else if (!isGroupSubmission) {
       console.log('User has no partner assigned, can submit any quest');
     }
 
@@ -433,6 +482,59 @@ async function handlePhotoSubmission(
     console.log('Photo file ID:', fileId);
 
     console.log('Inserting submission into database...');
+    
+    if (isGroupSubmission) {
+      // Create group submission via API
+      try {
+        const groupSubmissionResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/group-submissions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            quest_id: questId,
+            participant_pairs: participantPairs,
+            telegram_file_id: fileId,
+            telegram_message_id: messageId
+          })
+        });
+
+        if (!groupSubmissionResponse.ok) {
+          throw new Error('Failed to create group submission');
+        }
+
+        const groupResult = await groupSubmissionResponse.json();
+        
+        await bot.sendMessage(chatId, 
+          `✅ Group submission received!\n\n` +
+          `Quest: ${quest.title}\n` +
+          `Participants: ${participantPairs.length * 2} people (${participantPairs.length} pairs)\n` +
+          `Status: Pending validation\n\n` +
+          `All participants will be notified when processed!`
+        );
+
+        // Send notification to all mentioned participants
+        const participantNames = participantPairs.map(pair => `${pair.user1_name} & ${pair.user2_name}`).join(', ');
+        
+        if (process.env.ADMIN_TELEGRAM_ID) {
+          await bot.sendMessage(process.env.ADMIN_TELEGRAM_ID, 
+            `🎯 New GROUP submission:\n` +
+            `Submitter: ${user.name}\n` +
+            `Quest: ${quest.title}\n` +
+            `Participants: ${participantNames}\n` +
+            `ID: ${groupResult.submission_id}`
+          );
+        }
+
+        return;
+      } catch (error) {
+        console.error('Group submission error:', error);
+        await bot.sendMessage(chatId, 'Error creating group submission. Please try again.');
+        return;
+      }
+    }
+
+    // Regular individual submission
     const { data: submission, error } = await supabaseAdmin
       .from('submissions')
       .insert({
@@ -454,6 +556,7 @@ async function handlePhotoSubmission(
     
     console.log('Submission created successfully:', submission);
 
+    // Send confirmation to submitter
     await bot.sendMessage(chatId, 
       `✅ Submission received!\n\n` +
       `Quest: ${quest.title}\n` +
@@ -461,6 +564,31 @@ async function handlePhotoSubmission(
       `You'll be notified when it's processed.`
     );
 
+    // Send notification to partner if user has one
+    if (user.partner_id) {
+      const { data: partner } = await supabaseAdmin
+        .from('users')
+        .select('telegram_id, name')
+        .eq('id', user.partner_id)
+        .single();
+
+      if (partner?.telegram_id) {
+        try {
+          await bot.sendMessage(partner.telegram_id, 
+            `🔔 **Partner Submission Alert**\n\n` +
+            `Your partner ${user.name} just submitted:\n` +
+            `Quest: ${quest.title}\n` +
+            `Status: Pending validation\n\n` +
+            `You'll both be notified when it's processed.`,
+            { parse_mode: 'Markdown' }
+          );
+        } catch (error) {
+          console.error('Failed to send partner notification:', error);
+        }
+      }
+    }
+
+    // Admin notification
     if (process.env.ADMIN_TELEGRAM_ID) {
       await bot.sendMessage(process.env.ADMIN_TELEGRAM_ID, 
         `🔔 New submission:\n` +

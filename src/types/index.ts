@@ -19,7 +19,7 @@ export interface Quest {
   id: number;
   title: string;
   description: string;
-  category: string;
+  category: 'pair' | 'multiple-pair' | 'bonus';
   points: number;
   status: 'active' | 'inactive' | 'archived';
   requirements: string;
@@ -43,9 +43,19 @@ export interface Submission {
   reviewed_by?: number;
   points_awarded: number;
   submitted_at: string;
+  ai_processed_at?: string;
   reviewed_at?: string;
-  created_at: string;
-  updated_at: string;
+  // New fields for group submissions
+  is_group_submission?: boolean;
+  group_submission_id?: number;
+  represents_pairs?: string[];
+  // New fields for pair submissions
+  pair_submission?: boolean;
+  visible_to_partner?: boolean;
+  // New fields for soft deletion
+  is_deleted?: boolean;
+  deleted_at?: string;
+  deleted_by?: number;
 }
 
 export interface Activity {
@@ -79,4 +89,57 @@ export interface LeaderboardEntry {
   rank: number;
   is_partnership?: boolean;
   partner_names?: string[];
+}
+
+// New interfaces for group submission system
+export interface GroupSubmission {
+  id: number;
+  quest_id: number;
+  submitter_user_id: number;
+  submission_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GroupParticipant {
+  id: number;
+  group_submission_id: number;
+  user_id: number;
+  partner_id?: number;
+  opted_out: boolean;
+  opted_out_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PairSubmissionStatus {
+  user_id: number;
+  partner_id?: number;
+  quest_id: number;
+  quest_title: string;
+  quest_category: 'pair' | 'multiple-pair' | 'bonus';
+  // Direct submissions
+  user_submission_id?: number;
+  user_submission_status?: string;
+  user_submitted_at?: string;
+  partner_submission_id?: number;
+  partner_submission_status?: string;
+  partner_submitted_at?: string;
+  // Group submission info
+  group_submission_id?: number;
+  group_submitter_id?: number;
+  group_submission_status?: string;
+  group_submitted_at?: string;
+  opted_out_of_group?: boolean;
+  // Overall status
+  pair_status: 'available' | 'pending' | 'completed' | 'rejected';
+}
+
+export interface UserQuestStatus {
+  status: 'available' | 'pending' | 'completed' | 'rejected';
+  submission_id?: number;
+  submitted_by?: 'self' | 'partner' | 'group';
+  submitted_at?: string;
+  can_opt_out?: boolean;
+  group_submission_id?: number;
 }

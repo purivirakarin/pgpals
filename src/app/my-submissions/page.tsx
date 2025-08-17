@@ -14,7 +14,8 @@ import {
   FileText,
   Loader,
   AlertCircle,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 
 interface SubmissionWithQuest extends Submission {
@@ -27,6 +28,7 @@ export default function MySubmissionsPage() {
   const [submissions, setSubmissions] = useState<SubmissionWithQuest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -50,6 +52,31 @@ export default function MySubmissionsPage() {
       setError(err instanceof Error ? err.message : 'Failed to load submissions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteSubmission = async (submissionId: number) => {
+    if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeleteLoading(submissionId);
+      const response = await fetch(`/api/admin/submissions/${submissionId}/delete`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete submission');
+      }
+
+      // Remove submission from local state
+      setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete submission');
+    } finally {
+      setDeleteLoading(null);
     }
   };
 
@@ -193,13 +220,13 @@ export default function MySubmissionsPage() {
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      {submission.quest.title}
+                      {submission.quest?.title || 'Unknown Quest'}
                     </h3>
-                    <p className="text-gray-600 mb-3">{submission.quest.description}</p>
+                    <p className="text-gray-600 mb-3">{submission.quest?.description || ''}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <span className="inline-flex items-center">
                         <Target className="w-4 h-4 mr-1" />
-                        {submission.quest.category}
+                        {submission.quest?.category || 'Unknown'}
                       </span>
                       <span className="inline-flex items-center">
                         <Calendar className="w-4 h-4 mr-1" />
@@ -217,6 +244,21 @@ export default function MySubmissionsPage() {
                       {getStatusIcon(submission.status)}
                       <span className="ml-2">{getStatusText(submission.status)}</span>
                     </div>
+                    
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => deleteSubmission(submission.id)}
+                      disabled={deleteLoading === submission.id}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete submission"
+                    >
+                      {deleteLoading === submission.id ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      <span className="ml-1">Delete</span>
+                    </button>
                   </div>
                 </div>
 

@@ -1,9 +1,11 @@
 'use client';
 
 import { Quest } from '@/types';
-import { Target, Calendar, Award, Users, Copy, Check } from 'lucide-react';
+import { Target, Calendar, Award, Users, Copy, Check, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { getNumericId } from '@/lib/questId';
+import GroupSubmissionStatus from './GroupSubmissionStatus';
+import GroupSubmissionForm from './GroupSubmissionForm';
 
 interface QuestCardProps {
   quest: Quest;
@@ -12,6 +14,7 @@ interface QuestCardProps {
   onDelete?: (questId: number) => void;
   userSubmission?: any;
   showStatusBadge?: boolean; // New prop to control status badge visibility
+  showGroupStatus?: boolean; // New prop to show group submission status
 }
 
 export default function QuestCard({ 
@@ -20,9 +23,11 @@ export default function QuestCard({
   onEdit, 
   onDelete,
   userSubmission,
-  showStatusBadge = false
+  showStatusBadge = false,
+  showGroupStatus = false
 }: QuestCardProps) {
   const [copied, setCopied] = useState(false);
+  const [showGroupForm, setShowGroupForm] = useState(false);
 
   // Generate a consistent numeric ID based on quest.id
   const numericId = getNumericId(quest.id);
@@ -40,6 +45,13 @@ export default function QuestCard({
   
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
+      case 'pair':
+        return '👫';
+      case 'multiple-pair':
+        return '👥';
+      case 'bonus':
+        return '⭐';
+      // Legacy categories for backward compatibility
       case 'health':
         return '🏃‍♂️';
       case 'education':
@@ -52,6 +64,19 @@ export default function QuestCard({
         return '👥';
       default:
         return '🎯';
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case 'pair':
+        return 'Pair Task';
+      case 'multiple-pair':
+        return 'Multiple-Pair Task';
+      case 'bonus':
+        return 'Bonus Task';
+      default:
+        return category;
     }
   };
 
@@ -145,8 +170,39 @@ export default function QuestCard({
             </h3>
             <div className="flex items-center space-x-2">
               <span className="text-sm font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
-                {quest.category}
+                {getCategoryLabel(quest.category)}
               </span>
+              {quest.category === 'bonus' && quest.expires_at && (
+                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  new Date(quest.expires_at) < new Date() 
+                    ? 'bg-red-100 text-red-800' 
+                    : new Date(quest.expires_at) < new Date(Date.now() + 24 * 60 * 60 * 1000)
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {(() => {
+                    const now = new Date();
+                    const expireDate = new Date(quest.expires_at);
+                    const diffMs = expireDate.getTime() - now.getTime();
+                    
+                    if (diffMs <= 0) {
+                      return '🕐 Expired';
+                    }
+                    
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                    
+                    if (diffDays > 0) {
+                      return `🕐 ${diffDays}d left`;
+                    } else if (diffHours > 0) {
+                      return `🕐 ${diffHours}h left`;
+                    } else {
+                      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+                      return `🕐 ${diffMinutes}m left`;
+                    }
+                  })()}
+                </span>
+              )}
               {showStatusBadge && (
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(quest.status)}`}>
                   {quest.status}
@@ -184,6 +240,32 @@ export default function QuestCard({
             Requirements:
           </h4>
           <p className="text-sm text-gray-600 leading-relaxed">{quest.requirements}</p>
+        </div>
+      )}
+
+      {/* Group Submission Status */}
+      {showGroupStatus && quest.category === 'multiple-pair' && (
+        <div className="mb-4">
+          <GroupSubmissionStatus 
+            questId={quest.id} 
+            questCategory={quest.category}
+            onGroupSubmissionChange={() => {
+              // Optionally refresh quest status
+            }}
+          />
+        </div>
+      )}
+
+      {/* Create Group Submission Button */}
+      {quest.category === 'multiple-pair' && !showGroupStatus && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowGroupForm(true)}
+            className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="font-medium">Create Group Submission</span>
+          </button>
         </div>
       )}
 
@@ -343,6 +425,23 @@ export default function QuestCard({
           </div>
         )}
       </div>
+
+      {/* Group Submission Form Modal */}
+      {showGroupForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <GroupSubmissionForm
+              questId={quest.id}
+              questTitle={quest.title}
+              onSubmissionSuccess={() => {
+                setShowGroupForm(false);
+                // Optionally refresh the page or show success message
+              }}
+              onCancel={() => setShowGroupForm(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

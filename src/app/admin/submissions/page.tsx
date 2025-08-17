@@ -45,6 +45,11 @@ interface SubmissionWithDetails extends Omit<Submission, 'user' | 'quest'> {
     name: string;
     email: string;
   };
+  deleter?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 }
 
 export default function AdminSubmissionsPage() {
@@ -55,6 +60,7 @@ export default function AdminSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showDeleted, setShowDeleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reviewLoading, setReviewLoading] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -66,7 +72,11 @@ export default function AdminSubmissionsPage() {
     try {
       setLoading(true);
       // Fetch all submissions for frontend filtering and pagination
-      const response = await fetch('/api/admin/submissions');
+      const params = new URLSearchParams();
+      if (showDeleted) {
+        params.append('showDeleted', 'true');
+      }
+      const response = await fetch(`/api/admin/submissions?${params.toString()}`);
       if (!response.ok) throw new Error('Failed to fetch submissions');
       
       const data = await response.json();
@@ -76,7 +86,7 @@ export default function AdminSubmissionsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showDeleted]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -158,11 +168,11 @@ export default function AdminSubmissionsPage() {
 
   const filteredSubmissions = (submissions || []).filter(submission => {
     const matchesSearch = !searchTerm || 
-      submission.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      submission.quest.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (submission.user.telegram_username && submission.user.telegram_username.toLowerCase().includes(searchTerm.toLowerCase()));
+      submission.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.quest?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.quest?.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (submission.user?.telegram_username && submission.user.telegram_username.toLowerCase().includes(searchTerm.toLowerCase()));
     
     let matchesStatus = true;
     if (statusFilter) {
@@ -278,6 +288,18 @@ export default function AdminSubmissionsPage() {
             />
           </div>
 
+          <div className="flex items-center">
+            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
+              <input
+                type="checkbox"
+                checked={showDeleted}
+                onChange={(e) => setShowDeleted(e.target.checked)}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <span>Show Deleted</span>
+            </label>
+          </div>
+
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setStatusFilter('pending_review')}
@@ -329,8 +351,8 @@ export default function AdminSubmissionsPage() {
                     <div className="flex items-center min-w-0 flex-1">
                       <User className="w-5 h-5 text-gray-400 mr-2 flex-shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <span className="font-medium text-gray-900 block truncate">{submission.user.name}</span>
-                        {submission.user.telegram_username && (
+                        <span className="font-medium text-gray-900 block truncate">{submission.user?.name || 'Unknown User'}</span>
+                        {submission.user?.telegram_username && (
                           <span className="text-sm text-gray-500 block truncate">@{submission.user.telegram_username}</span>
                         )}
                       </div>
@@ -345,12 +367,12 @@ export default function AdminSubmissionsPage() {
                   <div className="flex items-start">
                     <Target className="w-5 h-5 text-gray-400 mr-2 flex-shrink-0 mt-0.5" />
                     <div className="min-w-0 flex-1">
-                      <span className="text-gray-700 block">{submission.quest.title}</span>
+                      <span className="text-gray-700 block">{submission.quest?.title || 'Unknown Quest'}</span>
                       <div className="flex items-center justify-between mt-1">
-                        <span className="text-sm text-gray-500">({submission.quest.category})</span>
+                        <span className="text-sm text-gray-500">({submission.quest?.category || 'Unknown'})</span>
                         <div className="flex items-center text-primary-600 flex-shrink-0">
                           <Award className="w-4 h-4 mr-1" />
-                          {submission.quest.points} pts
+                          {submission.quest?.points || 0} pts
                         </div>
                       </div>
                     </div>
@@ -460,8 +482,8 @@ export default function AdminSubmissionsPage() {
                   <div className="flex-1">
                     <div className="flex items-center mb-2">
                       <User className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="font-medium text-gray-900">{submission.user.name}</span>
-                      {submission.user.telegram_username && (
+                      <span className="font-medium text-gray-900">{submission.user?.name || 'Unknown User'}</span>
+                      {submission.user?.telegram_username && (
                         <span className="ml-2 text-sm text-gray-500">@{submission.user.telegram_username}</span>
                       )}
                       <span className={`ml-4 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(submission.status)}`}>
@@ -472,11 +494,11 @@ export default function AdminSubmissionsPage() {
 
                     <div className="flex items-center mb-2">
                       <Target className="w-5 h-5 text-gray-400 mr-2" />
-                      <span className="text-gray-700">{submission.quest.title}</span>
-                      <span className="ml-2 text-sm text-gray-500">({submission.quest.category})</span>
+                      <span className="text-gray-700">{submission.quest?.title || 'Unknown Quest'}</span>
+                      <span className="ml-2 text-sm text-gray-500">({submission.quest?.category || 'Unknown'})</span>
                       <div className="ml-4 flex items-center text-primary-600">
                         <Award className="w-4 h-4 mr-1" />
-                        {submission.quest.points} pts
+                        {submission.quest?.points || 0} pts
                       </div>
                     </div>
 
