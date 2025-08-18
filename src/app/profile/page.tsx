@@ -182,6 +182,18 @@ export default function ProfilePage() {
     }
   };
 
+  const checkInitData = () => {
+    try {
+      // @ts-ignore
+      const tg = (window as any).Telegram?.WebApp;
+      setTgInitRaw(tg?.initData || null)
+      setTgInitParsed(tg?.initDataUnsafe || null)
+    } catch {
+      setTgInitRaw(null)
+      setTgInitParsed(null)
+    }
+  };
+
   // Client-side enhancement: read Telegram Mini App user for immediate UI (name/photo)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -347,24 +359,28 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
             </div>
           </div>
 
-          {(tgInitRaw || tgInitParsed) && (
-            <div className="card p-6">
-              <h2 className="text-xl font-semibold mb-3">Telegram Init Data</h2>
-              {tgInitRaw && (
-                <div className="mb-4">
-                  <div className="text-sm text-gray-600 mb-2 font-medium">initDataRaw</div>
-                  <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto break-all whitespace-pre-wrap">{tgInitRaw}</pre>
-                </div>
-              )}
-              {tgInitParsed && (
-                <div>
-                  <div className="text-sm text-gray-600 mb-2 font-medium">initData (parsed)</div>
-                  <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">{JSON.stringify(tgInitParsed, null, 2)}</pre>
-                </div>
-              )}
-              <p className="text-xs text-gray-500 mt-3">Shown only when opened in Telegram. Used for authorization per Telegram Mini Apps docs.</p>
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">Telegram Init Data</h2>
+              <button onClick={checkInitData} className="btn-secondary">Check initData</button>
             </div>
-          )}
+            {!tgInitRaw && !tgInitParsed && (
+              <p className="text-sm text-gray-600">No initData detected. Open this page inside Telegram Mini App and click "Check initData".</p>
+            )}
+            {tgInitRaw && (
+              <div className="mb-4">
+                <div className="text-sm text-gray-600 mb-2 font-medium">initDataRaw</div>
+                <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto break-all whitespace-pre-wrap">{tgInitRaw}</pre>
+              </div>
+            )}
+            {tgInitParsed && (
+              <div>
+                <div className="text-sm text-gray-600 mb-2 font-medium">initData (parsed)</div>
+                <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">{JSON.stringify(tgInitParsed, null, 2)}</pre>
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-3">Used for authorization per Telegram Mini Apps docs. Data appears only within Telegram.</p>
+          </div>
 
           {/* Email linking for Telegram-first users */}
           {!profile.email && (
