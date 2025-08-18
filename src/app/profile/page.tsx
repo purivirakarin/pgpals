@@ -52,6 +52,9 @@ export default function ProfilePage() {
   const [telegramUsername, setTelegramUsername] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailLinking, setEmailLinking] = useState<{ email: string; password: string; loading: boolean; success?: boolean }>({ email: '', password: '', loading: false });
+  const [tgInitRaw, setTgInitRaw] = useState<string | null>(null)
+  const [tgInitParsed, setTgInitParsed] = useState<any>(null)
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -154,6 +157,31 @@ export default function ProfilePage() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  const linkEmailPassword = async () => {
+    try {
+      setError(null);
+      setEmailLinking((s) => ({ ...s, loading: true, success: false }));
+      if (!emailLinking.email || !emailLinking.password) {
+        setError('Email and password are required');
+        return;
+      }
+      const res = await fetch('/api/users/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailLinking.email, password: emailLinking.password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to link credentials');
+      setProfile(data.user);
+      setEmailLinking((s) => ({ ...s, success: true }));
+      await update?.({});
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to link credentials');
+    } finally {
+      setEmailLinking((s) => ({ ...s, loading: false }));
+    }
+  };
+
   // Client-side enhancement: read Telegram Mini App user for immediate UI (name/photo)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -181,6 +209,15 @@ export default function ProfilePage() {
           if (url) setProfile((p) => p ? { ...p, profile_image_url: url } : p);
         })
         .catch(() => {});
+    }
+
+    // Capture initData for verification display when inside Telegram
+    try {
+      setTgInitRaw(tg?.initData || null)
+      setTgInitParsed(tg?.initDataUnsafe || null)
+    } catch {
+      setTgInitRaw(null)
+      setTgInitParsed(null)
     }
   }, [session?.user?.id]);
 
@@ -309,6 +346,58 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
               )}
             </div>
           </div>
+
+          {(tgInitRaw || tgInitParsed) && (
+            <div className="card p-6">
+              <h2 className="text-xl font-semibold mb-3">Telegram Init Data</h2>
+              {tgInitRaw && (
+                <div className="mb-4">
+                  <div className="text-sm text-gray-600 mb-2 font-medium">initDataRaw</div>
+                  <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto break-all whitespace-pre-wrap">{tgInitRaw}</pre>
+                </div>
+              )}
+              {tgInitParsed && (
+                <div>
+                  <div className="text-sm text-gray-600 mb-2 font-medium">initData (parsed)</div>
+                  <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">{JSON.stringify(tgInitParsed, null, 2)}</pre>
+                </div>
+              )}
+              <p className="text-xs text-gray-500 mt-3">Shown only when opened in Telegram. Used for authorization per Telegram Mini Apps docs.</p>
+            </div>
+          )}
+
+          {/* Email linking for Telegram-first users */}
+          {!profile.email && (
+            <div className="card p-6">
+              <h2 className="text-xl font-semibold mb-4">Link Email for Web Access</h2>
+              <div className="grid gap-3 max-w-md">
+                <input
+                  type="email"
+                  value={emailLinking.email}
+                  onChange={(e) => setEmailLinking((s) => ({ ...s, email: e.target.value }))}
+                  placeholder="Email"
+                  className="border rounded px-3 py-2"
+                />
+                <input
+                  type="password"
+                  value={emailLinking.password}
+                  onChange={(e) => setEmailLinking((s) => ({ ...s, password: e.target.value }))}
+                  placeholder="Password (min 6 chars)"
+                  className="border rounded px-3 py-2"
+                />
+                <button
+                  disabled={emailLinking.loading || !emailLinking.email || !emailLinking.password}
+                  onClick={linkEmailPassword}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {emailLinking.loading ? 'Linking…' : 'Link Email & Password'}
+                </button>
+                {emailLinking.success && (
+                  <div className="text-green-600 text-sm">Credentials linked successfully.</div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Recent Activity */}
           <div className="card p-6">

@@ -18,6 +18,8 @@ export default function QuestsPage() {
   const [sortBy, setSortBy] = useState<'points' | 'id' | 'title' | 'created_at' | 'expires_at'>('points');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const questsPerPage = 12;
 
   const categories = ['Health', 'Education', 'Outdoor', 'Creative', 'Social'];
 
@@ -118,6 +120,16 @@ export default function QuestsPage() {
       
       return sortOrder === 'desc' ? -comparison : comparison;
     });
+
+  // Pagination
+  const totalFiltered = filteredQuests.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / questsPerPage));
+  const startIdx = (currentPage - 1) * questsPerPage;
+  const paginatedQuests = filteredQuests.slice(startIdx, startIdx + questsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedStatus, sortBy, sortOrder]);
 
   if (loading) {
     return (
@@ -421,8 +433,9 @@ export default function QuestsPage() {
             )}
           </div>
         ) : (
+          <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredQuests.map((quest) => (
+            {paginatedQuests.map((quest) => (
               <QuestCard
                 key={quest.id}
                 quest={quest}
@@ -430,6 +443,26 @@ export default function QuestsPage() {
               />
             ))}
           </div>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-3 mt-8">
+              <button
+                className="px-3 py-1 rounded border disabled:opacity-50"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                Prev
+              </button>
+              <div className="text-sm text-gray-600">Page {currentPage} of {totalPages}</div>
+              <button
+                className="px-3 py-1 rounded border disabled:opacity-50"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          </>
         )}
 
         {/* Enhanced Telegram Instructions */}

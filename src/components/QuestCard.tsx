@@ -12,6 +12,7 @@ interface QuestCardProps {
   onDelete?: (questId: number) => void;
   userSubmission?: any;
   showStatusBadge?: boolean; // New prop to control status badge visibility
+  submittedByPartner?: boolean;
 }
 
 export default function QuestCard({ 
@@ -20,7 +21,8 @@ export default function QuestCard({
   onEdit, 
   onDelete,
   userSubmission,
-  showStatusBadge = false
+  showStatusBadge = false,
+  submittedByPartner = false
 }: QuestCardProps) {
   const [copied, setCopied] = useState(false);
 
@@ -163,7 +165,14 @@ export default function QuestCard({
           </div>
           {userSubmission && (
             <div className="text-right">
-              {getSubmissionStatus()}
+              <div className="flex items-center gap-2 justify-end">
+                {submittedByPartner && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-700 border border-purple-200">
+                    👥 Partner
+                  </span>
+                )}
+                {getSubmissionStatus()}
+              </div>
             </div>
           )}
         </div>

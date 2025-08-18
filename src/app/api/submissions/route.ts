@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
+    // Build base query
     let query = supabaseAdmin
       .from('submissions')
       .select(`
@@ -29,9 +30,20 @@ export async function GET(request: NextRequest) {
       .order('submitted_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    // If user is admin, show all submissions; otherwise, show only their own
+    // If user is admin, show all submissions; otherwise, show only their own and partner's
     if (session.user.role !== 'admin') {
-      query = query.eq('user_id', session.user.id);
+      // Look up partner_id for current user to include partner submissions
+      const { data: me } = await supabaseAdmin
+        .from('users')
+        .select('id, partner_id')
+        .eq('id', session.user.id)
+        .single();
+
+      if (me?.partner_id) {
+        query = query.in('user_id', [session.user.id, me.partner_id]);
+      } else {
+        query = query.eq('user_id', session.user.id);
+      }
     }
 
     if (status) {
