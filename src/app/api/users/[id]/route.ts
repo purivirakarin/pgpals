@@ -48,7 +48,12 @@ export async function GET(
       submissions: submissions || []
     };
 
-    return NextResponse.json(user);
+    return NextResponse.json(user, {
+      headers: {
+        'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=120',
+        'Vary': 'Authorization, Cookie',
+      },
+    });
   } catch (error) {
     console.error('User fetch error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

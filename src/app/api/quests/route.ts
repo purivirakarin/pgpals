@@ -11,9 +11,6 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status');
     const category = searchParams.get('category');
 
-    // First, expire any quests that have passed their expiration date
-    await supabaseAdmin.rpc('expire_quests');
-
     let query = supabase
       .from('quests')
       .select('*')
@@ -36,6 +33,9 @@ export async function GET(request: NextRequest) {
       query = query.eq('category', category);
     }
 
+    // Ensure expired quests are not returned (in case status wasn't updated yet)
+    query = query.or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+
     const { data: quests, error } = await query;
 
     if (error) {
@@ -43,7 +43,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch quests' }, { status: 500 });
     }
 
-    return NextResponse.json(quests || []);
+    // Cache responses for faster subsequent loads
+    const cacheHeader = session?.user?.role === 'admin'
+      ? 'public, max-age=5, stale-while-revalidate=30'
+      : 'public, max-age=60, stale-while-revalidate=300';
+
+    return NextResponse.json(quests || [], {
+      headers: {
+        'Cache-Control': cacheHeader,
+        'Vary': 'Authorization, Cookie',
+      },
+    });
   } catch (error) {
     console.error('Quests API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

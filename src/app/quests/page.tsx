@@ -18,6 +18,8 @@ export default function QuestsPage() {
   const [sortBy, setSortBy] = useState<'points' | 'id' | 'title' | 'created_at' | 'expires_at'>('points');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const questsPerPage = 12;
 
   const categories = ['Health', 'Education', 'Outdoor', 'Creative', 'Social'];
 
@@ -119,6 +121,16 @@ export default function QuestsPage() {
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
+  // Pagination
+  const totalFiltered = filteredQuests.length;
+  const totalPages = Math.max(1, Math.ceil(totalFiltered / questsPerPage));
+  const startIdx = (currentPage - 1) * questsPerPage;
+  const paginatedQuests = filteredQuests.slice(startIdx, startIdx + questsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedStatus, sortBy, sortOrder]);
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -175,19 +187,8 @@ export default function QuestsPage() {
                 <p className="text-blue-100 mb-6">
                   Sign in to track your progress, submit quests, and compete with others!
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <a 
-                    href="/auth/signin" 
-                    className="inline-flex items-center justify-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors"
-                  >
-                    Sign In
-                  </a>
-                  <a 
-                    href="/auth/signup" 
-                    className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl border-2 border-white/20 hover:bg-blue-700 transition-colors"
-                  >
-                    Create Account
-                  </a>
+                <div className="flex flex-col sm:flex-row gap-3 text-blue-100">
+                  Open in Telegram to sign in automatically.
                 </div>
               </div>
             </div>
@@ -432,8 +433,9 @@ export default function QuestsPage() {
             )}
           </div>
         ) : (
+          <>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredQuests.map((quest) => (
+            {paginatedQuests.map((quest) => (
               <QuestCard
                 key={quest.id}
                 quest={quest}
@@ -441,6 +443,26 @@ export default function QuestsPage() {
               />
             ))}
           </div>
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-3 mt-8">
+              <button
+                className="px-3 py-1 rounded border disabled:opacity-50"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              >
+                Prev
+              </button>
+              <div className="text-sm text-gray-600">Page {currentPage} of {totalPages}</div>
+              <button
+                className="px-3 py-1 rounded border disabled:opacity-50"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </button>
+            </div>
+          )}
+          </>
         )}
 
         {/* Enhanced Telegram Instructions */}

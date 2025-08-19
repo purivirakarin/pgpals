@@ -19,6 +19,8 @@ import {
   Trophy,
   Activity
 } from 'lucide-react';
+import Image from 'next/image'
+import Script from 'next/script'
 import ActivityFeed from '@/components/ActivityFeed';
 
 interface UserProfile {
@@ -30,6 +32,9 @@ interface UserProfile {
   partner_id?: number;
   partner_name?: string;
   partner_telegram?: string;
+  faculty?: string;
+  major?: string;
+  profile_image_url?: string;
   total_points: number;
   streak_count: number;
   created_at: string;
@@ -47,6 +52,9 @@ export default function ProfilePage() {
   const [telegramUsername, setTelegramUsername] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailLinking, setEmailLinking] = useState<{ email: string; password: string; loading: boolean; success?: boolean }>({ email: '', password: '', loading: false });
+  const [tgInitRaw, setTgInitRaw] = useState<string | null>(null)
+  const [tgInitParsed, setTgInitParsed] = useState<any>(null)
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -77,14 +85,9 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
-    if (!session) {
-      router.push('/auth/signin');
-      return;
-    }
-
+    if (!session) return;
     fetchProfile();
-  }, [session, status, router, fetchProfile]);
+  }, [session, status, fetchProfile]);
 
   const linkTelegramAccount = async () => {
     if (!telegramId) {
@@ -154,6 +157,82 @@ export default function ProfilePage() {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  const linkEmailPassword = async () => {
+    try {
+      setError(null);
+      setEmailLinking((s) => ({ ...s, loading: true, success: false }));
+      if (!emailLinking.email || !emailLinking.password) {
+        setError('Email and password are required');
+        return;
+      }
+      const res = await fetch('/api/users/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailLinking.email, password: emailLinking.password })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to link credentials');
+      setProfile(data.user);
+      setEmailLinking((s) => ({ ...s, success: true }));
+      await update?.({});
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to link credentials');
+    } finally {
+      setEmailLinking((s) => ({ ...s, loading: false }));
+    }
+  };
+
+  const checkInitData = () => {
+    try {
+      // @ts-ignore
+      const tg = (window as any).Telegram?.WebApp;
+      setTgInitRaw(tg?.initData || null)
+      setTgInitParsed(tg?.initDataUnsafe || null)
+    } catch {
+      setTgInitRaw(null)
+      setTgInitParsed(null)
+    }
+  };
+
+  // Client-side enhancement: read Telegram Mini App user for immediate UI (name/photo)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    // @ts-ignore
+    const tg = (window as any).Telegram?.WebApp;
+    const u = tg?.initDataUnsafe?.user;
+    if (!u) return;
+    // If backend profile lacks photo/username, display from Mini App immediately and fetch server fallback photo
+    setProfile((prev) => prev ? prev : ({
+      id: session?.user?.id || '',
+      name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || 'User',
+      email: '',
+      telegram_id: String(u.id),
+      telegram_username: u.username || undefined,
+      profile_image_url: u.photo_url || undefined,
+      total_points: 0,
+      streak_count: 0,
+      created_at: new Date().toISOString(),
+    } as any));
+
+    if (!u.photo_url && u.id) {
+      fetch(`/api/telegram/user-photo?user_id=${u.id}`)
+        .then(r => r.json())
+        .then(({ url }) => {
+          if (url) setProfile((p) => p ? { ...p, profile_image_url: url } : p);
+        })
+        .catch(() => {});
+    }
+
+    // Capture initData for verification display when inside Telegram
+    try {
+      setTgInitRaw(tg?.initData || null)
+      setTgInitParsed(tg?.initDataUnsafe || null)
+    } catch {
+      setTgInitRaw(null)
+      setTgInitParsed(null)
+    }
+  }, [session?.user?.id]);
+
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
@@ -165,7 +244,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!session || !profile) {
+  if (!profile) {
     return null;
   }
 
@@ -173,9 +252,27 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
+      {/* Mini App inline read of Telegram user for immediate UI fallback */}
+      <div id="tg-miniapp-user" className="hidden" suppressHydrationWarning />
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
-        <p className="text-gray-600">Manage your account and view your quest progress</p>
+        <div className="flex items-center gap-4">
+          <div className="relative h-16 w-16 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+            {profile.profile_image_url ? (
+              <Image src={profile.profile_image_url} alt={profile.name} fill sizes="64px" style={{ objectFit: 'cover' }} />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-gray-400">
+                <User className="w-8 h-8" />
+              </div>
+            )}
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{profile.name}</h1>
+            {profile.telegram_username && (
+              <p className="text-gray-600">@{profile.telegram_username}</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -250,114 +347,73 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
             )}
           </div>
 
-          {/* Telegram Linking */}
+          {/* Telegram section simplified: display-only */}
           <div className="card p-6">
-            <h2 className="text-xl font-semibold mb-4">Telegram Integration</h2>
-            
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-                <AlertCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
-                <span className="text-red-800 text-sm">{error}</span>
-              </div>
-            )}
-
-            {profile.telegram_id ? (
-              <div className="space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center mb-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                    <span className="text-green-800 font-medium">Telegram Account Linked</span>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-green-700">Telegram ID: {profile.telegram_id}</span>
-                      <button
-                        onClick={() => copyToClipboard(profile.telegram_id!)}
-                        className="text-green-600 hover:text-green-700"
-                      >
-                        {copySuccess ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {profile.telegram_username && (
-                      <p className="text-green-700">Username: @{profile.telegram_username}</p>
-                    )}
-                  </div>
-                </div>
-                
-                <button
-                  onClick={unlinkTelegramAccount}
-                  disabled={linkLoading}
-                  className="btn-secondary flex items-center"
-                >
-                  {linkLoading ? (
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Unlink className="w-4 h-4 mr-2" />
-                  )}
-                  Unlink Telegram Account
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h3 className="font-medium text-blue-900 mb-2">How to link your Telegram account:</h3>
-                  <ol className="text-sm text-blue-800 space-y-1">
-                    <li>1. Find our bot on Telegram</li>
-                    <li>2. Send <code className="bg-blue-100 px-1 rounded">/start</code> to get your Telegram ID</li>
-                    <li>3. Copy the Telegram ID from the bot&apos;s message</li>
-                    <li>4. Paste it in the field below and click &quot;Link Account&quot;</li>
-                  </ol>
-                  <div className="mt-2 p-2 bg-blue-100 rounded text-xs text-blue-700">
-                    <strong>Note:</strong> You must create your website account first before linking Telegram!
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telegram ID *
-                    </label>
-                    <input
-                      type="text"
-                      value={telegramId}
-                      onChange={(e) => setTelegramId(e.target.value)}
-                      placeholder="Enter your Telegram ID"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Send /start to our bot to get your Telegram ID
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telegram Username (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={telegramUsername}
-                      onChange={(e) => setTelegramUsername(e.target.value.replace('@', ''))}
-                      placeholder="Enter your username (without @)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-
-                  <button
-                    onClick={linkTelegramAccount}
-                    disabled={linkLoading || !telegramId}
-                    className="btn-primary flex items-center"
-                  >
-                    {linkLoading ? (
-                      <Loader className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Link className="w-4 h-4 mr-2" />
-                    )}
-                    Link Telegram Account
-                  </button>
-                </div>
-              </div>
-            )}
+            <h2 className="text-xl font-semibold mb-2">Telegram</h2>
+            <div className="text-gray-700">
+              {profile.telegram_username ? (
+                <p>Username: @{profile.telegram_username}</p>
+              ) : (
+                <p className="text-gray-500">No Telegram username available</p>
+              )}
+            </div>
           </div>
+
+          <div className="card p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">Telegram Init Data</h2>
+              <button onClick={checkInitData} className="btn-secondary">Check initData</button>
+            </div>
+            {!tgInitRaw && !tgInitParsed && (
+              <p className="text-sm text-gray-600">No initData detected. Open this page inside Telegram Mini App and click "Check initData".</p>
+            )}
+            {tgInitRaw && (
+              <div className="mb-4">
+                <div className="text-sm text-gray-600 mb-2 font-medium">initDataRaw</div>
+                <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto break-all whitespace-pre-wrap">{tgInitRaw}</pre>
+              </div>
+            )}
+            {tgInitParsed && (
+              <div>
+                <div className="text-sm text-gray-600 mb-2 font-medium">initData (parsed)</div>
+                <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">{JSON.stringify(tgInitParsed, null, 2)}</pre>
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-3">Used for authorization per Telegram Mini Apps docs. Data appears only within Telegram.</p>
+          </div>
+
+          {/* Email linking for Telegram-first users */}
+          {!profile.email && (
+            <div className="card p-6">
+              <h2 className="text-xl font-semibold mb-4">Link Email for Web Access</h2>
+              <div className="grid gap-3 max-w-md">
+                <input
+                  type="email"
+                  value={emailLinking.email}
+                  onChange={(e) => setEmailLinking((s) => ({ ...s, email: e.target.value }))}
+                  placeholder="Email"
+                  className="border rounded px-3 py-2"
+                />
+                <input
+                  type="password"
+                  value={emailLinking.password}
+                  onChange={(e) => setEmailLinking((s) => ({ ...s, password: e.target.value }))}
+                  placeholder="Password (min 6 chars)"
+                  className="border rounded px-3 py-2"
+                />
+                <button
+                  disabled={emailLinking.loading || !emailLinking.email || !emailLinking.password}
+                  onClick={linkEmailPassword}
+                  className="btn-primary disabled:opacity-50"
+                >
+                  {emailLinking.loading ? 'Linking…' : 'Link Email & Password'}
+                </button>
+                {emailLinking.success && (
+                  <div className="text-green-600 text-sm">Credentials linked successfully.</div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Recent Activity */}
           <div className="card p-6">

@@ -1,16 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle, Send, Settings } from 'lucide-react';
 
 export default function TelegramDebugPage() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [initData, setInitData] = useState<string | null>(null);
+  const [initDataParsed, setInitDataParsed] = useState<any>(null);
   const [testResult, setTestResult] = useState<any>(null);
   const [webhookResult, setWebhookResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [chatId, setChatId] = useState('');
   const [testMessage, setTestMessage] = useState('Hello from PGPals bot! 🤖');
   const [webhookUrl, setWebhookUrl] = useState('');
+
+  // Read Telegram Mini App initData on mount
+  useEffect(() => {
+    try {
+      const anyWindow = window as any;
+      const tg = anyWindow?.Telegram?.WebApp;
+      const raw = tg?.initData || tg?.initDataUnsafe ? tg.initData : null;
+      setInitData(raw || null);
+      // Parse similar to SDK's retrieveLaunchParams behavior
+      const unsafe = tg?.initDataUnsafe || {};
+      setInitDataParsed(unsafe || null);
+    } catch {
+      setInitData(null);
+      setInitDataParsed(null);
+    }
+  }, []);
 
   const fetchDebugInfo = async () => {
     setLoading(true);
@@ -119,6 +137,30 @@ export default function TelegramDebugPage() {
           >
             {loading ? 'Loading...' : 'Check Status'}
           </button>
+        </div>
+
+        {/* Init Data Viewer */}
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Telegram Init Data</h3>
+          {!initData && (
+            <p className="text-sm text-gray-600">No initData detected. Open this page inside Telegram Mini App.</p>
+          )}
+          {initData && (
+            <>
+              <div className="mb-2 text-sm text-gray-700"><span className="font-semibold">initDataRaw</span></div>
+              <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto break-all whitespace-pre-wrap">
+                {initData}
+              </pre>
+            </>
+          )}
+          {initDataParsed && (
+            <div className="mt-3">
+              <div className="mb-2 text-sm text-gray-700"><span className="font-semibold">initData (parsed)</span></div>
+              <pre className="text-xs bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">
+                {JSON.stringify(initDataParsed, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
 
         {debugInfo && (

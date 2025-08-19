@@ -46,7 +46,12 @@ export async function GET(request: NextRequest) {
       completed_quests: userStats.completed_quests
     };
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
+        'Vary': 'Authorization, Cookie',
+      },
+    });
 
   } catch (error) {
     console.error('User stats API error:', error);
