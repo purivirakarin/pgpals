@@ -90,7 +90,7 @@ export default function Footer() {
         <div className="border-t border-primary-600/30 mt-10 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-primary-300 text-sm">
-              © 2025 Prince George's Park Residence. All rights reserved.
+              © 2025 Prince George&apos;s Park Residence. All rights reserved.
             </p>
             <div className="flex items-center space-x-4">
               <span className="text-primary-300 text-sm">Quest submissions:</span>

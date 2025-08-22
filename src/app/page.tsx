@@ -15,7 +15,7 @@ export default function HomePage() {
         <div className="mb-6">
           <div className="inline-flex items-center bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 mb-6">
             <Gamepad2 className="w-4 h-4 text-white/90 mr-2" />
-            <span className="text-white/90 text-sm font-medium">Prince George's Park Residence</span>
+            <span className="text-white/90 text-sm font-medium">Prince George&apos;s Park Residence</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-bold heading-style mb-6">
             Welcome to PGPals
