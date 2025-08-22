@@ -13,8 +13,14 @@ import {
   Calendar,
   MessageCircle,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Search,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw
 } from 'lucide-react';
+import Dropdown from '@/components/Dropdown';
 
 interface Activity {
   id: string;
@@ -39,6 +45,9 @@ interface ActivityFeedProps {
   showHeader?: boolean;
   className?: string;
   maxHeight?: string; // For scrollable container
+  enableSearch?: boolean; // Enable search functionality
+  enablePagination?: boolean; // Enable pagination instead of load more
+  showRefresh?: boolean; // Show refresh button
 }
 
 export default function ActivityFeed({ 
@@ -46,7 +55,10 @@ export default function ActivityFeed({
   limit = 5, // Changed default from 20 to 5
   showHeader = true, 
   className = '',
-  maxHeight = '400px' // Default max height for scrollable area
+  maxHeight = '400px', // Default max height for scrollable area
+  enableSearch = false,
+  enablePagination = false,
+  showRefresh = false
 }: ActivityFeedProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,22 +66,42 @@ export default function ActivityFeed({
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const fetchActivities = useCallback(async (isLoadMore = false) => {
+  const activityTypeOptions = [
+    { value: '', label: 'All Types' },
+    { value: 'user_registered', label: 'User Registered' },
+    { value: 'user_updated', label: 'User Updated' },
+    { value: 'submission_created', label: 'Submission Created' },
+    { value: 'submission_approved', label: 'Submission Approved' },
+    { value: 'submission_rejected', label: 'Submission Rejected' },
+    { value: 'quest_created', label: 'Quest Created' },
+    { value: 'quest_updated', label: 'Quest Updated' }
+  ];
+
+  const fetchActivities = useCallback(async (isLoadMore = false, resetPage = false) => {
     try {
       if (isLoadMore) {
         setLoadingMore(true);
       } else {
         setLoading(true);
-        setOffset(0);
+        if (resetPage) {
+          setCurrentPage(1);
+          setOffset(0);
+        }
       }
       setError(null);
       
-      const currentOffset = isLoadMore ? offset : 0;
+      const currentOffset = isLoadMore ? offset : (resetPage ? 0 : (currentPage - 1) * limit);
       const params = new URLSearchParams();
       params.append('limit', limit.toString());
       params.append('offset', currentOffset.toString());
       if (userId) params.append('user_id', userId);
+      if (searchTerm) params.append('search', searchTerm);
+      if (typeFilter) params.append('type', typeFilter);
 
       const response = await fetch(`/api/activities?${params}`);
       
@@ -83,28 +115,51 @@ export default function ActivityFeed({
 
       const data = await response.json();
       
-      if (isLoadMore) {
-        setActivities(prev => [...prev, ...data]);
-        setOffset(prev => prev + limit);
+      if (enablePagination) {
+        setActivities(data.activities || data);
+        setTotalCount(data.total || data.length);
+        setHasMore((currentPage * limit) < (data.total || data.length));
       } else {
-        setActivities(data);
-        setOffset(limit);
+        if (isLoadMore) {
+          setActivities(prev => [...prev, ...(data.activities || data)]);
+          setOffset(prev => prev + limit);
+        } else {
+          setActivities(data.activities || data);
+          setOffset(limit);
+        }
+        // If we got fewer activities than requested, we've reached the end
+        setHasMore((data.activities || data).length === limit);
       }
-      
-      // If we got fewer activities than requested, we've reached the end
-      setHasMore(data.length === limit);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load activities');
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [userId, limit, offset]);
+  }, [limit, offset, userId, searchTerm, typeFilter, currentPage, enablePagination]);
 
   useEffect(() => {
     fetchActivities(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, limit]); // Removed fetchActivities from deps to avoid infinite loop
+
+  // Handle search with debounce
+  useEffect(() => {
+    if (!enableSearch) return;
+    
+    const timer = setTimeout(() => {
+      fetchActivities(false, true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, typeFilter, fetchActivities, enableSearch]);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    fetchActivities(false, false);
+  };
+
+  const totalPages = Math.ceil(totalCount / limit);
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -228,13 +283,52 @@ export default function ActivityFeed({
   return (
     <div className={`${className}`}>
       {showHeader && (
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+          {showRefresh && (
+            <button
+              onClick={() => fetchActivities(false, true)}
+              disabled={loading}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Search and Filter Controls */}
+      {enableSearch && (
+        <div className="mb-4 space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search activities..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <div className="relative">
+              <Dropdown
+                options={activityTypeOptions}
+                value={typeFilter}
+                onChange={setTypeFilter}
+                placeholder="Filter by type"
+                icon={<Filter className="w-4 h-4" />}
+                className="min-w-[160px]"
+              />
+            </div>
+          </div>
+        </div>
       )}
       
-      {/* Scrollable container with fixed max height */}
+      {/* Activities List */}
       <div 
-        className="overflow-y-auto border border-gray-200 rounded-lg bg-gray-50"
-        style={{ maxHeight }}
+        className={`border border-gray-200 rounded-lg bg-gray-50 ${!enablePagination ? 'overflow-y-auto' : ''}`}
+        style={!enablePagination ? { maxHeight } : {}}
       >
         <div className="space-y-3 p-4">
           {activities.map((activity) => (
@@ -308,24 +402,71 @@ export default function ActivityFeed({
         </div>
       </div>
       
-      {/* Load more button - now outside scrollable area */}
-      {hasMore && (
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => fetchActivities(true)}
-            disabled={loadingMore}
-            className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loadingMore ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                Loading...
-              </div>
-            ) : (
-              'Load More'
-            )}
-          </button>
+      {/* Pagination or Load More */}
+      {enablePagination ? (
+        <div className="flex items-center justify-between mt-4">
+          <div className="text-sm text-gray-700">
+            Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalCount)} of {totalCount} results
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1 || loading}
+              className="flex items-center px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Previous
+            </button>
+            
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    disabled={loading}
+                    className={`px-3 py-1 text-sm rounded-md ${
+                      currentPage === page
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-white border border-gray-300 hover:bg-gray-50'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages || loading}
+              className="flex items-center px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </button>
+          </div>
         </div>
+      ) : (
+        hasMore && (
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => fetchActivities(true)}
+              disabled={loadingMore}
+              className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loadingMore ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  Loading...
+                </div>
+              ) : (
+                'Load More'
+              )}
+            </button>
+          </div>
+        )
       )}
     </div>
   );

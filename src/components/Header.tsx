@@ -14,6 +14,7 @@ export default function Header() {
     { name: 'Home', href: '/' },
     { name: 'Quests', href: '/quests' },
     { name: 'Leaderboard', href: '/leaderboard' },
+    { name: 'Help', href: '/help' },
   ];
 
   const userNavigation = [
@@ -27,12 +28,12 @@ export default function Header() {
   ];
 
   return (
-    <header className="bg-white shadow-sm border-b">
+    <header className="glass-card border-b border-white/20 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <h1 className="text-xl lg:text-2xl font-bold text-primary-600">PGPals</h1>
+              <h1 className="text-xl lg:text-2xl font-bold text-white drop-shadow-lg">PGPals</h1>
             </Link>
           </div>
 
@@ -42,7 +43,7 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-700 hover:text-primary-600 px-2 xl:px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap"
+                className="text-white/80 hover:text-white px-3 py-2 text-sm font-medium transition-all duration-200 whitespace-nowrap hover:bg-white/10 rounded-lg"
               >
                 {item.name}
               </Link>
@@ -51,19 +52,19 @@ export default function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-gray-700 hover:text-primary-600 px-2 xl:px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap"
+                className="text-white/90 hover:text-white px-2 xl:px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap hover:bg-white/10 rounded-lg"
               >
                 {item.name}
               </Link>
             ))}
             {session?.user?.role === 'admin' && (
               <>
-                <div className="border-l border-gray-300 mx-2"></div>
+                <div className="border-l border-white/30 mx-2"></div>
                 {adminNavigation.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="text-amber-600 hover:text-amber-700 px-2 xl:px-3 py-2 text-sm font-medium transition-colors flex items-center whitespace-nowrap"
+                    className="text-accent-300 hover:text-accent-200 px-2 xl:px-3 py-2 text-sm font-medium transition-colors flex items-center whitespace-nowrap hover:bg-white/10 rounded-lg"
                   >
                     {item.name === 'Admin Dashboard' && <Shield className="w-4 h-4 mr-1" />}
                     <span className="hidden xl:inline">{item.name}</span>
@@ -88,19 +89,19 @@ export default function Header() {
                 
                 <Link
                   href="/profile"
-                  className="flex items-center space-x-1 xl:space-x-2 text-gray-700 hover:text-primary-600 transition-colors"
+                  className="flex items-center space-x-1 xl:space-x-2 text-white/90 hover:text-white transition-colors hover:bg-white/10 rounded-lg px-2 py-1"
                 >
                   <User className="w-5 h-5" />
                   <span className="text-sm font-medium max-w-24 xl:max-w-none truncate">
                     {session.user?.name}
                   </span>
                   {session.user?.role === 'admin' && (
-                    <Shield className="w-4 h-4 text-amber-500" />
+                    <Shield className="w-4 h-4 text-accent-300" />
                   )}
                 </Link>
                 <button
                   onClick={() => signOut()}
-                  className="flex items-center space-x-1 text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap"
+                  className="flex items-center space-x-1 text-white/80 hover:text-white transition-colors whitespace-nowrap hover:bg-white/10 rounded-lg px-2 py-1"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-sm hidden xl:inline">Sign Out</span>
@@ -110,15 +111,9 @@ export default function Header() {
               <div className="flex items-center space-x-2 xl:space-x-3">
                 <Link
                   href="/auth/signin"
-                  className="text-gray-700 hover:text-primary-600 px-2 xl:px-3 py-2 text-sm font-medium whitespace-nowrap"
+                  className="btn-secondary text-sm whitespace-nowrap"
                 >
                   Sign In
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="btn-primary text-sm whitespace-nowrap"
-                >
-                  Sign Up
                 </Link>
               </div>
             )}
@@ -128,7 +123,7 @@ export default function Header() {
           <div className="lg:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-gray-700 hover:text-primary-600 p-2"
+              className="text-white/90 hover:text-white p-2 hover:bg-white/10 rounded-lg"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -137,13 +132,13 @@ export default function Header() {
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 py-4">
-            <div className="space-y-2">
+          <div className="lg:hidden border-t border-white/20 py-4 bg-white/10 backdrop-blur-md rounded-b-2xl shadow-lg">
+            <div className="space-y-1">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600"
+                  className="block px-4 py-3 text-base font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-lg mx-2 transition-all duration-200"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.name}
@@ -154,7 +149,7 @@ export default function Header() {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600"
+                  className="block px-4 py-3 text-base font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-lg mx-2 transition-all duration-200"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.name}
@@ -163,16 +158,19 @@ export default function Header() {
               
               {session?.user?.role === 'admin' && (
                 <>
-                  <div className="border-t border-gray-200 my-2"></div>
+                  <div className="border-t border-white/20 mx-2 my-3"></div>
+                  <div className="px-2 mb-2">
+                    <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">Admin</span>
+                  </div>
                   {adminNavigation.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="block px-3 py-2 text-base font-medium text-amber-600 hover:text-amber-700"
+                      className="block px-4 py-3 text-base font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-lg mx-2 transition-all duration-200"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <div className="flex items-center">
-                        {item.name === 'Admin Dashboard' && <Shield className="w-4 h-4 mr-2" />}
+                        {item.name === 'Admin Dashboard' && <Shield className="w-4 h-4 mr-3" />}
                         {item.name}
                       </div>
                     </Link>
@@ -180,47 +178,40 @@ export default function Header() {
                 </>
               )}
 
-              <div className="border-t border-gray-200 mt-4 pt-4">
+              <div className="border-t border-white/20 mx-2 mt-4 pt-4">
                 {session ? (
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Link
                       href="/profile"
-                      className="block px-3 py-2 text-base font-medium text-gray-900 hover:text-primary-600"
+                      className="block px-4 py-3 text-base font-medium text-white/90 hover:text-white hover:bg-white/15 rounded-lg mx-2 transition-all duration-200"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2" />
-                        {session.user?.name}
+                        <User className="w-5 h-5 mr-3" />
+                        <span className="flex-1">{session.user?.name}</span>
                         {session.user?.role === 'admin' && (
-                          <Shield className="w-4 h-4 text-amber-500 ml-2" />
+                          <Shield className="w-4 h-4 text-white/60 ml-2" />
                         )}
                       </div>
                     </Link>
                     <button
                       onClick={() => signOut()}
-                      className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900"
+                      className="block w-full text-left px-4 py-3 text-base font-medium text-white/80 hover:text-white hover:bg-white/15 rounded-lg mx-2 transition-all duration-200"
                     >
                       <div className="flex items-center">
-                        <LogOut className="w-4 h-4 mr-2" />
+                        <LogOut className="w-5 h-5 mr-3" />
                         Sign Out
                       </div>
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="px-2">
                     <Link
                       href="/auth/signin"
-                      className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-primary-600"
+                      className="block px-4 py-3 text-center text-base font-semibold bg-white/90 text-primary-700 rounded-lg hover:bg-white transition-all duration-200 shadow-sm"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       Sign In
-                    </Link>
-                    <Link
-                      href="/auth/signup"
-                      className="block px-3 py-2 text-base font-medium bg-primary-600 text-white rounded-lg mx-3"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Sign Up
                     </Link>
                   </div>
                 )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { Quest } from '@/types';
-import { Target, Calendar, Award, Users, Copy, Check, Plus } from 'lucide-react';
+import { Target, Calendar, Award, Users, Copy, Check, Plus, User2, UsersIcon, Star, Activity, BookOpen, Mountain, Palette, UserCheck, Eye, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { getNumericId } from '@/lib/questId';
 import GroupSubmissionStatus from './GroupSubmissionStatus';
@@ -46,24 +46,24 @@ export default function QuestCard({
   const getCategoryIcon = (category: string) => {
     switch (category.toLowerCase()) {
       case 'pair':
-        return '👫';
+        return <User2 className="w-4 h-4" />;
       case 'multiple-pair':
-        return '👥';
+        return <Users className="w-4 h-4" />;
       case 'bonus':
-        return '⭐';
+        return <Star className="w-4 h-4" />;
       // Legacy categories for backward compatibility
       case 'health':
-        return '🏃‍♂️';
+        return <Activity className="w-4 h-4" />;
       case 'education':
-        return '📚';
+        return <BookOpen className="w-4 h-4" />;
       case 'outdoor':
-        return '🌲';
+        return <Mountain className="w-4 h-4" />;
       case 'creative':
-        return '🎨';
+        return <Palette className="w-4 h-4" />;
       case 'social':
-        return '👥';
+        return <UserCheck className="w-4 h-4" />;
       default:
-        return '🎯';
+        return <Target className="w-4 h-4" />;
     }
   };
 
@@ -83,11 +83,11 @@ export default function QuestCard({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-primary-100 text-primary-800';
       case 'inactive':
         return 'bg-gray-100 text-gray-800';
       case 'archived':
-        return 'bg-red-100 text-red-800';
+        return 'bg-accent-100 text-accent-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -98,39 +98,39 @@ export default function QuestCard({
     
     const statusConfig = {
       'pending_ai': {
-        style: 'bg-yellow-100 text-yellow-700 border border-yellow-200',
+        style: 'bg-accent-100 text-accent-700 border border-accent-200',
         text: 'Pending Review',
-        icon: '⏳',
+        icon: <Calendar className="w-3 h-3" />,
         tooltip: undefined
       },
       'ai_approved': {
-        style: 'bg-green-100 text-green-700 border border-green-200',
+        style: 'bg-primary-100 text-primary-700 border border-primary-200',
         text: 'Completed',
-        icon: '✅',
+        icon: <Check className="w-3 h-3" />,
         tooltip: undefined
       },
       'ai_rejected': {
-        style: 'bg-red-100 text-red-700 border border-red-200',
+        style: 'bg-accent-100 text-accent-700 border border-accent-200',
         text: 'Rejected',
-        icon: '❌',
+        icon: <Target className="w-3 h-3" />,
         tooltip: 'You can resubmit this quest. Make sure to follow the requirements!'
       },
       'manual_review': {
-        style: 'bg-blue-100 text-blue-700 border border-blue-200',
+        style: 'bg-primary-100 text-primary-700 border border-primary-200',
         text: 'Pending Review',
-        icon: '👁️',
+        icon: <Eye className="w-3 h-3" />,
         tooltip: undefined
       },
       'approved': {
-        style: 'bg-green-100 text-green-700 border border-green-200',
+        style: 'bg-primary-100 text-primary-700 border border-primary-200',
         text: 'Completed',
-        icon: '✅',
+        icon: <Check className="w-3 h-3" />,
         tooltip: undefined
       },
       'rejected': {
-        style: 'bg-red-100 text-red-700 border border-red-200',
+        style: 'bg-accent-100 text-accent-700 border border-accent-200',
         text: 'Rejected',
-        icon: '❌',
+        icon: <Target className="w-3 h-3" />,
         tooltip: 'You can resubmit this quest. Make sure to follow the requirements!'
       }
     };
@@ -161,8 +161,8 @@ export default function QuestCard({
       {/* Header Section */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-3">
-          <div className="flex-shrink-0 w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center group-hover:bg-primary-100 transition-colors">
-            <span className="text-2xl">{getCategoryIcon(quest.category)}</span>
+          <div className="flex-shrink-0 w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center group-hover:bg-primary-100 transition-colors text-primary-600">
+            {getCategoryIcon(quest.category)}
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 mb-2">
@@ -173,32 +173,33 @@ export default function QuestCard({
                 {getCategoryLabel(quest.category)}
               </span>
               {quest.category === 'bonus' && quest.expires_at && (
-                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                <span className={`text-xs px-2 py-1 rounded-full font-medium flex items-center ${
                   new Date(quest.expires_at) < new Date() 
-                    ? 'bg-red-100 text-red-800' 
+                    ? 'bg-accent-100 text-accent-800' 
                     : new Date(quest.expires_at) < new Date(Date.now() + 24 * 60 * 60 * 1000)
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-blue-100 text-blue-800'
+                    ? 'bg-accent-100 text-accent-800'
+                    : 'bg-primary-100 text-primary-800'
                 }`}>
+                  <Clock className="w-3 h-3 mr-1" />
                   {(() => {
                     const now = new Date();
                     const expireDate = new Date(quest.expires_at);
                     const diffMs = expireDate.getTime() - now.getTime();
                     
                     if (diffMs <= 0) {
-                      return '🕐 Expired';
+                      return 'Expired';
                     }
                     
                     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
                     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
                     
                     if (diffDays > 0) {
-                      return `🕐 ${diffDays}d left`;
+                      return `${diffDays}d left`;
                     } else if (diffHours > 0) {
-                      return `🕐 ${diffHours}h left`;
+                      return `${diffHours}h left`;
                     } else {
                       const diffMinutes = Math.floor(diffMs / (1000 * 60));
-                      return `🕐 ${diffMinutes}m left`;
+                      return `${diffMinutes}m left`;
                     }
                   })()}
                 </span>
@@ -287,10 +288,10 @@ export default function QuestCard({
           {quest.expires_at && (
             <div className={`flex items-center font-medium ${
               new Date(quest.expires_at) < new Date() 
-                ? 'text-red-600' 
+                ? 'text-muted-600' 
                 : new Date(quest.expires_at) < new Date(Date.now() + 24 * 60 * 60 * 1000)
-                ? 'text-yellow-600'
-                : 'text-blue-600'
+                ? 'text-primary-600'
+                : 'text-primary-700'
             }`}>
               <span className="mr-1 flex-shrink-0">🕐</span>
               <span>
@@ -333,7 +334,7 @@ export default function QuestCard({
           
           {/* Approved Date */}
           {userSubmission && (userSubmission.status === 'approved' || userSubmission.status === 'ai_approved') && userSubmission.updated_at && (
-            <div className="flex items-center text-green-600 font-medium">
+            <div className="flex items-center text-primary-600 font-medium">
               <span className="mr-1 flex-shrink-0">✅</span>
               <span>Approved {new Date(userSubmission.updated_at).toLocaleDateString('en-GB', { 
                 day: '2-digit', 
@@ -350,14 +351,14 @@ export default function QuestCard({
             <div className="relative group w-full max-w-xs">
               <button
                 onClick={copySubmitCommand}
-                className="w-full flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-xs font-medium border border-blue-200 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center bg-primary-50 hover:bg-primary-100 text-primary-700 px-3 py-2 rounded-lg text-xs font-medium border border-primary-200 transition-colors cursor-pointer"
                 title={`Click to copy: /submit ${numericId}`}
               >
                 <span className="mr-2">📱</span>
                 <code className="font-mono">/submit {numericId}</code>
                 <span className="ml-2">
                   {copied ? (
-                    <Check className="w-3 h-3 text-green-600" />
+                    <Check className="w-3 h-3 text-primary-600" />
                   ) : (
                     <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
                   )}
@@ -379,14 +380,14 @@ export default function QuestCard({
             <div className="relative group w-full max-w-xs">
               <button
                 onClick={copySubmitCommand}
-                className="w-full flex items-center justify-center bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-xs font-medium border border-orange-200 transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-700 px-3 py-2 rounded-lg text-xs font-medium border border-primary-300 transition-colors cursor-pointer"
                 title={`Click to copy: /submit ${numericId} - Resubmit quest`}
               >
                 <span className="mr-2">🔄</span>
                 <code className="font-mono">/submit {numericId}</code>
                 <span className="ml-2">
                   {copied ? (
-                    <Check className="w-3 h-3 text-green-600" />
+                    <Check className="w-3 h-3 text-primary-600" />
                   ) : (
                     <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
                   )}
@@ -417,7 +418,7 @@ export default function QuestCard({
             {onDelete && (
               <button
                 onClick={() => onDelete(quest.id)}
-                className="text-red-600 hover:text-red-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                className="text-muted-600 hover:text-muted-700 text-sm font-medium px-3 py-1 rounded-lg hover:bg-muted-50 transition-colors"
               >
                 Delete
               </button>
