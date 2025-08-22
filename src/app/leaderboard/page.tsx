@@ -20,26 +20,17 @@ export default function LeaderboardPage() {
 
       <Leaderboard limit={20} className="max-w-none" />
       
-      <div className="mt-8 card p-6">
+      <div className="mt-8 card p-6 text-center">
         <h2 className="text-xl font-semibold mb-4">How Points Work</h2>
-        <div className="grid md:grid-cols-2 gap-6 text-sm">
-          <div>
-            <h3 className="font-medium mb-2">🎯 Quest Completion</h3>
-            <ul className="space-y-1 text-gray-600">
-              <li>• Points vary by quest difficulty</li>
-              <li>• Bonus points for streaks</li>
-              <li>• Early completion bonuses</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-medium mb-2">📊 Ranking System</h3>
-            <ul className="space-y-1 text-gray-600">
-              <li>• Real-time point updates</li>
-              <li>• Top 20 participants shown</li>
-              <li>• Updated after each validation</li>
-            </ul>
-          </div>
-        </div>
+        <p className="text-gray-600 mb-4">
+          Points are awarded based on quest difficulty and completion speed. Rankings update in real-time after validation.
+        </p>
+        <a 
+          href="/help/scoring" 
+          className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm"
+        >
+          Learn more about scoring system →
+        </a>
       </div>
       </div>
     </div>

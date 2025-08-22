@@ -38,11 +38,11 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <Trophy className="w-6 h-6 text-yellow-500" />;
+        return <Trophy className="w-6 h-6 text-primary-400" />;
       case 2:
         return <Medal className="w-6 h-6 text-gray-400" />;
       case 3:
-        return <Award className="w-6 h-6 text-amber-600" />;
+        return <Award className="w-6 h-6 text-primary-600" />;
       default:
         return <span className="w-6 h-6 flex items-center justify-center text-sm font-semibold text-gray-600">#{rank}</span>;
     }
@@ -86,7 +86,7 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
   if (error) {
     return (
       <div className={`card p-6 ${className}`}>
-        <div className="text-center text-red-600">
+        <div className="text-center text-muted-600">
           <p>Error loading leaderboard: {error}</p>
           <button
             onClick={fetchLeaderboard}

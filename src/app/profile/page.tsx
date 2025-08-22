@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   User, 
   Mail, 
-  MessageCircle, 
+  Users, 
   Award, 
   Target, 
   Calendar,
@@ -172,7 +172,8 @@ export default function ProfilePage() {
 const completedQuests = profile.submissions?.filter(s => s.status === 'approved' || s.status === 'ai_approved').length || 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">My Profile</h1>
         <p className="text-gray-600">Manage your account and view your quest progress</p>
@@ -214,34 +215,35 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
             <h2 className="text-xl font-semibold mb-4">Partnership Status</h2>
             {profile.partner_id && profile.partner_name ? (
               <div className="space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
                   <div className="flex items-center mb-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                    <span className="text-green-800 font-medium">You are partnered with:</span>
+                    <CheckCircle className="w-5 h-5 text-primary-600 mr-2" />
+                    <span className="text-primary-800 font-medium">You are partnered with:</span>
                   </div>
                   <div className="space-y-1 text-sm">
-                    <p className="text-green-700 font-semibold">{profile.partner_name}</p>
+                    <p className="text-primary-700 font-semibold">{profile.partner_name}</p>
                     {profile.partner_telegram && (
-                      <p className="text-green-700">@{profile.partner_telegram}</p>
+                      <p className="text-primary-700">@{profile.partner_telegram}</p>
                     )}
-                    <p className="text-green-600 text-xs mt-2">
-                      🤝 You share points and leaderboard ranking with your partner
+                    <p className="text-primary-600 text-xs mt-2 flex items-center">
+                      <Users className="w-3 h-3 mr-1" />
+                      You share points and leaderboard ranking with your partner
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="p-4 bg-accent-50 border border-accent-200 rounded-lg">
                   <div className="flex items-center mb-2">
-                    <AlertCircle className="w-5 h-5 text-amber-500 mr-2" />
-                    <span className="text-amber-800 font-medium">No Partnership Assigned</span>
+                    <AlertCircle className="w-5 h-5 text-accent-600 mr-2" />
+                    <span className="text-accent-800 font-medium">No Partnership Assigned</span>
                   </div>
                   <div className="space-y-2 text-sm">
-                    <p className="text-amber-700">
+                    <p className="text-accent-700">
                       You are currently not partnered with anyone.
                     </p>
-                    <p className="text-amber-700">
+                    <p className="text-accent-700">
                       Please contact an admin to assign you a partner for shared points and team collaboration.
                     </p>
                   </div>
@@ -255,31 +257,31 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
             <h2 className="text-xl font-semibold mb-4">Telegram Integration</h2>
             
             {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-                <AlertCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
-                <span className="text-red-800 text-sm">{error}</span>
+              <div className="mb-4 p-4 bg-primary-50 border border-primary-200 rounded-lg flex items-center">
+                <AlertCircle className="w-5 h-5 text-primary-600 mr-3 flex-shrink-0" />
+                <span className="text-primary-800 text-sm">{error}</span>
               </div>
             )}
 
             {profile.telegram_id ? (
               <div className="space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
                   <div className="flex items-center mb-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
-                    <span className="text-green-800 font-medium">Telegram Account Linked</span>
+                    <CheckCircle className="w-5 h-5 text-primary-600 mr-2" />
+                    <span className="text-primary-800 font-medium">Telegram Account Linked</span>
                   </div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-green-700">Telegram ID: {profile.telegram_id}</span>
+                      <span className="text-primary-700">Telegram ID: {profile.telegram_id}</span>
                       <button
                         onClick={() => copyToClipboard(profile.telegram_id!)}
-                        className="text-green-600 hover:text-green-700"
+                        className="text-primary-600 hover:text-primary-700"
                       >
                         {copySuccess ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </button>
                     </div>
                     {profile.telegram_username && (
-                      <p className="text-green-700">Username: @{profile.telegram_username}</p>
+                      <p className="text-primary-700">Username: @{profile.telegram_username}</p>
                     )}
                   </div>
                 </div>
@@ -299,15 +301,15 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h3 className="font-medium text-blue-900 mb-2">How to link your Telegram account:</h3>
-                  <ol className="text-sm text-blue-800 space-y-1">
+                <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
+                  <h3 className="font-medium text-primary-900 mb-2">How to link your Telegram account:</h3>
+                  <ol className="text-sm text-primary-800 space-y-1">
                     <li>1. Find our bot on Telegram</li>
-                    <li>2. Send <code className="bg-blue-100 px-1 rounded">/start</code> to get your Telegram ID</li>
+                    <li>2. Send <code className="bg-primary-100 px-1 rounded">/start</code> to get your Telegram ID</li>
                     <li>3. Copy the Telegram ID from the bot&apos;s message</li>
                     <li>4. Paste it in the field below and click &quot;Link Account&quot;</li>
                   </ol>
-                  <div className="mt-2 p-2 bg-blue-100 rounded text-xs text-blue-700">
+                  <div className="mt-2 p-2 bg-primary-100 rounded text-xs text-primary-700">
                     <strong>Note:</strong> You must create your website account first before linking Telegram!
                   </div>
                 </div>
@@ -361,7 +363,15 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
 
           {/* Recent Activity */}
           <div className="card p-6">
-            <ActivityFeed userId={session?.user?.id} limit={5} />
+            <ActivityFeed 
+              userId={session?.user?.id} 
+              limit={10} 
+              enableSearch={false} 
+              enablePagination={true} 
+              showRefresh={true}
+              maxHeight="600px"
+              showHeader={true}
+            />
           </div>
         </div>
 
@@ -373,17 +383,17 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Trophy className="w-5 h-5 text-amber-500 mr-2" />
+                  <Trophy className="w-5 h-5 text-primary-500 mr-2" />
                   <span className="text-gray-600">Current Rank</span>
                 </div>
-                <span className="text-2xl font-bold text-amber-600">
+                <span className="text-2xl font-bold text-primary-600">
                   #{userStats?.current_rank || '-'}
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Award className="w-5 h-5 text-yellow-500 mr-2" />
+                  <Award className="w-5 h-5 text-primary-500 mr-2" />
                   <span className="text-gray-600">Total Points</span>
                 </div>
                 <span className="text-2xl font-bold text-primary-600">{profile.total_points}</span>
@@ -391,7 +401,7 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <Target className="w-5 h-5 text-green-500 mr-2" />
+                  <Target className="w-5 h-5 text-primary-500 mr-2" />
                   <span className="text-gray-600">Completed Quests</span>
                 </div>
                 <span className="text-lg font-semibold">{completedQuests}</span>
@@ -399,7 +409,7 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <MessageCircle className="w-5 h-5 text-blue-500 mr-2" />
+                  <Activity className="w-5 h-5 text-primary-500 mr-2" />
                   <span className="text-gray-600">Current Streak</span>
                 </div>
                 <span className="text-lg font-semibold">{profile.streak_count}</span>
@@ -431,15 +441,15 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
             <h3 className="text-lg font-semibold mb-4">Telegram Bot</h3>
             <div className="space-y-3 text-sm">
               <div className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-2 ${profile.telegram_id ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                <div className={`w-3 h-3 rounded-full mr-2 ${profile.telegram_id ? 'bg-primary-500' : 'bg-gray-300'}`}></div>
                 <span>{profile.telegram_id ? 'Connected' : 'Not connected'}</span>
               </div>
               
               {profile.telegram_id ? (
                 <div className="space-y-1 text-gray-600">
-                  <p>✅ Submit quests via Telegram</p>
-                  <p>✅ Get instant notifications</p>
-                  <p>✅ Check status anytime</p>
+                  <p className="flex items-center"><CheckCircle className="w-3 h-3 text-primary-500 mr-2" /> Submit quests via Telegram</p>
+                  <p className="flex items-center"><CheckCircle className="w-3 h-3 text-primary-500 mr-2" /> Get instant notifications</p>
+                  <p className="flex items-center"><CheckCircle className="w-3 h-3 text-primary-500 mr-2" /> Check status anytime</p>
                 </div>
               ) : (
                 <div className="space-y-1 text-gray-500">
@@ -451,6 +461,7 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

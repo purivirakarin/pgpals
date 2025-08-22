@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, User, Lock, AlertCircle, Loader, CheckCircle } from 'lucide-react';
+import { Mail, User, Lock, AlertCircle, Loader, CheckCircle, Bot } from 'lucide-react';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -54,7 +54,8 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="bg-white">
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Join PGPals</h1>
@@ -183,13 +184,17 @@ export default function SignUpPage() {
               </ul>
             </div>
 
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <h3 className="text-sm font-medium text-blue-900 mb-2">🤖 Next: Link Telegram</h3>
-              <p className="text-sm text-blue-800">
-                After creating your account, find our Telegram bot and use <code className="bg-blue-100 px-1 rounded">/start</code> to get your Telegram ID. Then enter that ID in your Profile page to link your account for quest submissions!
+            <div className="p-4 bg-primary-50 rounded-lg">
+              <h3 className="text-sm font-medium text-primary-900 mb-2 flex items-center">
+                <Bot className="w-4 h-4 mr-2" />
+                Next: Link Telegram
+              </h3>
+              <p className="text-sm text-primary-800">
+                After creating your account, find our Telegram bot and use <code className="bg-primary-100 px-1 rounded">/start</code> to get your Telegram ID. Then enter that ID in your Profile page to link your account for quest submissions!
               </p>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

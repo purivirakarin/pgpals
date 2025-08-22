@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, AlertCircle, Loader } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Loader, Bot } from 'lucide-react';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
@@ -40,7 +40,8 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="bg-white">
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
@@ -121,21 +122,27 @@ export default function SignInPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Don&apos;t have an account?{' '}
-              <Link href="/auth/signup" className="text-primary-600 hover:text-primary-700 font-medium">
-                Sign up here
+          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h3 className="text-sm font-medium text-yellow-900 mb-2">💡 First Time Login?</h3>
+            <p className="text-sm text-yellow-800">
+              If this is your first time logging in, you may need to{' '}
+              <Link href="/auth/forgot-password" className="underline font-medium">
+                set up your password here
               </Link>
+              {' '}before signing in.
             </p>
           </div>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-900 mb-2">🤖 Telegram Integration</h3>
-            <p className="text-sm text-blue-800">
-              After signing in, go to your Profile page to link your Telegram account. Use our bot&apos;s <code className="bg-blue-100 px-1 rounded">/start</code> command to get your Telegram ID!
+          <div className="mt-6 p-4 bg-primary-50 rounded-lg">
+            <h3 className="text-sm font-medium text-primary-900 mb-2 flex items-center">
+              <Bot className="w-4 h-4 mr-2" />
+              Telegram Integration
+            </h3>
+            <p className="text-sm text-primary-800">
+              After signing in, go to your Profile page to link your Telegram account. Use our bot&apos;s <code className="bg-primary-100 px-1 rounded">/start</code> command to get your Telegram ID!
             </p>
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -50,19 +50,17 @@ async function handleMessage(message: any) {
     } else if (text?.startsWith('/leaderboard')) {
       await handleLeaderboardCommand(chatId);
     } else if (photo && caption) {
-      await bot.sendMessage(chatId, 'To submit a quest, use caption format: `/submit [quest_id]`');
+      await bot.sendMessage(chatId, '📸 Use: `/submit [quest_id]` as photo caption');
     } else {
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
-        '🤖 **PGPals Bot Commands**\n\n' +
-        '📋 **Setup Commands:**\n' +
-        '/start - Get your Telegram ID for account linking\n\n' +
-        '🎮 **Quest Commands:**\n' +
-        '/quests - List top 5 available quests\n' +
-        '/quests all - List more available quests\n' +
-        '/submit [quest_id] - Submit quest with photo\n' +
-        '/status - Check your submissions\n' +
-        '/leaderboard - View top participants\n\n' +
-        '⚠️ **Note:** You must create a web account first at ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + ' and link it before using quest commands!',
+        '🤖 **PGPals Bot**\n\n' +
+        '🎮 `/quests` - View challenges\n' +
+        '📸 `/submit [id]` - Upload proof\n' +
+        '📊 `/status` - Check progress\n' +
+        '🏆 `/leaderboard` - Rankings\n\n' +
+        `🌐 [Visit Web App](${webAppUrl}) | [Help Guide](${webAppUrl}/help)\n\n` +
+        '⚠️ Link your account first with `/start`',
         { parse_mode: 'Markdown' }
       );
     }
@@ -70,7 +68,7 @@ async function handleMessage(message: any) {
     console.error('Error in handleMessage:', error);
     // Send error message to user
     try {
-      await bot.sendMessage(message.chat.id, 'Sorry, there was an error processing your message. Please try again.');
+      await bot.sendMessage(message.chat.id, '❌ Error processing message. Try again?');
     } catch (sendError) {
       console.error('Failed to send error message:', sendError);
     }
@@ -79,8 +77,7 @@ async function handleMessage(message: any) {
 
 async function handleStartCommand(chatId: number, telegramId: number, username?: string) {
   try {
-    // Test bot sending capability first
-    await bot.sendMessage(chatId, 'Processing your /start command... 🤖');
+    await bot.sendMessage(chatId, '⚡ Connecting...');
     
     const { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
@@ -110,29 +107,24 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
       // Count completed quests (approved submissions)
       const completedQuests = submissions?.length || 0;
       
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
-        `Welcome back, ${existingUser.name}! 🎉\n` +
-        `Your account is already linked.\n` +
-        `Total Points: ${totalPoints}\n` +
-        `Team Quests Completed: ${completedQuests}\n\n` +
-        `Try /quests to see available challenges!`
+        `🎉 Welcome back, ${existingUser.name}!\n` +
+        `⭐ ${totalPoints} pts | ✅ ${completedQuests} quests\n\n` +
+        `🎮 Try /quests for new challenges\n` +
+        `🌐 [Web Dashboard](${webAppUrl})`
       );
     } else {
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
-        `Welcome to PGPals! 🎮\n\n` +
-        `📋 **Important: Create your web account first!**\n\n` +
-        `To get started:\n` +
-        `1. Visit: ${process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app'}\n` +
-        `2. Create your account (Sign Up)\n` +
-        `3. Go to your Profile page\n` +
-        `4. Enter this Telegram ID: \`${telegramId}\`\n` +
-        `${username ? `5. Optional: Enter username: \`${username}\`\n` : ''}` +
-        `6. Click "Link Account" to connect\n\n` +
-        `🔗 Once linked, you can:\n` +
-        `• Submit quest photos directly here\n` +
-        `• Check your status with /status\n` +
-        `• View quests with /quests\n\n` +
-        `⚠️ You must have a web account before using Telegram features!`, 
+        `🎮 Welcome to PGPals!\n\n` +
+        `📋 **Setup Required:**\n` +
+        `1. [Create Account](${webAppUrl}/auth/signup)\n` +
+        `2. Go to Profile → Link Account\n` +
+        `3. Enter ID: \`${telegramId}\`\n` +
+        `${username ? `4. Username: \`${username}\`\n` : ''}\n` +
+        `🔗 Then use: /quests, /submit, /status\n` +
+        `📖 [Help Guide](${webAppUrl}/help)`, 
         { parse_mode: 'Markdown' }
       );
     }
@@ -140,8 +132,8 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
     console.error('Start command error:', error);
     const errorMsg = error instanceof Error ? error.message : String(error);
     await bot.sendMessage(chatId, 
-      `Sorry, there was an error: ${errorMsg}\n\n` +
-      `Please try again or contact support.`
+      `❌ Error: ${errorMsg}\n\n` +
+      `Try again or contact support`
     );
   }
 }
@@ -156,12 +148,13 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
       .single();
 
     if (!user) {
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
-        '🚫 Account not linked!\n\n' +
-        '1. Create account at: ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + '\n' +
-        '2. Use /start to get your Telegram ID\n' +
-        '3. Enter that ID in your Profile page\n\n' +
-        'You must link your account before viewing quests!'
+        '🚫 Account not linked\n\n' +
+        `1. [Create Account](${webAppUrl}/auth/signup)\n` +
+        '2. Use /start for setup\n' +
+        `📖 [Help](${webAppUrl}/help)`,
+        { parse_mode: 'Markdown' }
       );
       return;
     }
@@ -213,7 +206,7 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
 
     if (!quests || quests.length === 0) {
       const partnerNote = user.partner_id ? ' (including quests your partner has submitted/completed)' : '';
-      await bot.sendMessage(chatId, `🎯 No new quests available! You might have completed all available quests${partnerNote}.`);
+      await bot.sendMessage(chatId, `🎯 All quests completed!${partnerNote}`);
       return;
     }
 
@@ -230,38 +223,35 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
       message += `${quest.description.length > maxDescLength ? quest.description.substring(0, maxDescLength) + '...' : quest.description}\n\n`;
     });
     
-    message += '📸 To submit: Send a photo with caption `/submit [quest_id]`\n';
+    message += '📸 Submit: Photo + `/submit [quest_id]`\n';
     
     if (user.partner_id) {
-      message += '💡 Excluding quests you or your partner have already submitted/completed!\n';
+      message += '👥 Partner quests excluded\n';
     } else {
-      message += '💡 Only showing quests you haven\'t completed yet!\n';
-      message += '👥 Link a partner in your profile to work as a team!\n';
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      message += `👥 [Link Partner](${webAppUrl}/profile)\n`;
     }
     
     if (!showAll && quests.length === 5) {
-      message += '\n📋 Use `/quests all` to see more quests';
+      message += '\n📋 `/quests all` for more';
     }
 
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
   } catch (error) {
     console.error('Quests command error:', error);
-    await bot.sendMessage(chatId, 'Sorry, there was an error fetching quests.');
+    await bot.sendMessage(chatId, '❌ Error fetching quests');
   }
 }
 
 async function handleSubmitCommand(chatId: number, text: string, photo: any, telegramId: number) {
   if (!photo) {
-    await bot.sendMessage(chatId, 
-      'Please send a photo with your submission.\n' +
-      'Format: Send photo with caption `/submit [quest_id]`'
-    );
+    await bot.sendMessage(chatId, '📸 Send photo with caption `/submit [quest_id]`');
     return;
   }
 
   const questId = text.split(' ')[1];
   if (!questId) {
-    await bot.sendMessage(chatId, 'Please specify a quest ID. Format: `/submit [quest_id]`');
+    await bot.sendMessage(chatId, '❓ Missing quest ID. Use: `/submit [quest_id]`');
     return;
   }
 
@@ -278,7 +268,7 @@ async function handlePhotoSubmission(
   try {
     const questIdMatch = caption.match(/\/submit\s+([a-zA-Z0-9-#]+)/);
     if (!questIdMatch) {
-      await bot.sendMessage(chatId, 'Invalid format. Use: Send photo with caption `/submit [quest_id]` or `/submit #[number]`\n\nFor group submissions, add pair names:\n`/submit [quest_id] group:Name1&Name2,Name3&Name4`');
+      await bot.sendMessage(chatId, '❌ Invalid format\n\n📸 `/submit [quest_id]`\n👥 `/submit [id] group:Name1&Name2,Name3&Name4`');
       return;
     }
 
@@ -303,7 +293,7 @@ async function handlePhotoSubmission(
       });
       
       if (participantPairs.length < 2) {
-        await bot.sendMessage(chatId, 'Group submissions need at least 2 pairs (4 people).\n\nFormat: `/submit [quest_id] group:Name1&Name2,Name3&Name4`');
+        await bot.sendMessage(chatId, '👥 Need 2+ pairs (4+ people)\nFormat: `/submit [id] group:Name1&Name2,Name3&Name4`');
         return;
       }
     }
@@ -311,7 +301,7 @@ async function handlePhotoSubmission(
     // Parse the quest ID input (now expecting integers)
     const questId = parseQuestId(questIdInput);
     if (!questId) {
-      await bot.sendMessage(chatId, `Invalid quest ID: ${questIdInput}. Please use a valid quest number (e.g., /submit 1 or /submit #1).`);
+      await bot.sendMessage(chatId, `❌ Invalid quest ID: ${questIdInput}\nUse: /submit 1 or /submit #1`);
       return;
     }
     
@@ -323,12 +313,11 @@ async function handlePhotoSubmission(
       .single();
 
     if (!user) {
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
-        '🚫 Account not linked!\n\n' +
-        '1. Create account at: ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + '\n' +
-        '2. Use /start to get your Telegram ID\n' +
-        '3. Enter that ID in your Profile page\n\n' +
-        'You must link your account before submitting quests!'
+        '🚫 Account not linked\n\n' +
+        `[Create Account](${webAppUrl}/auth/signup) → Use /start`,
+        { parse_mode: 'Markdown' }
       );
       return;
     }
@@ -342,7 +331,7 @@ async function handlePhotoSubmission(
       .single();
 
     if (!quest) {
-      await bot.sendMessage(chatId, 'Quest not found or inactive.');
+      await bot.sendMessage(chatId, '❌ Quest not found or inactive');
       return;
     }
     
@@ -350,10 +339,9 @@ async function handlePhotoSubmission(
     // Check if this is a group submission for a non-group quest
     if (isGroupSubmission && quest.category !== 'multiple-pair') {
       await bot.sendMessage(chatId, 
-        `🚫 This quest doesn't support group submissions!\n\n` +
-        `Quest: ${quest.title}\n` +
-        `Category: ${quest.category}\n\n` +
-        `Please submit individually or choose a group quest.`
+        `🚫 Individual quest only\n\n` +
+        `${quest.title} (${quest.category})\n` +
+        `Submit individually or find group quest`
       );
       return;
     }
@@ -361,12 +349,9 @@ async function handlePhotoSubmission(
     // Check if this is NOT a group submission for a group quest
     if (!isGroupSubmission && quest.category === 'multiple-pair') {
       await bot.sendMessage(chatId, 
-        `📋 This quest requires group submission!\n\n` +
-        `Quest: ${quest.title}\n` +
-        `Category: ${quest.category}\n\n` +
-        `Format: Send photo with caption:\n` +
-        `\`/submit ${questId} group:Name1&Name2,Name3&Name4\`\n\n` +
-        `Replace with actual participant names.`,
+        `👥 Group quest required\n\n` +
+        `${quest.title}\n\n` +
+        `📸 \`/submit ${questId} group:Name1&Name2,Name3&Name4\``,
         { parse_mode: 'Markdown' }
       );
       return;
@@ -388,18 +373,16 @@ async function handlePhotoSubmission(
         
         if (partnerSubmission.status === 'approved' || partnerSubmission.status === 'ai_approved') {
           await bot.sendMessage(chatId, 
-            `🚫 Quest already completed by your partner!\n\n` +
-            `Quest: ${quest.title}\n` +
-            `Your partner has already completed this quest. Please choose a different quest to work on.\n\n` +
-            `Use /quests to see available quests.`
+            `🚫 Partner already completed\n\n` +
+            `${quest.title}\n` +
+            `Try /quests for new ones`
           );
           return;
         } else if (partnerSubmission.status === 'pending_ai' || partnerSubmission.status === 'manual_review') {
           await bot.sendMessage(chatId, 
-            `⏳ Your partner has already submitted this quest!\n\n` +
-            `Quest: ${quest.title}\n` +
-            `Your partner's submission is currently being reviewed. Please choose a different quest to work on.\n\n` +
-            `Use /quests to see available quests.`
+            `⏳ Partner submission pending\n\n` +
+            `${quest.title}\n` +
+            `Try /quests for others`
           );
           return;
         }
@@ -422,28 +405,24 @@ async function handlePhotoSubmission(
       // Handle different existing submission statuses
       if (latestSubmission.status === 'approved' || latestSubmission.status === 'ai_approved') {
         await bot.sendMessage(chatId, 
-          `🎉 This quest is already completed!\n\n` +
-          `Quest: ${quest.title}\n` +
-          `Status: ✅ Approved\n` +
-          `Points earned: ${quest.points}\n\n` +
-          `Your submission has been approved. No need to resubmit!`
+          `🎉 Already completed!\n\n` +
+          `${quest.title}\n` +
+          `✅ ${quest.points} pts earned`
         );
         return;
       } else if (latestSubmission.status === 'pending_ai' || latestSubmission.status === 'manual_review') {
         await bot.sendMessage(chatId, 
-          `⏳ You already have a pending submission for this quest.\n\n` +
-          `Quest: ${quest.title}\n` +
-          `Status: Pending Review` +
-          `Submitted: ${new Date(latestSubmission.submitted_at).toLocaleDateString()}\n\n` +
-          `Please wait for your current submission to be reviewed before submitting again.`
+          `⏳ Submission pending review\n\n` +
+          `${quest.title}\n` +
+          `${new Date(latestSubmission.submitted_at).toLocaleDateString()}\n\n` +
+          `Please wait for current review`
         );
         return;
       } else if (latestSubmission.status === 'rejected' || latestSubmission.status === 'ai_rejected') {
         await bot.sendMessage(chatId, 
-          `🔄 Thank you for resubmitting!\n\n` +
-          `Quest: ${quest.title}\n` +
-          `Previous submission was not approved. Processing your new submission...\n\n` +
-          `💡 Tip: Make sure your photo clearly shows the quest requirement!`
+          `🔄 Resubmitting quest\n\n` +
+          `${quest.title}\n` +
+          `💡 Ensure photo shows quest clearly`
         );
       }
     }
@@ -475,10 +454,9 @@ async function handlePhotoSubmission(
         
         await bot.sendMessage(chatId, 
           `✅ Group submission received!\n\n` +
-          `Quest: ${quest.title}\n` +
-          `Participants: ${participantPairs.length * 2} people (${participantPairs.length} pairs)\n` +
-          `Status: Pending validation\n\n` +
-          `All participants will be notified when processed!`
+          `${quest.title}\n` +
+          `👥 ${participantPairs.length * 2} people\n` +
+          `⏳ Validating...`
         );
 
         // Send notification to all mentioned participants
@@ -497,7 +475,7 @@ async function handlePhotoSubmission(
         return;
       } catch (error) {
         console.error('Group submission error:', error);
-        await bot.sendMessage(chatId, 'Error creating group submission. Please try again.');
+        await bot.sendMessage(chatId, '❌ Group submission failed. Retry?');
         return;
       }
     }
@@ -518,17 +496,15 @@ async function handlePhotoSubmission(
 
     if (error) {
       console.error('Submission database error:', error);
-      await bot.sendMessage(chatId, 'Error creating submission. Please try again.');
+      await bot.sendMessage(chatId, '❌ Submission failed. Try again?');
       return;
     }
     
 
-    // Send confirmation to submitter
     await bot.sendMessage(chatId, 
       `✅ Submission received!\n\n` +
-      `Quest: ${quest.title}\n` +
-      `Status: Pending validation\n\n` +
-      `You'll be notified when it's processed.`
+      `${quest.title}\n` +
+      `⏳ Validating...`
     );
 
     // Send notification to partner if user has one
@@ -542,11 +518,9 @@ async function handlePhotoSubmission(
       if (partner?.telegram_id) {
         try {
           await bot.sendMessage(partner.telegram_id, 
-            `🔔 **Partner Submission Alert**\n\n` +
-            `Your partner ${user.name} just submitted:\n` +
-            `Quest: ${quest.title}\n` +
-            `Status: Pending validation\n\n` +
-            `You'll both be notified when it's processed.`,
+            `🔔 Partner submitted quest\n\n` +
+            `${user.name}: ${quest.title}\n` +
+            `⏳ Pending validation`,
             { parse_mode: 'Markdown' }
           );
         } catch (error) {
@@ -567,7 +541,7 @@ async function handlePhotoSubmission(
 
   } catch (error) {
     console.error('Photo submission error:', error);
-    await bot.sendMessage(chatId, 'Sorry, there was an error processing your submission.');
+    await bot.sendMessage(chatId, '❌ Error processing submission');
   }
 }
 
@@ -581,12 +555,11 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       .single();
 
     if (!user) {
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
-        '🚫 Account not linked!\n\n' +
-        '1. Create account at: ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + '\n' +
-        '2. Use /start to get your Telegram ID\n' +
-        '3. Enter that ID in your Profile page\n\n' +
-        'You must link your account before checking status!'
+        '🚫 Account not linked\n\n' +
+        `[Create Account](${webAppUrl}/auth/signup) → Use /start`,
+        { parse_mode: 'Markdown' }
       );
       return;
     }
@@ -614,9 +587,8 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       .order('submitted_at', { ascending: false })
       .limit(10);
 
-    let message = `📊 **Your Status:**\n\n`;
-    message += `Total Points: ${totalPoints}\n`;
-    message += `Team Quests Completed: ${completedQuests}\n\n`;
+    let message = `📊 **Your Status**\n\n`;
+    message += `⭐ ${totalPoints} pts | ✅ ${completedQuests} quests\n\n`;
 
     if (submissions && submissions.length > 0) {
       message += `**Recent Submissions:**\n`;
@@ -625,13 +597,13 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
         message += `${statusEmoji} ${sub.quest.title} - ${sub.status}\n`;
       });
     } else {
-      message += 'No submissions yet. Start with /quests to see available quests!';
+      message += 'No submissions yet. Try /quests!';
     }
 
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
   } catch (error) {
     console.error('Status command error:', error);
-    await bot.sendMessage(chatId, 'Sorry, there was an error fetching your status.');
+    await bot.sendMessage(chatId, '❌ Error fetching status');
   }
 }
 
@@ -644,7 +616,7 @@ async function handleLeaderboardCommand(chatId: number) {
       .eq('role', 'participant');
 
     if (!users || users.length === 0) {
-      await bot.sendMessage(chatId, 'No participants yet!');
+      await bot.sendMessage(chatId, '🏆 No participants yet');
       return;
     }
 
@@ -675,7 +647,7 @@ async function handleLeaderboardCommand(chatId: number) {
       .filter(user => user.total_points > 0); // Only show users with points
 
     if (topUsers.length === 0) {
-      await bot.sendMessage(chatId, 'No participants with points yet!');
+      await bot.sendMessage(chatId, '🏆 No scores yet');
       return;
     }
 
@@ -689,7 +661,7 @@ async function handleLeaderboardCommand(chatId: number) {
     await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
   } catch (error) {
     console.error('Leaderboard command error:', error);
-    await bot.sendMessage(chatId, 'Sorry, there was an error fetching the leaderboard.');
+    await bot.sendMessage(chatId, '❌ Error fetching leaderboard');
   }
 }
 

@@ -124,7 +124,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <div className="flex items-center mb-4">
           <Shield className="w-8 h-8 text-amber-600 mr-3" />
@@ -246,7 +247,14 @@ export default function AdminDashboard() {
 
       {/* Recent Activity */}
       <div className="card p-6">
-        <ActivityFeed limit={5} />
+        <ActivityFeed 
+          limit={10} 
+          enableSearch={false} 
+          enablePagination={true} 
+          showRefresh={true}
+          maxHeight="600px"
+        />
+      </div>
       </div>
     </div>
   );

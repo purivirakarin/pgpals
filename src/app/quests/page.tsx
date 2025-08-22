@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Quest, Submission } from '@/types';
 import QuestCard from '@/components/QuestCard';
-import { Search, Filter, Target, Loader, X, Sparkles, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, Target, Loader, X, Sparkles, ArrowUpDown, Camera, Users, Lightbulb, Bot } from 'lucide-react';
 import { getNumericId } from '@/lib/questId';
 
 export default function QuestsPage() {
@@ -140,7 +140,7 @@ export default function QuestsPage() {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="text-muted-600 mb-4">{error}</p>
           <button
             onClick={fetchQuests}
             className="btn-primary"
@@ -168,35 +168,6 @@ export default function QuestsPage() {
           </p>
         </div>
 
-        {!session && (
-          <div className="mb-10 mx-auto max-w-2xl">
-            <div className="relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl p-8 text-white">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full translate-y-12 -translate-x-12"></div>
-              <div className="relative">
-                <Sparkles className="w-8 h-8 mb-4" />
-                <h3 className="text-2xl font-bold mb-3">Ready to start your journey?</h3>
-                <p className="text-blue-100 mb-6">
-                  Sign in to track your progress, submit quests, and compete with others!
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <a 
-                    href="/auth/signin" 
-                    className="inline-flex items-center justify-center px-6 py-3 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors"
-                  >
-                    Sign In
-                  </a>
-                  <a 
-                    href="/auth/signup" 
-                    className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl border-2 border-white/20 hover:bg-blue-700 transition-colors"
-                  >
-                    Create Account
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Enhanced Filters */}
         <div className="mb-10">
@@ -448,85 +419,52 @@ export default function QuestsPage() {
           </div>
         )}
 
-        {/* Enhanced Telegram Instructions */}
-        <div className="mt-16">
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-8 text-white relative overflow-hidden">
-            {/* Decorative Elements */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-20 translate-x-20"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-16 -translate-x-16"></div>
-            <div className="absolute top-1/2 right-1/4 w-4 h-4 bg-white/20 rounded-full"></div>
-            <div className="absolute top-1/4 right-1/3 w-2 h-2 bg-white/30 rounded-full"></div>
-            
-            <div className="relative">
-              <div className="text-center mb-10">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-2xl mb-6">
-                  <span className="text-3xl">🤖</span>
-                </div>
-                <h3 className="text-3xl font-bold mb-4">Submit Quests via Telegram</h3>
-                <p className="text-blue-100 text-lg max-w-2xl mx-auto">
-                  Use our Telegram bot to submit quest completions
-                </p>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-8">
-                {/* Getting Started */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-                  <h4 className="text-xl font-semibold mb-4 flex items-center">
-                    <span className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-sm font-bold mr-3">1</span>
-                    Getting Started
+        {/* Submission Tips - Collapsible */}
+        <div className="mt-12">
+          <details className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <summary className="px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Lightbulb className="w-5 h-5 text-primary-600 mr-2" />
+                Quick Submission Tips
+              </h3>
+              <span className="text-gray-400 text-sm">Click to expand</span>
+            </summary>
+            <div className="px-6 pb-6 border-t border-gray-100">
+              <div className="grid md:grid-cols-2 gap-6 text-sm mt-4">
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2 flex items-center">
+                    <Camera className="w-4 h-4 text-primary-600 mr-2" />
+                    Regular Submissions
                   </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">Start a conversation with @pgpals_quest_bot on telegram</p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">
-                        Use <code className="bg-white/20 px-2 py-1 rounded text-white font-mono text-sm">/start</code> to link your account
-                      </p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">
-                        Browse available quests with <code className="bg-white/20 px-2 py-1 rounded text-white font-mono text-sm">/quests</code>
-                      </p>
-                    </div>
-                  </div>
+                  <ul className="space-y-1 text-gray-700">
+                    <li>• Format: <code className="bg-gray-100 px-1 rounded">/submit [quest_id]</code></li>
+                    <li>• Example: <code className="bg-gray-100 px-1 rounded">/submit 5</code></li>
+                    <li>• Photo must clearly show quest requirement</li>
+                  </ul>
                 </div>
-
-                {/* Submitting */}
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-                  <h4 className="text-xl font-semibold mb-4 flex items-center">
-                    <span className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center text-sm font-bold mr-3">2</span>
-                    Submitting Quests
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2 flex items-center">
+                    <Users className="w-4 h-4 text-primary-600 mr-2" />
+                    Group Submissions
                   </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">Take a clear photo of your quest completion</p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">
-                        Send photo with caption <code className="bg-white/20 px-2 py-1 rounded text-white font-mono text-sm">/submit [quest_id]</code>
-                      </p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-white/60 rounded-full mt-2"></div>
-                      <p className="text-blue-100">Get validation within 1-2 days! ✨</p>
-                    </div>
-                  </div>
+                  <ul className="space-y-1 text-gray-700">
+                    <li>• Multiple-pair quests only</li>
+                    <li>• Format: <code className="bg-gray-100 px-1 rounded">/submit [id] group:Name1&Name2,Name3&Name4</code></li>
+                    <li>• Minimum 2 pairs (4+ people)</li>
+                  </ul>
                 </div>
               </div>
-
-              <div className="text-center mt-8">
-                <p className="text-blue-100 text-sm">
-                  💡 <strong>Pro tip:</strong> Make sure your photos clearly show the quest completion for better validation results
-                </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+                <a 
+                  href="/help/telegram" 
+                  className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm"
+                >
+                  <Bot className="w-4 h-4 mr-2" />
+                  View complete Telegram guide →
+                </a>
               </div>
             </div>
-          </div>
+          </details>
         </div>
       </div>
     </div>

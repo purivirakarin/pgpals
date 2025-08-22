@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { Trophy, Star, Target } from 'lucide-react';
+import { Trophy, Star, CheckCircle } from 'lucide-react';
 import { useStats } from '@/contexts/StatsContext';
 
 interface UserStats {
@@ -53,22 +53,21 @@ export default function UserStatsDisplay() {
   }
 
   return (
-    <div className="flex items-center space-x-4 text-sm">
-      <div className="flex items-center space-x-1 text-primary-600">
-        <Star className="w-4 h-4" />
-        <span className="font-medium">{stats.total_points}</span>
-        <span className="text-gray-500 hidden sm:inline">pts</span>
+    <div className="flex items-center space-x-3 text-sm">
+      <div className="flex items-center space-x-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1">
+        <Star className="w-4 h-4 text-primary-200" />
+        <span className="font-medium text-white">{stats.total_points}</span>
+        <span className="text-white/70 hidden sm:inline text-xs">pts</span>
       </div>
       
-      <div className="flex items-center space-x-1 text-amber-600">
-        <Trophy className="w-4 h-4" />
-        <span className="font-medium">#{stats.current_rank}</span>
+      <div className="flex items-center space-x-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1">
+        <Trophy className="w-4 h-4 text-primary-200" />
+        <span className="font-medium text-white">#{stats.current_rank}</span>
       </div>
       
-      <div className="flex items-center space-x-1 text-green-600 hidden md:flex">
-        <Target className="w-4 h-4" />
-        <span className="font-medium">{stats.completed_quests}</span>
-        <span className="text-gray-500">done</span>
+      <div className="flex items-center space-x-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1 hidden md:flex">
+        <CheckCircle className="w-4 h-4 text-primary-300" />
+        <span className="font-medium text-white">{stats.completed_quests}</span>
       </div>
     </div>
   );
