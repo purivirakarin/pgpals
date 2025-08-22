@@ -3,13 +3,34 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { Quest } from '@/types';
+import { validateRequestBody, validateQueryParams, schemas, patterns } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    const category = searchParams.get('category');
+    
+    // Validate query parameters
+    const queryValidation = validateQueryParams(searchParams, {
+      status: {
+        required: false,
+        pattern: patterns.questStatus
+      },
+      category: {
+        required: false,
+        pattern: patterns.questCategory
+      }
+    });
+    
+    if (!queryValidation.isValid) {
+      return NextResponse.json({ 
+        error: 'Invalid query parameters', 
+        details: queryValidation.errors 
+      }, { status: 400 });
+    }
+    
+    const status = queryValidation.sanitized?.status;
+    const category = queryValidation.sanitized?.category;
 
     // First, expire any quests that have passed their expiration date
     await supabaseAdmin.rpc('expire_quests');
@@ -59,17 +80,38 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, category, points, requirements, validation_criteria, expires_at } = body;
-
-    if (!title || !category || !points) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    
+    // Validate request body
+    const validation = validateRequestBody(body, {
+      ...schemas.quest,
+      validation_criteria: {
+        required: false,
+        customValidator: (value) => {
+          if (!value) return true;
+          try {
+            JSON.parse(typeof value === 'string' ? value : JSON.stringify(value));
+            return true;
+          } catch {
+            return false;
+          }
+        }
+      }
+    });
+    
+    if (!validation.isValid) {
+      return NextResponse.json({ 
+        error: 'Invalid input', 
+        details: validation.errors 
+      }, { status: 400 });
     }
+    
+    const { title, description, category, points, requirements, validation_criteria, expires_at } = validation.data!;
 
     const insertData: any = {
       title,
       description,
       category,
-      points: parseInt(points),
+      points,
       requirements,
       validation_criteria: validation_criteria || {},
       created_by: session.user.id,
@@ -77,10 +119,14 @@ export async function POST(request: NextRequest) {
     };
 
     // Only add expires_at if it's provided and not empty
-    if (expires_at && expires_at.trim() !== '') {
-      // Convert datetime-local input to UTC for database storage
-      // datetime-local gives us YYYY-MM-DDTHH:mm format in local time
-      insertData.expires_at = new Date(expires_at).toISOString();
+    if (expires_at) {
+      const expirationDate = new Date(expires_at);
+      if (expirationDate <= new Date()) {
+        return NextResponse.json({ 
+          error: 'Expiration date must be in the future' 
+        }, { status: 400 });
+      }
+      insertData.expires_at = expirationDate.toISOString();
     }
 
     const { data: quest, error } = await supabaseAdmin

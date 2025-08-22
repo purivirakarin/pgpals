@@ -76,7 +76,7 @@ const GroupSubmissionStatus: React.FC<GroupSubmissionStatusProps> = ({
         const result = await response.json();
         setData(result);
       } else if (response.status === 400) {
-        // Not a multiple-pair quest, don't show anything
+        // Not a multiple-pair task, don't show anything
         setData(null);
       } else {
         throw new Error('Failed to fetch group status');
@@ -185,10 +185,10 @@ const GroupSubmissionStatus: React.FC<GroupSubmissionStatusProps> = ({
           <Users className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
           <div>
             <h4 className="text-sm font-medium text-blue-800 mb-1">
-              Multiple-Pair Quest
+              Multiple-Pair Task
             </h4>
             <p className="text-sm text-blue-700">
-              This quest allows group submissions. One pair can submit on behalf of multiple pairs (2-10 people total).
+              This task allows group submissions. One pair can submit on behalf of multiple pairs (2-10 people total).
             </p>
           </div>
         </div>
