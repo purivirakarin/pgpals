@@ -31,7 +31,7 @@ export async function GET(
     }
 
     if (quest.category !== 'multiple-pair') {
-      return NextResponse.json({ error: 'Group submissions only available for multiple-pair quests' }, { status: 400 });
+      return NextResponse.json({ error: 'Group submissions only available for multiple-pair tasks' }, { status: 400 });
     }
 
     // Get group submission for this quest

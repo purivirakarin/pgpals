@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Build base query with explicit quest join
+    // Build base query with explicit quest and user joins to avoid N+1
     let query = supabaseAdmin
       .from('submissions')
       .select(`
@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
         ai_confidence_score,
         is_group_submission,
         group_submission_id,
-        represents_pairs
+        represents_pairs,
+        quest:quests(id, title, category, points, description),
+        users!submissions_user_id_fkey(id, name, telegram_username, email)
       `)
       .not('is_deleted', 'eq', true)  // Filter out soft-deleted submissions
       .order('submitted_at', { ascending: false })
@@ -88,30 +90,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 });
     }
 
-    // Manually fetch quest data for each submission
-    const submissionsWithQuests = await Promise.all(
-      (submissions || []).map(async (submission) => {
-        const { data: quest } = await supabaseAdmin
-          .from('quests')
-          .select('id, title, category, points, description')
-          .eq('id', submission.quest_id)
-          .single();
-
-        const { data: user } = await supabaseAdmin
-          .from('users')
-          .select('id, name, telegram_username, email')
-          .eq('id', submission.user_id)
-          .single();
-
-        return {
-          ...submission,
-          quest: quest || { id: submission.quest_id, title: 'Unknown Quest', category: 'Unknown', points: 0, description: '' },
-          users: user || { id: submission.user_id, name: 'Unknown User', telegram_username: null, email: null }
-        };
-      })
-    );
-
-    return NextResponse.json(submissionsWithQuests);
+    // Data is already joined, just return it
+    return NextResponse.json(submissions || []);
   } catch (error) {
     console.error('Submissions API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

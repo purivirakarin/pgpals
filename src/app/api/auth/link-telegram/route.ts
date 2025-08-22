@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
+import { validateRequestBody, patterns, sanitizers } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,11 +12,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { telegram_id, telegram_username } = await request.json();
-
-    if (!telegram_id) {
-      return NextResponse.json({ error: 'Telegram ID is required' }, { status: 400 });
+    const body = await request.json();
+    
+    // Validate input
+    const validation = validateRequestBody(body, {
+      telegram_id: {
+        required: true,
+        pattern: patterns.telegramId,
+        sanitizer: sanitizers.trim
+      },
+      telegram_username: {
+        required: false,
+        pattern: patterns.telegramUsername,
+        sanitizer: sanitizers.trim
+      }
+    });
+    
+    if (!validation.isValid) {
+      return NextResponse.json({ 
+        error: 'Invalid input', 
+        details: validation.errors 
+      }, { status: 400 });
     }
+    
+    const { telegram_id, telegram_username } = validation.data!;
 
     // Check if this Telegram account is already linked to another user
     const { data: existingLink } = await supabaseAdmin
@@ -24,7 +44,7 @@ export async function POST(request: NextRequest) {
       .eq('telegram_id', telegram_id.toString())
       .single();
 
-    if (existingLink && parseInt(existingLink.id) !== parseInt(session.user.id)) {
+    if (existingLink && existingLink.id !== session.user.id) {
       return NextResponse.json({ 
         error: 'This Telegram account is already linked to another user' 
       }, { status: 400 });

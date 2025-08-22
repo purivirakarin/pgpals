@@ -53,95 +53,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the main submission entry
-    const { data: submission, error: submissionError } = await supabaseAdmin
-      .from('submissions')
-      .insert({
-        user_id: session.user.id,
-        quest_id: quest_id,
-        telegram_file_id: telegram_file_id,
-        telegram_message_id: telegram_message_id,
-        status: 'pending_ai',
-        is_group_submission: true,
-        submitted_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (submissionError || !submission) {
-      console.error('Failed to create submission:', submissionError);
-      return NextResponse.json({ error: 'Failed to create submission' }, { status: 500 });
-    }
-
-    // Create group submission record
-    const { data: groupSubmission, error: groupError } = await supabaseAdmin
-      .from('group_submissions')
-      .insert({
-        quest_id: quest_id,
-        submitter_user_id: session.user.id,
-        submission_id: submission.id
-      })
-      .select()
-      .single();
-
-    if (groupError || !groupSubmission) {
-      console.error('Failed to create group submission:', groupError);
-      // Clean up the submission if group creation failed
-      await supabaseAdmin.from('submissions').delete().eq('id', submission.id);
-      return NextResponse.json({ error: 'Failed to create group submission' }, { status: 500 });
-    }
-
-    // Update submission with group_submission_id
-    await supabaseAdmin
-      .from('submissions')
-      .update({ group_submission_id: groupSubmission.id })
-      .eq('id', submission.id);
-
-    // Create group participant records
-    const participantInserts = [];
-    const allUserIds = [];
-
-    for (const pair of participant_pairs) {
-      // For each pair, we need to find or create user records
-      // In this case, we'll store the pair information as metadata
-      
-      // Create participant entries - we'll use the submitter as representative
-      // and store pair names in metadata for now
-      participantInserts.push({
-        group_submission_id: groupSubmission.id,
-        user_id: session.user.id, // Representative user
-        partner_id: null, // We'll handle this differently for group submissions
-        opted_out: false
-      });
-      
-      allUserIds.push(session.user.id);
-    }
-
-    if (participantInserts.length > 0) {
-      const { error: participantsError } = await supabaseAdmin
-        .from('group_participants')
-        .insert(participantInserts);
-
-      if (participantsError) {
-        console.error('Failed to create group participants:', participantsError);
-        // Continue anyway - we have the core submission
-      }
-    }
-
-    // Update the submission with participant information
+    // Use database transaction for atomicity
     const participantNames = participant_pairs.map(pair => `${pair.user1_name} & ${pair.user2_name}`);
-    await supabaseAdmin
-      .from('submissions')
-      .update({ 
-        represents_pairs: participantNames,
-        admin_feedback: `Group submission for: ${participantNames.join(', ')}`
-      })
-      .eq('id', submission.id);
+    
+    // Create the submission and group submission in a transaction using database function
+    const { data: result, error: transactionError } = await supabaseAdmin
+      .rpc('create_group_submission_transaction', {
+        p_quest_id: quest_id,
+        p_submitter_user_id: session.user.id,
+        p_telegram_file_id: telegram_file_id || '',
+        p_telegram_message_id: telegram_message_id || 0,
+        p_participant_names: participantNames
+      });
+
+    if (transactionError) {
+      console.error('Failed to create group submission transaction:', transactionError);
+      return NextResponse.json({ 
+        error: transactionError.message || 'Failed to create group submission' 
+      }, { status: 500 });
+    }
+
+    if (!result) {
+      return NextResponse.json({ 
+        error: 'No result returned from transaction' 
+      }, { status: 500 });
+    }
+
+    // Parse the JSON result from the database function
+    const submissionResult = typeof result === 'string' ? JSON.parse(result) : result;
+    const groupSubmissionId = submissionResult.group_submission_id;
 
     // Send notifications (this would need to be enhanced to handle actual user IDs)
     try {
       await sendGroupSubmissionNotification(
-        groupSubmission.id,
+        groupSubmissionId,
         session.user.name || 'Unknown User',
         quest.title
       );
@@ -151,10 +96,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      submission_id: submission.id,
-      group_submission_id: groupSubmission.id,
-      quest_title: quest.title,
-      participant_count: participant_pairs.length * 2,
+      submission_id: submissionResult.submission_id,
+      group_submission_id: groupSubmissionId,
+      quest_title: submissionResult.quest_title,
+      participant_count: submissionResult.participant_count,
+      participants: submissionResult.participants,
       status: 'success'
     });
 

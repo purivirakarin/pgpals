@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bot } from '@/lib/telegram';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const token = process.env.TELEGRAM_BOT_TOKEN;

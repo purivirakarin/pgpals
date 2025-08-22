@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// POST /api/submissions/create-group - Create a group submission for multiple-pair quests
+// POST /api/submissions/create-group - Create a group submission for multiple-pair tasks
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (quest.category !== 'multiple-pair') {
-      return NextResponse.json({ error: 'Group submissions only allowed for multiple-pair quests' }, { status: 400 });
+      return NextResponse.json({ error: 'Group submissions only allowed for multiple-pair tasks' }, { status: 400 });
     }
 
     // Verify the submission belongs to the current user

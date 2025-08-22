@@ -6,15 +6,10 @@ import { parseQuestId, getQuestByNumericId } from '@/lib/questId';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('Webhook received request');
     const update = await request.json();
-    console.log('Webhook update:', JSON.stringify(update, null, 2));
     
     if (update.message) {
-      console.log('Processing message:', update.message);
       await handleMessage(update.message);
-    } else {
-      console.log('No message in update');
     }
     
     return NextResponse.json({ ok: true });
@@ -40,33 +35,23 @@ async function handleMessage(message: any) {
     const userId = message.from.id;
     const username = message.from.username;
 
-    console.log(`Processing message from user ${userId} (${username}): "${text || caption}"`);
-
     if (text?.startsWith('/start')) {
-      console.log('Handling /start command');
       await handleStartCommand(chatId, userId, username);
     } else if (text?.startsWith('/submit')) {
-      console.log('Handling /submit command (text only)');
       await handleSubmitCommand(chatId, text, photo, userId);
     } else if (photo && caption?.startsWith('/submit')) {
-      console.log('Handling photo submission with /submit caption');
       await handlePhotoSubmission(chatId, photo, caption, userId, message.message_id);
     } else if (text?.startsWith('/status')) {
-      console.log('Handling /status command');
       await handleStatusCommand(chatId, userId);
     } else if (text?.startsWith('/quests')) {
-      console.log('Handling /quests command');
       const parts = text.split(' ');
       const showAll = parts.length > 1 && parts[1] === 'all';
       await handleQuestsCommand(chatId, userId, showAll);
     } else if (text?.startsWith('/leaderboard')) {
-      console.log('Handling /leaderboard command');
       await handleLeaderboardCommand(chatId);
     } else if (photo && caption) {
-      console.log('Handling photo with caption (non-submit)');
       await bot.sendMessage(chatId, 'To submit a quest, use caption format: `/submit [quest_id]`');
     } else {
-      console.log('Sending help message');
       await bot.sendMessage(chatId, 
         '🤖 **PGPals Bot Commands**\n\n' +
         '📋 **Setup Commands:**\n' +
@@ -94,19 +79,14 @@ async function handleMessage(message: any) {
 
 async function handleStartCommand(chatId: number, telegramId: number, username?: string) {
   try {
-    console.log(`Start command for user ${telegramId} (${username})`);
-    
     // Test bot sending capability first
     await bot.sendMessage(chatId, 'Processing your /start command... 🤖');
     
-    console.log('Checking for existing user in database...');
     const { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('telegram_id', telegramId.toString())
       .single();
-
-    console.log('User query result:', { existingUser, userError });
 
     if (userError && userError.code !== 'PGRST116') {
       // PGRST116 is "not found" which is expected for new users
@@ -115,7 +95,6 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
     }
 
     if (existingUser) {
-      console.log('Found existing user, calculating points and completed quests');
       
       // Calculate total points from approved submissions
       const { data: submissions } = await supabaseAdmin
@@ -139,7 +118,6 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
         `Try /quests to see available challenges!`
       );
     } else {
-      console.log('New user, sending welcome message');
       await bot.sendMessage(chatId, 
         `Welcome to PGPals! 🎮\n\n` +
         `📋 **Important: Create your web account first!**\n\n` +
@@ -305,7 +283,6 @@ async function handlePhotoSubmission(
     }
 
     const questIdInput = questIdMatch[1];
-    console.log('Processing quest submission for input:', questIdInput);
     
     // Check if this is a group submission
     const groupMatch = caption.match(/group:(.+)/);
@@ -338,7 +315,6 @@ async function handlePhotoSubmission(
       return;
     }
     
-    console.log('Parsed quest ID:', questId);
     
     const { data: user } = await supabaseAdmin
       .from('users')
@@ -347,7 +323,6 @@ async function handlePhotoSubmission(
       .single();
 
     if (!user) {
-      console.log('User not found for telegram_id:', telegramId);
       await bot.sendMessage(chatId, 
         '🚫 Account not linked!\n\n' +
         '1. Create account at: ' + (process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app') + '\n' +
@@ -358,7 +333,6 @@ async function handlePhotoSubmission(
       return;
     }
     
-    console.log('Found user:', user.id, user.name);
 
     const { data: quest } = await supabaseAdmin
       .from('quests')
@@ -368,12 +342,10 @@ async function handlePhotoSubmission(
       .single();
 
     if (!quest) {
-      console.log('Quest not found or inactive for ID:', questId);
       await bot.sendMessage(chatId, 'Quest not found or inactive.');
       return;
     }
     
-    console.log('Found quest:', quest.id, quest.title);
 
     // Check if this is a group submission for a non-group quest
     if (isGroupSubmission && quest.category !== 'multiple-pair') {
@@ -402,7 +374,6 @@ async function handlePhotoSubmission(
 
     // For regular pair quests, check partner conflicts
     if (!isGroupSubmission && user.partner_id) {
-      console.log('User has partner, checking for partner quest conflicts');
       
       // Check if partner has already submitted or completed this quest
       const { data: partnerSubmissions } = await supabaseAdmin
@@ -434,7 +405,7 @@ async function handlePhotoSubmission(
         }
       }
     } else if (!isGroupSubmission) {
-      console.log('User has no partner assigned, can submit any quest');
+      // User has no partner assigned, can submit any quest
     }
 
     // Check for existing submissions from this user
@@ -479,9 +450,6 @@ async function handlePhotoSubmission(
 
     const largestPhoto = photo[photo.length - 1];
     const fileId = largestPhoto.file_id;
-    console.log('Photo file ID:', fileId);
-
-    console.log('Inserting submission into database...');
     
     if (isGroupSubmission) {
       // Create group submission via API
@@ -554,7 +522,6 @@ async function handlePhotoSubmission(
       return;
     }
     
-    console.log('Submission created successfully:', submission);
 
     // Send confirmation to submitter
     await bot.sendMessage(chatId, 

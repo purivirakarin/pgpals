@@ -50,14 +50,25 @@ export default function ActivityFeed({
 }: ActivityFeedProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
 
-  const fetchActivities = useCallback(async () => {
+  const fetchActivities = useCallback(async (isLoadMore = false) => {
     try {
-      setLoading(true);
+      if (isLoadMore) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setOffset(0);
+      }
       setError(null);
+      
+      const currentOffset = isLoadMore ? offset : 0;
       const params = new URLSearchParams();
       params.append('limit', limit.toString());
+      params.append('offset', currentOffset.toString());
       if (userId) params.append('user_id', userId);
 
       const response = await fetch(`/api/activities?${params}`);
@@ -71,17 +82,29 @@ export default function ActivityFeed({
       }
 
       const data = await response.json();
-      setActivities(data);
+      
+      if (isLoadMore) {
+        setActivities(prev => [...prev, ...data]);
+        setOffset(prev => prev + limit);
+      } else {
+        setActivities(data);
+        setOffset(limit);
+      }
+      
+      // If we got fewer activities than requested, we've reached the end
+      setHasMore(data.length === limit);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load activities');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [userId, limit]);
+  }, [userId, limit, offset]);
 
   useEffect(() => {
-    fetchActivities();
-  }, [fetchActivities]);
+    fetchActivities(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, limit]); // Removed fetchActivities from deps to avoid infinite loop
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -286,16 +309,21 @@ export default function ActivityFeed({
       </div>
       
       {/* Load more button - now outside scrollable area */}
-      {activities.length >= limit && (
+      {hasMore && (
         <div className="mt-4 text-center">
           <button
-            onClick={() => {
-              // TODO: Implement pagination
-              console.log('Load more activities');
-            }}
-            className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+            onClick={() => fetchActivities(true)}
+            disabled={loadingMore}
+            className="px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-md hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Load More
+            {loadingMore ? (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                Loading...
+              </div>
+            ) : (
+              'Load More'
+            )}
           </button>
         </div>
       )}
