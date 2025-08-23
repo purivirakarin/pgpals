@@ -169,7 +169,18 @@ export default function ProfilePage() {
     return null;
   }
 
-const completedQuests = profile.submissions?.filter(s => s.status === 'approved' || s.status === 'ai_approved').length || 0;
+// Calculate completed quests from all sources (self, partner, group) - avoid duplicates by quest_id
+const completedQuestIds = new Set();
+const completedSubmissions = profile.submissions?.filter(s => {
+  const isCompleted = s.status === 'approved' || s.status === 'ai_approved';
+  if (isCompleted && !completedQuestIds.has(s.quest_id || s.quest?.id)) {
+    completedQuestIds.add(s.quest_id || s.quest?.id);
+    return true;
+  }
+  return false;
+}) || [];
+
+const completedQuests = completedSubmissions.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
@@ -357,6 +368,84 @@ const completedQuests = profile.submissions?.filter(s => s.status === 'approved'
                     Link Telegram Account
                   </button>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Completed Quests */}
+          <div className="card p-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center">
+              <Trophy className="w-5 h-5 text-primary-500 mr-2" />
+              Completed Quests ({completedQuests})
+            </h2>
+            
+            {completedSubmissions.length === 0 ? (
+              <div className="text-center py-8">
+                <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No completed quests yet</p>
+                <a href="/quests" className="text-primary-600 hover:text-primary-700 font-medium mt-2 inline-block">
+                  Browse Available Quests →
+                </a>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {completedSubmissions.slice(0, 10).map((submission) => {
+                  const quest = submission.quest || {};
+                  const getSubmitterIcon = (submittedBy: string) => {
+                    switch (submittedBy) {
+                      case 'self': return <User className="w-4 h-4 text-primary-500" />;
+                      case 'partner': return <Users className="w-4 h-4 text-accent-500" />;
+                      case 'group': return <Users className="w-4 h-4 text-purple-500" />;
+                      default: return <Target className="w-4 h-4 text-gray-400" />;
+                    }
+                  };
+
+                  const getSubmitterText = (submittedBy: string, submitterName: string) => {
+                    switch (submittedBy) {
+                      case 'self': return 'You';
+                      case 'partner': return `Partner: ${submitterName}`;
+                      case 'group': return `Group: ${submitterName}`;
+                      default: return submitterName || 'Unknown';
+                    }
+                  };
+
+                  return (
+                    <div key={`${submission.id}-${submission.quest_id}`} className="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mr-4">
+                        <CheckCircle className="w-5 h-5 text-primary-600" />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 mb-1">
+                          {quest.title || 'Unknown Quest'}
+                        </h4>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {quest.category} • +{submission.points_awarded} points
+                        </p>
+                        
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <div className="flex items-center">
+                            {getSubmitterIcon(submission.submitted_by)}
+                            <span className="ml-1.5">
+                              Submitted by {getSubmitterText(submission.submitted_by, submission.submitter_name)}
+                            </span>
+                          </div>
+                          <span>
+                            {new Date(submission.submitted_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {completedSubmissions.length > 10 && (
+                  <div className="text-center pt-4">
+                    <p className="text-sm text-gray-500">
+                      Showing 10 of {completedSubmissions.length} completed quests
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

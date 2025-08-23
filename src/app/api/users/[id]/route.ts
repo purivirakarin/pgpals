@@ -30,8 +30,12 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get submissions separately since they're not in the view
-    const { data: submissions } = await supabaseAdmin
+    // Get comprehensive submissions including self, partner, and group submissions
+    const userId = parseInt(params.id);
+    let allCompletedQuests: any[] = [];
+
+    // 1. Get user's own submissions
+    const { data: userSubmissions } = await supabaseAdmin
       .from('submissions')
       .select(`
         id,
@@ -39,13 +43,109 @@ export async function GET(
         status,
         points_awarded,
         submitted_at,
-        quest:quests(title, category)
+        reviewed_at,
+        quest:quests(id, title, category, points, description),
+        users!submissions_user_id_fkey(name, telegram_username)
       `)
-      .eq('user_id', params.id);
+      .eq('user_id', userId)
+      .not('is_deleted', 'eq', true);
+
+    if (userSubmissions) {
+      userSubmissions.forEach(submission => {
+        allCompletedQuests.push({
+          ...submission,
+          submitted_by: 'self',
+          submitter_name: userFromView.name,
+          submitter_telegram: userFromView.telegram_username
+        });
+      });
+    }
+
+    // 2. Get partner's submissions (if user has a partner)
+    if (userFromView.partner_id) {
+      const { data: partnerSubmissions } = await supabaseAdmin
+        .from('submissions')
+        .select(`
+          id,
+          quest_id,
+          status,
+          points_awarded,
+          submitted_at,
+          reviewed_at,
+          quest:quests(id, title, category, points, description),
+          users!submissions_user_id_fkey(name, telegram_username)
+        `)
+        .eq('user_id', userFromView.partner_id)
+        .not('is_deleted', 'eq', true);
+
+      if (partnerSubmissions) {
+        partnerSubmissions.forEach(submission => {
+          const user = submission.users as any;
+          allCompletedQuests.push({
+            ...submission,
+            submitted_by: 'partner',
+            submitter_name: user?.name,
+            submitter_telegram: user?.telegram_username
+          });
+        });
+      }
+    }
+
+    // 3. Get group submissions where user participated and not opted out
+    const { data: groupParticipations } = await supabaseAdmin
+      .from('group_participants')
+      .select(`
+        group_submission_id,
+        opted_out,
+        group_submissions!inner(
+          id,
+          quest_id,
+          submission_id,
+          submitter_user_id,
+          submissions!inner(
+            id,
+            status,
+            points_awarded,
+            submitted_at,
+            reviewed_at,
+            quest:quests(id, title, category, points, description),
+            users!submissions_user_id_fkey(name, telegram_username),
+            is_deleted
+          )
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('opted_out', false);
+
+    if (groupParticipations) {
+      groupParticipations.forEach(participation => {
+        const groupSubmission = participation.group_submissions as any;
+        const submission = groupSubmission?.submissions;
+        
+        if (submission && !submission.is_deleted) {
+          const user = submission.users as any;
+          allCompletedQuests.push({
+            id: submission.id,
+            quest_id: submission.quest.id,
+            status: submission.status,
+            points_awarded: submission.points_awarded,
+            submitted_at: submission.submitted_at,
+            reviewed_at: submission.reviewed_at,
+            quest: submission.quest,
+            group_submission_id: groupSubmission.id,
+            submitted_by: 'group',
+            submitter_name: user?.name,
+            submitter_telegram: user?.telegram_username
+          });
+        }
+      });
+    }
 
     const user = {
       ...userFromView,
-      submissions: submissions || []
+      submissions: allCompletedQuests.sort((a, b) => 
+        new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime()
+      )
     };
 
     return NextResponse.json(user);

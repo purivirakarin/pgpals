@@ -50,14 +50,23 @@ export default function QuestsPage() {
       const response = await fetch('/api/submissions');
       if (response.ok) {
         const data = await response.json();
-        setSubmissions(data);
+        // Handle both old format (array) and new format (object with submissions array)
+        if (Array.isArray(data)) {
+          setSubmissions(data);
+        } else if (data.submissions && Array.isArray(data.submissions)) {
+          setSubmissions(data.submissions);
+        } else {
+          setSubmissions([]);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch submissions:', err);
+      setSubmissions([]);
     }
   };
 
   const getUserSubmission = (questId: number) => {
+    if (!Array.isArray(submissions)) return undefined;
     return submissions.find(sub => sub.quest_id === questId);
   };
 
