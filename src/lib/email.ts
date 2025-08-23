@@ -436,7 +436,7 @@ export function generatePasswordResetEmail(
             
             /* Header */
             .header { 
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
                 color: #FFFFFF;
                 text-align: center; 
                 padding: 32px 24px;
@@ -476,8 +476,8 @@ export function generatePasswordResetEmail(
             
             /* OTP Code Section */
             .otp-section { 
-                background-color: #F8FAFF;
-                border: 2px solid #E6EFFF;
+                background-color: #F3F0FF;
+                border: 2px solid #DDD6FE;
                 border-radius: 8px; 
                 padding: 24px; 
                 text-align: center; 
@@ -487,7 +487,7 @@ export function generatePasswordResetEmail(
             .otp-label { 
                 font-size: 14px; 
                 font-weight: 600;
-                color: #4A5568;
+                color: #7C3AED;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
                 margin-bottom: 12px; 
@@ -497,20 +497,20 @@ export function generatePasswordResetEmail(
                 font-size: 32px; 
                 font-weight: 700; 
                 letter-spacing: 4px; 
-                color: #2D3748; 
+                color: #5B21B6; 
                 font-family: 'Courier New', Consolas, monospace;
                 background-color: #FFFFFF;
                 padding: 16px 20px;
                 border-radius: 6px;
-                border: 2px dashed #CBD5E0;
+                border: 2px dashed #A78BFA;
                 display: inline-block;
                 margin: 8px 0;
             }
             
             /* Instructions */
             .instructions {
-                background-color: #EBF8FF;
-                border-left: 4px solid #3182CE;
+                background-color: #F3F0FF;
+                border-left: 4px solid #8B5CF6;
                 border-radius: 0 6px 6px 0;
                 padding: 16px;
                 margin: 20px 0;
@@ -518,7 +518,7 @@ export function generatePasswordResetEmail(
             
             .instructions-title {
                 font-weight: 600;
-                color: #2B6CB0;
+                color: #7C3AED;
                 margin-bottom: 8px;
                 font-size: 15px;
             }
@@ -531,23 +531,23 @@ export function generatePasswordResetEmail(
             
             /* Security warning */
             .security-warning { 
-                background-color: #FFFBEB;
-                border: 1px solid #F6D55C; 
+                background-color: #FEFCE8;
+                border: 1px solid #EAB308; 
                 border-radius: 6px; 
                 padding: 16px; 
                 margin: 20px 0;
-                border-left: 4px solid #D69E2E;
+                border-left: 4px solid #CA8A04;
             }
             
             .warning-title {
                 font-weight: 600;
-                color: #B7791F;
+                color: #A16207;
                 margin-bottom: 8px;
                 font-size: 15px;
             }
             
             .warning-list {
-                color: #975A16;
+                color: #92400E;
                 margin: 0;
                 padding-left: 16px;
                 font-size: 14px;
