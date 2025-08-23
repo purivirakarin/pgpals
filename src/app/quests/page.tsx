@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { Quest, Submission } from '@/types';
 import QuestCard from '@/components/QuestCard';
+import LoadingSpinner, { QuestGridSkeleton } from '@/components/LoadingSpinner';
 import { Search, Filter, Target, Loader, X, Sparkles, ArrowUpDown, Camera, Users, Lightbulb, Bot } from 'lucide-react';
 import { getNumericId } from '@/lib/questId';
 
@@ -144,11 +145,33 @@ function QuestsContent() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Loader className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Loading quests...</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header skeleton */}
+          <div className="text-center mb-12 animate-pulse">
+            <div className="h-10 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-96 mx-auto"></div>
+          </div>
+          
+          {/* Controls skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="flex flex-col lg:flex-row gap-4 mb-6">
+              <div className="h-10 bg-gray-200 rounded flex-1"></div>
+              <div className="h-10 bg-gray-200 rounded w-40"></div>
+              <div className="h-10 bg-gray-200 rounded w-32"></div>
+            </div>
+          </div>
+
+          {/* Loading spinner */}
+          <LoadingSpinner 
+            size="lg" 
+            message="Loading quests" 
+            submessage="Finding your next adventure" 
+          />
+
+          {/* Quest grid skeleton */}
+          <div className="mt-8">
+            <QuestGridSkeleton count={6} />
           </div>
         </div>
       </div>
@@ -157,15 +180,17 @@ function QuestsContent() {
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">
-          <p className="text-muted-600 mb-4">{error}</p>
-          <button
-            onClick={fetchQuests}
-            className="btn-primary"
-          >
-            Try Again
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <p className="text-muted-600 mb-4">{error}</p>
+            <button
+              onClick={fetchQuests}
+              className="btn-primary"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -493,16 +518,12 @@ function QuestsContent() {
 export default function QuestsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Target className="w-8 h-8 text-primary-600 animate-pulse mx-auto mb-4" />
-              <p className="text-gray-600">Loading quests...</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LoadingSpinner 
+        fullScreen 
+        size="lg" 
+        message="Loading quests" 
+        submessage="Preparing your adventure" 
+      />
     }>
       <QuestsContent />
     </Suspense>

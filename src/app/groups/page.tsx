@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Copy, Check, User, Search } from 'lucide-react';
+import { Users, Copy, Check, User, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface GroupInfo {
   group_code: string;
@@ -21,6 +22,8 @@ export default function GroupsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(12); // 12 items per page for better grid layout
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -72,20 +75,89 @@ export default function GroupsPage() {
     }
   };
 
-  const filteredGroups = groups.filter(group =>
-    group.group_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.members.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredGroups = useMemo(() => {
+    const filtered = groups.filter(group =>
+      group.group_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      group.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      group.members.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    // Reset to first page when search changes
+    if (currentPage > Math.ceil(filtered.length / itemsPerPage)) {
+      setCurrentPage(1);
+    }
+    
+    return filtered;
+  }, [groups, searchTerm, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredGroups.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedGroups = filteredGroups.slice(startIndex, startIndex + itemsPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Users className="w-8 h-8 text-primary-600 animate-pulse mx-auto mb-4" />
-              <p className="text-gray-600">Loading groups...</p>
+          {/* Header skeleton */}
+          <div className="text-center mb-12 animate-pulse">
+            <div className="w-16 h-16 bg-gray-200 rounded-2xl mx-auto mb-6"></div>
+            <div className="h-10 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
+            <div className="h-6 bg-gray-200 rounded w-96 mx-auto"></div>
+          </div>
+          
+          {/* Info box skeleton */}
+          <div className="bg-gray-100 rounded-xl p-6 mb-8 animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            </div>
+          </div>
+          
+          {/* Search skeleton */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8 animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-24 mb-3"></div>
+            <div className="h-12 bg-gray-200 rounded-xl w-full"></div>
+          </div>
+
+          {/* Loading spinner */}
+          <LoadingSpinner 
+            size="lg" 
+            message="Loading partner groups" 
+            submessage="Fetching group information" 
+          />
+
+          {/* Groups grid skeleton */}
+          <div className="mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }, (_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 bg-gray-200 rounded-lg mr-3"></div>
+                      <div>
+                        <div className="h-5 bg-gray-200 rounded w-16 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-20"></div>
+                      </div>
+                    </div>
+                    <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
+                  </div>
+                  <div className="mb-4">
+                    <div className="h-4 bg-gray-200 rounded w-16 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full"></div>
+                  </div>
+                  <div className="bg-gray-100 rounded-lg p-3">
+                    <div className="h-3 bg-gray-200 rounded w-24 mb-2"></div>
+                    <div className="h-6 bg-gray-200 rounded w-full"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -143,16 +215,63 @@ export default function GroupsPage() {
             </div>
           </div>
 
-          {/* Search */}
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search groups..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
+          {/* Enhanced Search */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1 max-w-md">
+                <label htmlFor="search" className="block text-sm font-semibold text-gray-700 mb-3">
+                  Search Groups
+                </label>
+                <div className="relative group">
+                  <Search className="w-5 h-5 text-gray-400 group-focus-within:text-primary-500 absolute left-4 top-1/2 transform -translate-y-1/2 transition-colors" />
+                  <input
+                    id="search"
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200 placeholder-gray-400"
+                    placeholder="Search by group code, name, or members..."
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Results summary */}
+              <div className="bg-primary-50 rounded-xl px-4 py-3 text-center min-w-[100px]">
+                <div className="text-2xl font-bold text-primary-600">{filteredGroups.length}</div>
+                <div className="text-sm text-primary-700">
+                  {filteredGroups.length === 1 ? 'group' : 'groups'}
+                  {searchTerm && ' found'}
+                </div>
+              </div>
+            </div>
+            
+            {/* Active search indicator */}
+            {searchTerm && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center px-3 py-1 bg-primary-100 text-primary-700 text-sm font-medium rounded-full">
+                    Searching: &quot;{searchTerm}&quot;
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="ml-2 text-primary-500 hover:text-primary-700"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {filteredGroups.length} of {groups.length} groups
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -199,9 +318,21 @@ export default function GroupsPage() {
               </div>
             </div>
 
+            {/* Pagination Summary */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4 mb-6">
+                <div className="text-sm text-gray-600">
+                  Showing {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredGroups.length)} of {filteredGroups.length} groups
+                </div>
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </div>
+              </div>
+            )}
+
             {/* Groups Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGroups.map((group) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {paginatedGroups.map((group) => (
                 <div key={group.group_code} className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center">
@@ -249,6 +380,55 @@ export default function GroupsPage() {
               ))}
             </div>
 
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-2 mb-8">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                {/* Page numbers */}
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => handlePageChange(pageNum)}
+                      className={`px-3 py-2 rounded-lg border transition-colors ${
+                        currentPage === pageNum
+                          ? 'border-primary-500 bg-primary-500 text-white'
+                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
             {/* Quick Copy Examples */}
             {filteredGroups.length >= 2 && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -261,10 +441,10 @@ export default function GroupsPage() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700">Single Other Group:</span>
                       <button
-                        onClick={() => copyExampleCommand(filteredGroups[1].group_code)}
+                        onClick={() => copyExampleCommand(filteredGroups[1]?.group_code || 'GRP002')}
                         className="text-sm text-primary-600 hover:text-primary-700 flex items-center"
                       >
-                        {copiedCode === `/submit 1 group:${filteredGroups[1].group_code}` ? (
+                        {copiedCode === `/submit 1 group:${filteredGroups[1]?.group_code || 'GRP002'}` ? (
                           <>
                             <Check className="w-4 h-4 mr-1" />
                             Copied!
@@ -278,7 +458,7 @@ export default function GroupsPage() {
                       </button>
                     </div>
                     <code className="text-sm bg-white px-3 py-2 rounded border block">
-                      /submit 1 group:{filteredGroups[1].group_code}
+                      /submit 1 group:{filteredGroups[1]?.group_code || 'GRP002'}
                     </code>
                   </div>
 
@@ -287,7 +467,11 @@ export default function GroupsPage() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-700">Multiple Other Groups:</span>
                         <button
-                          onClick={() => copyExampleCommand('', filteredGroups[1].group_code + ',' + filteredGroups[2].group_code)}
+                          onClick={() => {
+                            const group1 = filteredGroups[1]?.group_code || 'GRP002';
+                            const group2 = filteredGroups[2]?.group_code || 'GRP003';
+                            copyExampleCommand('', group1 + ',' + group2);
+                          }}
                           className="text-sm text-primary-600 hover:text-primary-700 flex items-center"
                         >
                           <Copy className="w-4 h-4 mr-1" />
@@ -295,7 +479,7 @@ export default function GroupsPage() {
                         </button>
                       </div>
                       <code className="text-sm bg-white px-3 py-2 rounded border block">
-                        /submit 1 group:{filteredGroups[1].group_code},{filteredGroups[2].group_code}
+                        /submit 1 group:{filteredGroups[1]?.group_code || 'GRP002'},{filteredGroups[2]?.group_code || 'GRP003'}
                       </code>
                     </div>
                   )}
