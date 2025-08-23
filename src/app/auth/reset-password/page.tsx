@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { KeyRound, ArrowLeft, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { KeyRound, ArrowLeft, CheckCircle, AlertCircle, Eye, EyeOff, Loader } from 'lucide-react';
 
 function ResetPasswordForm() {
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -20,12 +22,31 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Get email param from URL
   useEffect(() => {
     const emailParam = searchParams.get('email');
     if (emailParam) {
       setEmail(emailParam);
     }
   }, [searchParams]);
+
+  // Redirect authenticated users to home page
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      router.replace('/');
+    }
+  }, [session, status, router]);
+
+  // Don't render if user is authenticated or still loading
+  if (status === 'loading') {
+    return <div className="min-h-screen flex items-center justify-center">
+      <Loader className="w-8 h-8 animate-spin text-primary-600" />
+    </div>;
+  }
+
+  if (status === 'authenticated') {
+    return null; // Component will be unmounted due to redirect
+  }
 
   const validatePassword = (password: string) => {
     const errors: string[] = [];

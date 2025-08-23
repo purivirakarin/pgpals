@@ -1,17 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, ArrowLeft, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [expiresIn, setExpiresIn] = useState<number | null>(null);
   const router = useRouter();
+
+  // Redirect authenticated users to home page
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      router.replace('/');
+    }
+  }, [session, status, router]);
+
+  // Don't render if user is authenticated or still loading
+  if (status === 'loading') {
+    return <div className="min-h-screen flex items-center justify-center">
+      <Loader className="w-8 h-8 animate-spin text-primary-600" />
+    </div>;
+  }
+
+  if (status === 'authenticated') {
+    return null; // Component will be unmounted due to redirect
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
