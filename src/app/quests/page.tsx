@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import { Quest, Submission } from '@/types';
 import QuestCard from '@/components/QuestCard';
 import { Search, Filter, Target, Loader, X, Sparkles, ArrowUpDown, Camera, Users, Lightbulb, Bot } from 'lucide-react';
 import { getNumericId } from '@/lib/questId';
 
-export default function QuestsPage() {
+function QuestsContent() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const [quests, setQuests] = useState<Quest[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,11 +21,19 @@ export default function QuestsPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [error, setError] = useState<string | null>(null);
 
-  const categories = [
+  const categories = useMemo(() => [
     { value: 'pair', label: 'Pair Tasks' },
     { value: 'multiple-pair', label: 'Multiple-Pair Tasks' },
     { value: 'bonus', label: 'Bonus Tasks' }
-  ];
+  ], []);
+
+  // Handle URL parameters on page load
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam && categories.some(cat => cat.value === categoryParam)) {
+      setSelectedCategory(categoryParam);
+    }
+  }, [searchParams, categories]);
 
   useEffect(() => {
     fetchQuests();
@@ -477,5 +487,24 @@ export default function QuestsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function QuestsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Target className="w-8 h-8 text-primary-600 animate-pulse mx-auto mb-4" />
+              <p className="text-gray-600">Loading quests...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <QuestsContent />
+    </Suspense>
   );
 }

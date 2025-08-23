@@ -16,10 +16,10 @@ export default function QuestsHelpPage() {
       title: 'Multiple-Pair Tasks',
       icon: Target,
       color: 'green',
-      description: 'Group activities where multiple pairs can participate together',
+      description: 'Group activities where multiple pairs can participate together using group codes',
       points: '20-100 points',
       examples: ['Group dining at a restaurant', 'Team sports activity', 'Community event participation'],
-      requirements: ['Multiple pairs can join', 'Group organizer submits for all', 'Higher point values due to coordination']
+      requirements: ['Multiple pairs can join', 'Use group codes (GRP001,GRP002)', 'Group organizer submits for all', 'Higher point values due to coordination']
     },
     {
       title: 'Bonus Tasks',
@@ -178,6 +178,87 @@ export default function QuestsHelpPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Group Submission Guide */}
+      <div className="mb-12">
+        <h2 className="text-3xl font-bold subheading-style mb-8">Group Submission Format</h2>
+        <div className="card p-8">
+          <div className="mb-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+              <Users className="w-6 h-6 text-primary-600 mr-2" />
+              Using Group Codes for Multiple-Pair Tasks
+            </h3>
+            <p className="text-gray-600 mb-4">
+              For multiple-pair tasks, use group codes instead of typing names to make submissions easier and more accurate.
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">🆕 New Group Code Format:</h4>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <code className="text-green-800 font-mono text-sm block">
+                  /submit [quest_id] group:GRP001,GRP002
+                </code>
+                <p className="text-green-700 text-sm mt-2">✅ Easy, accurate, no typos</p>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-start">
+                  <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-700"><strong>Step 1:</strong> Find group codes</p>
+                    <p className="text-xs text-gray-600">Use <code>/groups</code> in Telegram or visit <Link href="/groups" className="text-primary-600 hover:underline">/groups</Link></p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-700"><strong>Step 2:</strong> Format submission</p>
+                    <p className="text-xs text-gray-600">Use at least 2 group codes separated by commas</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm text-gray-700"><strong>Step 3:</strong> Submit with photo</p>
+                    <p className="text-xs text-gray-600">Send photo with the formatted caption</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">📋 Legacy Name Format (Still Works):</h4>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <code className="text-yellow-800 font-mono text-sm block">
+                  /submit [quest_id] group:Name1&Name2,Name3&Name4
+                </code>
+                <p className="text-yellow-700 text-sm mt-2">⚠️ Prone to typos, less reliable</p>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h5 className="font-medium text-blue-900 mb-2">💡 Pro Tips:</h5>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Group codes are case-insensitive (grp001 = GRP001)</li>
+                  <li>• Use <code className="bg-blue-100 px-1 rounded">/groups</code> command to see all available codes</li>
+                  <li>• You need at least 2 groups (4+ people) for group tasks</li>
+                  <li>• Anyone in the participating groups can submit</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 bg-gray-50 rounded-lg p-4">
+            <h5 className="font-medium text-gray-800 mb-2">Examples:</h5>
+            <div className="space-y-2 text-sm font-mono text-gray-700">
+              <div>✅ <code>/submit 5 group:GRP001,GRP002</code> (2 groups, 4 people)</div>
+              <div>✅ <code>/submit 12 group:GRP003,GRP007,GRP015</code> (3 groups, 6 people)</div>
+              <div>❌ <code>/submit 5 group:GRP001</code> (only 1 group, need 2+)</div>
+            </div>
           </div>
         </div>
       </div>

@@ -13,6 +13,7 @@ export default function Header() {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Quests', href: '/quests' },
+    { name: 'Groups', href: '/groups' },
     { name: 'Leaderboard', href: '/leaderboard' },
     { name: 'Help', href: '/help' },
   ];
