@@ -15,6 +15,7 @@ import {
   Loader,
   AlertCircle,
   User,
+  Users,
   Trash2
 } from 'lucide-react';
 
@@ -29,6 +30,11 @@ export default function MySubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalSubmissions, setTotalSubmissions] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -38,16 +44,32 @@ export default function MySubmissionsPage() {
       return;
     }
 
-    fetchSubmissions();
+    fetchSubmissions(1);
+    setCurrentPage(1);
   }, [session, status, router]);
 
-  const fetchSubmissions = async () => {
+  useEffect(() => {
+    if (session && status === 'authenticated') {
+      fetchSubmissions(currentPage);
+    }
+  }, [currentPage, session, status]);
+
+  const fetchSubmissions = async (page: number = 1) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/submissions');
+      const offset = (page - 1) * itemsPerPage;
+      const response = await fetch(`/api/submissions?limit=${itemsPerPage}&offset=${offset}`);
       if (!response.ok) throw new Error('Failed to fetch submissions');
       const data = await response.json();
-      setSubmissions(data);
+      
+      // Check if the response has pagination info or is just an array
+      if (Array.isArray(data)) {
+        setSubmissions(data);
+        setTotalSubmissions(data.length); // Fallback for backward compatibility
+      } else {
+        setSubmissions(data.submissions || data);
+        setTotalSubmissions(data.total || data.length || 0);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load submissions');
     } finally {
@@ -71,12 +93,55 @@ export default function MySubmissionsPage() {
         throw new Error(errorData.error || 'Failed to delete submission');
       }
 
-      // Remove submission from local state
+      // Remove submission from local state and refresh if needed
       setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
+      setTotalSubmissions(prev => prev - 1);
+      
+      // If current page becomes empty and it's not the first page, go to previous page
+      if (submissions.length === 1 && currentPage > 1) {
+        const newPage = currentPage - 1;
+        setCurrentPage(newPage);
+        fetchSubmissions(newPage);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete submission');
     } finally {
       setDeleteLoading(null);
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchSubmissions(page);
+  };
+
+  const totalPages = Math.ceil(totalSubmissions / itemsPerPage);
+
+  const getSubmitterInfo = (submission: any) => {
+    if (submission.submitted_by === 'self') {
+      return {
+        text: 'You',
+        icon: <User className="w-4 h-4 text-primary-500" />,
+        color: 'text-primary-600'
+      };
+    } else if (submission.submitted_by === 'partner') {
+      return {
+        text: `Partner: ${submission.submitter_name || 'Unknown'}`,
+        icon: <Users className="w-4 h-4 text-accent-500" />,
+        color: 'text-accent-600'
+      };
+    } else if (submission.submitted_by === 'group') {
+      return {
+        text: `Group: ${submission.submitter_name || 'Unknown'}`,
+        icon: <Users className="w-4 h-4 text-purple-500" />,
+        color: 'text-purple-600'
+      };
+    } else {
+      return {
+        text: 'You',
+        icon: <User className="w-4 h-4 text-gray-400" />,
+        color: 'text-gray-600'
+      };
     }
   };
 
@@ -175,7 +240,7 @@ export default function MySubmissionsPage() {
             <h3 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Submissions</h3>
             <p className="text-gray-600 mb-8">{error}</p>
             <button
-              onClick={fetchSubmissions}
+              onClick={() => fetchSubmissions(currentPage)}
               className="btn-primary"
             >
               Try Again
@@ -265,6 +330,15 @@ export default function MySubmissionsPage() {
                         <Calendar className="w-4 h-4 mr-1" />
                         Submitted {formatDate(submission.submitted_at)}
                       </span>
+                      {(() => {
+                        const submitterInfo = getSubmitterInfo(submission);
+                        return (
+                          <span className={`inline-flex items-center ${submitterInfo.color}`}>
+                            {submitterInfo.icon}
+                            <span className="ml-1">{submitterInfo.text}</span>
+                          </span>
+                        );
+                      })()}
                       {submission.points_awarded && (
                         <span className="inline-flex items-center font-medium text-primary-600">
                           +{submission.points_awarded} points
@@ -309,6 +383,15 @@ export default function MySubmissionsPage() {
                       <Calendar className="w-4 h-4 mr-1.5 flex-shrink-0" />
                       <span>Submitted {formatDate(submission.submitted_at)}</span>
                     </span>
+                    {(() => {
+                      const submitterInfo = getSubmitterInfo(submission);
+                      return (
+                        <span className={`inline-flex items-center ${submitterInfo.color}`}>
+                          {submitterInfo.icon}
+                          <span className="ml-1.5">{submitterInfo.text}</span>
+                        </span>
+                      );
+                    })()}
                     {submission.points_awarded && (
                       <span className="inline-flex items-center font-medium text-primary-600">
                         <span className="text-primary-500 mr-1">+</span>
@@ -363,6 +446,65 @@ export default function MySubmissionsPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-8 px-4">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalSubmissions)} of {totalSubmissions} submissions
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                
+                {/* Page numbers */}
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNumber;
+                    if (totalPages <= 5) {
+                      pageNumber = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNumber = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNumber = totalPages - 4 + i;
+                    } else {
+                      pageNumber = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNumber}
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`px-3 py-2 text-sm font-medium rounded-md ${
+                          currentPage === pageNumber
+                            ? 'bg-primary-600 text-white'
+                            : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
