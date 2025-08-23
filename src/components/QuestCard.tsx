@@ -347,37 +347,62 @@ export default function QuestCard({
 
         {/* Copy Command - Full width below */}
         {!userSubmission && quest.status === 'active' && (
-          <div className="w-full">
-            <div className="relative group w-full max-w-xs">
-              <button
-                onClick={copySubmitCommand}
-                className="w-full flex items-center justify-center bg-primary-50 hover:bg-primary-100 text-primary-700 px-3 py-2 rounded-lg text-xs font-medium border border-primary-200 transition-colors cursor-pointer"
-                title={`Click to copy: /submit ${numericId}`}
-              >
-                <span className="mr-2">📱</span>
-                <code className="font-mono">/submit {numericId}</code>
-                <span className="ml-2">
-                  {copied ? (
-                    <Check className="w-3 h-3 text-primary-600" />
-                  ) : (
-                    <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
-                  )}
-                </span>
-              </button>
-              
-              {/* Tooltip showing full command */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                <code>/submit {numericId}</code>
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          <div className="w-full space-y-2">
+            {/* Regular submit command */}
+            {quest.category !== 'multiple-pair' && (
+              <div className="relative group w-full">
+                <button
+                  onClick={copySubmitCommand}
+                  className="w-full flex items-center justify-center bg-primary-50 hover:bg-primary-100 text-primary-700 px-3 py-2 rounded-lg text-xs font-medium border border-primary-200 transition-colors cursor-pointer"
+                  title={`Click to copy: /submit ${numericId}`}
+                >
+                  <span className="mr-2">📱</span>
+                  <code className="font-mono">/submit {numericId}</code>
+                  <span className="ml-2">
+                    {copied ? (
+                      <Check className="w-3 h-3 text-primary-600" />
+                    ) : (
+                      <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </button>
+                
+                {/* Tooltip showing full command */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                  <code>/submit {numericId}</code>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Group submission format for multiple-pair tasks */}
+            {quest.category === 'multiple-pair' && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-700 flex items-center">
+                    <Users className="w-3 h-3 mr-1" />
+                    Group Submission Format:
+                  </span>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                  <div className="text-xs text-blue-900">
+                    <div className="font-mono text-xs bg-blue-100 px-2 py-1 rounded border">
+                      /submit {numericId} group:GRP001,GRP002
+                    </div>
+                    <div className="mt-2 text-blue-700">
+                      💡 Use <code className="bg-blue-100 px-1 rounded">/groups</code> to see available group codes
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Copy Command for Rejected Quests - Show copy command again */}
         {userSubmission && (userSubmission.status === 'rejected' || userSubmission.status === 'ai_rejected') && quest.status === 'active' && (
           <div className="w-full">
-            <div className="relative group w-full max-w-xs">
+            <div className="relative group w-full">
               <button
                 onClick={copySubmitCommand}
                 className="w-full flex items-center justify-center bg-primary-100 hover:bg-primary-200 text-primary-700 px-3 py-2 rounded-lg text-xs font-medium border border-primary-300 transition-colors cursor-pointer"

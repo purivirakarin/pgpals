@@ -15,13 +15,28 @@ export async function POST(request: NextRequest) {
     const { 
       quest_id, 
       participant_pairs, 
+      group_codes,
       telegram_file_id, 
       telegram_message_id 
     } = await request.json();
 
-    if (!quest_id || !participant_pairs || !Array.isArray(participant_pairs)) {
+    // Support both new group codes format and legacy participant pairs format
+    if (!quest_id || (!group_codes && !participant_pairs)) {
       return NextResponse.json({ 
-        error: 'Missing required fields: quest_id, participant_pairs' 
+        error: 'Missing required fields: quest_id and either group_codes or participant_pairs' 
+      }, { status: 400 });
+    }
+
+    // Validate input format
+    if (group_codes && !Array.isArray(group_codes)) {
+      return NextResponse.json({ 
+        error: 'group_codes must be an array of group code strings' 
+      }, { status: 400 });
+    }
+
+    if (participant_pairs && !Array.isArray(participant_pairs)) {
+      return NextResponse.json({ 
+        error: 'participant_pairs must be an array of pair objects' 
       }, { status: 400 });
     }
 
@@ -44,27 +59,48 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Validate participant pairs structure
-    for (const pair of participant_pairs) {
-      if (!pair.user1_name || !pair.user2_name) {
-        return NextResponse.json({ 
-          error: 'Each pair must have user1_name and user2_name' 
-        }, { status: 400 });
-      }
-    }
+    let result;
+    let transactionError;
 
-    // Use database transaction for atomicity
-    const participantNames = participant_pairs.map(pair => `${pair.user1_name} & ${pair.user2_name}`);
-    
-    // Create the submission and group submission in a transaction using database function
-    const { data: result, error: transactionError } = await supabaseAdmin
-      .rpc('create_group_submission_transaction', {
-        p_quest_id: quest_id,
-        p_submitter_user_id: session.user.id,
-        p_telegram_file_id: telegram_file_id || '',
-        p_telegram_message_id: telegram_message_id || 0,
-        p_participant_names: participantNames
-      });
+    if (group_codes) {
+      // New group codes format - use the new database function
+      const { data: groupResult, error: groupError } = await supabaseAdmin
+        .rpc('create_multi_group_submission_transaction', {
+          p_quest_id: quest_id,
+          p_submitter_user_id: session.user.id,
+          p_telegram_file_id: telegram_file_id || '',
+          p_telegram_message_id: telegram_message_id || 0,
+          p_group_codes: group_codes
+        });
+      
+      result = groupResult;
+      transactionError = groupError;
+      
+    } else if (participant_pairs) {
+      // Legacy participant pairs format - validate structure first
+      for (const pair of participant_pairs) {
+        if (!pair.user1_name || !pair.user2_name) {
+          return NextResponse.json({ 
+            error: 'Each pair must have user1_name and user2_name' 
+          }, { status: 400 });
+        }
+      }
+
+      // Use legacy database transaction
+      const participantNames = participant_pairs.map((pair: { user1_name: string; user2_name: string }) => `${pair.user1_name} & ${pair.user2_name}`);
+      
+      const { data: legacyResult, error: legacyError } = await supabaseAdmin
+        .rpc('create_group_submission_transaction', {
+          p_quest_id: quest_id,
+          p_submitter_user_id: session.user.id,
+          p_telegram_file_id: telegram_file_id || '',
+          p_telegram_message_id: telegram_message_id || 0,
+          p_participant_names: participantNames
+        });
+      
+      result = legacyResult;
+      transactionError = legacyError;
+    }
 
     if (transactionError) {
       console.error('Failed to create group submission transaction:', transactionError);

@@ -49,6 +49,8 @@ async function handleMessage(message: any) {
       await handleQuestsCommand(chatId, userId, showAll);
     } else if (text?.startsWith('/leaderboard')) {
       await handleLeaderboardCommand(chatId);
+    } else if (text?.startsWith('/groups')) {
+      await handleGroupsCommand(chatId, userId);
     } else if (photo && caption) {
       await bot.sendMessage(chatId, '📸 Use: `/submit [quest_id]` as photo caption');
     } else {
@@ -58,7 +60,8 @@ async function handleMessage(message: any) {
         '🎮 `/quests` - View challenges\n' +
         '📸 `/submit [id]` - Upload proof\n' +
         '📊 `/status` - Check progress\n' +
-        '🏆 `/leaderboard` - Rankings\n\n' +
+        '🏆 `/leaderboard` - Rankings\n' +
+        '👥 `/groups` - View group codes\n\n' +
         `🌐 [Visit Web App](${webAppUrl}) | [Help Guide](${webAppUrl}/help)\n\n` +
         '⚠️ Link your account first with `/start`',
         { parse_mode: 'Markdown' }
@@ -268,33 +271,48 @@ async function handlePhotoSubmission(
   try {
     const questIdMatch = caption.match(/\/submit\s+([a-zA-Z0-9-#]+)/);
     if (!questIdMatch) {
-      await bot.sendMessage(chatId, '❌ Invalid format\n\n📸 `/submit [quest_id]`\n👥 `/submit [id] group:Name1&Name2,Name3&Name4`');
+      await bot.sendMessage(chatId, '❌ Invalid format\n\n📸 Individual: `/submit [quest_id]`\n👥 Group: `/submit [id] group:GRP002`\n🔍 Use `/groups` to see group codes');
       return;
     }
 
     const questIdInput = questIdMatch[1];
     
-    // Check if this is a group submission
+    // Check if this is a group submission (now supporting both old and new formats)
     const groupMatch = caption.match(/group:(.+)/);
     const isGroupSubmission = !!groupMatch;
-    let participantPairs: Array<{user1_name: string, user2_name: string}> = [];
+    let groupCodes: string[] = [];
+    let participantPairs: Array<{user1_name: string, user2_name: string}> = []; // Legacy format
     
     if (isGroupSubmission) {
-      const pairStrings = groupMatch[1].split(',');
-      participantPairs = pairStrings.map(pairStr => {
-        const [user1_name, user2_name] = pairStr.trim().split('&');
-        if (!user1_name || !user2_name) {
-          throw new Error('Invalid pair format. Use: Name1&Name2,Name3&Name4');
-        }
-        return { 
-          user1_name: user1_name.trim(), 
-          user2_name: user2_name.trim() 
-        };
-      });
+      const groupInput = groupMatch[1].trim();
       
-      if (participantPairs.length < 2) {
-        await bot.sendMessage(chatId, '👥 Need 2+ pairs (4+ people)\nFormat: `/submit [id] group:Name1&Name2,Name3&Name4`');
-        return;
+      // Check if it's the new group code format (GRP001,GRP002) or old name format
+      if (groupInput.match(/^[A-Z]{3}\d{3}(,[A-Z]{3}\d{3})*$/)) {
+        // New group ID format: GRP001,GRP002
+        groupCodes = groupInput.split(',').map(code => code.trim().toUpperCase());
+        
+        if (groupCodes.length < 1) {
+          await bot.sendMessage(chatId, '👥 Need at least 1 other group\nFormat: `/submit [id] group:GRP002`\nYour group is automatically included');
+          return;
+        }
+      } else {
+        // Legacy name format: Name1&Name2,Name3&Name4
+        const pairStrings = groupInput.split(',');
+        participantPairs = pairStrings.map(pairStr => {
+          const [user1_name, user2_name] = pairStr.trim().split('&');
+          if (!user1_name || !user2_name) {
+            throw new Error('Invalid pair format. Use: GRP001,GRP002 or Name1&Name2,Name3&Name4');
+          }
+          return { 
+            user1_name: user1_name.trim(), 
+            user2_name: user2_name.trim() 
+          };
+        });
+        
+        if (participantPairs.length < 1) {
+          await bot.sendMessage(chatId, '👥 Need at least 1 other pair\nFormat: `/submit [id] group:GRP002`\nYour group is automatically included');
+          return;
+        }
       }
     }
     
@@ -351,7 +369,8 @@ async function handlePhotoSubmission(
       await bot.sendMessage(chatId, 
         `👥 Group quest required\n\n` +
         `${quest.title}\n\n` +
-        `📸 \`/submit ${questId} group:Name1&Name2,Name3&Name4\``,
+        `📸 \`/submit ${questId} group:GRP002\`\n` +
+        `🔍 Use \`/groups\` to see group codes`,
         { parse_mode: 'Markdown' }
       );
       return;
@@ -431,43 +450,50 @@ async function handlePhotoSubmission(
     const fileId = largestPhoto.file_id;
     
     if (isGroupSubmission) {
-      // Create group submission via API
+      // Create group submission via API (supporting both formats)
       try {
+        const requestBody = {
+          quest_id: questId,
+          telegram_file_id: fileId,
+          telegram_message_id: messageId,
+          ...(groupCodes.length > 0 
+            ? { group_codes: groupCodes } 
+            : { participant_pairs: participantPairs }
+          )
+        };
+
         const groupSubmissionResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/group-submissions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            quest_id: questId,
-            participant_pairs: participantPairs,
-            telegram_file_id: fileId,
-            telegram_message_id: messageId
-          })
+          body: JSON.stringify(requestBody)
         });
 
         if (!groupSubmissionResponse.ok) {
-          throw new Error('Failed to create group submission');
+          const errorData = await groupSubmissionResponse.json();
+          throw new Error(errorData.error || 'Failed to create group submission');
         }
 
         const groupResult = await groupSubmissionResponse.json();
         
+        const participantCount = groupCodes.length > 0 ? groupCodes.length * 2 : participantPairs.length * 2;
+        const participantInfo = groupCodes.length > 0 ? groupCodes.join(', ') : participantPairs.map(pair => `${pair.user1_name} & ${pair.user2_name}`).join(', ');
+        
         await bot.sendMessage(chatId, 
           `✅ Group submission received!\n\n` +
           `${quest.title}\n` +
-          `👥 ${participantPairs.length * 2} people\n` +
+          `👥 ${participantCount} people\n` +
+          `Groups: ${participantInfo}\n` +
           `⏳ Validating...`
         );
-
-        // Send notification to all mentioned participants
-        const participantNames = participantPairs.map(pair => `${pair.user1_name} & ${pair.user2_name}`).join(', ');
         
         if (process.env.ADMIN_TELEGRAM_ID) {
           await bot.sendMessage(process.env.ADMIN_TELEGRAM_ID, 
             `🎯 New GROUP submission:\n` +
             `Submitter: ${user.name}\n` +
             `Quest: ${quest.title}\n` +
-            `Participants: ${participantNames}\n` +
+            `Groups: ${participantInfo}\n` +
             `ID: ${groupResult.submission_id}`
           );
         }
@@ -475,7 +501,8 @@ async function handlePhotoSubmission(
         return;
       } catch (error) {
         console.error('Group submission error:', error);
-        await bot.sendMessage(chatId, '❌ Group submission failed. Retry?');
+        const errorMessage = error instanceof Error ? error.message : 'Group submission failed';
+        await bot.sendMessage(chatId, `❌ ${errorMessage}\n\nTry: \`/groups\` to see valid group codes`, { parse_mode: 'Markdown' });
         return;
       }
     }
@@ -662,6 +689,61 @@ async function handleLeaderboardCommand(chatId: number) {
   } catch (error) {
     console.error('Leaderboard command error:', error);
     await bot.sendMessage(chatId, '❌ Error fetching leaderboard');
+  }
+}
+
+async function handleGroupsCommand(chatId: number, telegramId: number) {
+  try {
+    // Get user information to verify they're linked
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('id, name')
+      .eq('telegram_id', telegramId.toString())
+      .single();
+
+    if (!user) {
+      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      await bot.sendMessage(chatId, 
+        '🚫 Account not linked\n\n' +
+        `[Create Account](${webAppUrl}/auth/signup) → Use /start`,
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    // Get all active groups using the database function
+    const { data: groups } = await supabaseAdmin
+      .rpc('list_all_active_groups');
+
+    if (!groups || groups.length === 0) {
+      await bot.sendMessage(chatId, 
+        '👥 **No Active Groups**\n\n' +
+        'Contact admin to create partner groups',
+        { parse_mode: 'Markdown' }
+      );
+      return;
+    }
+
+    let message = '👥 **Active Partner Groups**\n\n';
+    message += 'Use group codes for multi-pair quests:\n\n';
+    
+    // Display groups in a neat format
+    groups.slice(0, 20).forEach((group: any) => { // Limit to prevent long messages
+      message += `🔸 \`${group.group_code}\` - ${group.members}\n`;
+    });
+
+    message += '\n📸 Format: `/submit [id] group:GRP002`\n';
+    message += '💡 Your group is automatically included\n';
+    message += `💡 Example: \`/submit 5 group:${groups[1]?.group_code || 'GRP002'}\``;
+    
+    if (groups.length > 20) {
+      message += `\n\n📋 Showing first 20 of ${groups.length} groups`;
+    }
+
+    await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+  } catch (error) {
+    console.error('Groups command error:', error);
+    await bot.sendMessage(chatId, '❌ Error fetching groups');
   }
 }
 
