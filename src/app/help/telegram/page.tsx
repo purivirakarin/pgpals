@@ -19,10 +19,10 @@ export default function TelegramHelpPage() {
     },
     {
       command: '/submit [id]',
-      description: 'Submit a photo for a specific quest',
+      description: 'Submit exactly ONE photo for a specific quest',
       icon: Camera,
       example: '/submit 123',
-      response: 'Bot will ask you to send a photo, then process your submission'
+      response: 'Bot will ask you to send ONE photo, then process your submission'
     },
     {
       command: '/status',
@@ -55,15 +55,15 @@ export default function TelegramHelpPage() {
     },
     {
       step: 3,
-      title: 'Take a Clear Photo',
-      description: 'Capture a photo that clearly shows you completed the quest.',
-      tip: 'Good lighting, clear subjects, and all participants visible are key.'
+      title: 'Take ONE Clear Photo',
+      description: 'Capture exactly ONE photo that clearly shows you completed the quest.',
+      tip: 'Submit only one photo with good lighting, clear subjects, and all participants visible.'
     },
     {
       step: 4,
       title: 'Submit via Bot',
-      description: 'Type /submit [quest_id] and send your photo when prompted.',
-      tip: 'Make sure to use the correct quest ID from step 1.'
+      description: 'Type /submit [quest_id] and send exactly ONE photo when prompted.',
+      tip: 'Send only one photo and make sure to use the correct quest ID from step 1.'
     },
     {
       step: 5,
@@ -90,8 +90,8 @@ export default function TelegramHelpPage() {
       icon: Camera
     },
     {
-      title: 'No Filters',
-      description: 'Submit original photos without heavy filters or editing.',
+      title: 'One Photo Only',
+      description: 'Submit exactly ONE original photo per quest without heavy filters or editing.',
       icon: AlertCircle
     },
     {
