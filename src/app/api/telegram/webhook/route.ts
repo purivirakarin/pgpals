@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { bot } from '@/lib/telegram';
+import { bot, telegramService } from '@/lib/telegram';
 import { supabaseAdmin } from '@/lib/supabase';
 import { User, Quest, Submission } from '@/types';
 import { parseQuestId, getQuestByNumericId } from '@/lib/questId';
@@ -508,6 +508,17 @@ async function handlePhotoSubmission(
           `⏳ Validating...`
         );
         
+        // Send enhanced notifications to all group participants
+        try {
+          await telegramService.notifyGroupSubmission(
+            groupResult.group_submission_id, 
+            user.id, 
+            questId
+          );
+        } catch (error) {
+          console.error('Failed to send group submission notifications:', error);
+        }
+        
         if (process.env.ADMIN_TELEGRAM_ID) {
           await safeSendMessage(process.env.ADMIN_TELEGRAM_ID, 
             `🎯 New GROUP submission:\n` +
@@ -561,25 +572,12 @@ async function handlePhotoSubmission(
       `⏳ Validating...`
     );
 
-    // Send notification to partner if user has one
+    // Send enhanced notification to partner if user has one
     if (user.partner_id) {
-      const { data: partner } = await supabaseAdmin
-        .from('users')
-        .select('telegram_id, name')
-        .eq('id', user.partner_id)
-        .single();
-
-      if (partner?.telegram_id) {
-        try {
-          await safeSendMessage(partner.telegram_id, 
-            `🔔 Partner submitted quest\n\n` +
-            `${user.name}: ${quest.title}\n` +
-            `⏳ Pending validation`,
-            { parse_mode: 'Markdown' }
-          );
-        } catch (error) {
-          console.error('Failed to send partner notification:', error);
-        }
+      try {
+        await telegramService.notifyPartnerSubmission(user.id, questId, submission.id);
+      } catch (error) {
+        console.error('Failed to send enhanced partner notification:', error);
       }
     }
 

@@ -676,7 +676,7 @@ export default function AdminQuestsPage() {
                     <Dropdown
                       options={[
                         { value: "pair", label: "Pair Task (2 people)" },
-                        { value: "multiple-pair", label: "Multiple-Pair Task (2-10 people)" },
+                        { value: "multiple-pair", label: "Multiple-Pair Task (other 1-4 pairs)" },
                         { value: "bonus", label: "Bonus Task (with expiration)" }
                       ]}
                       value={formData.category}

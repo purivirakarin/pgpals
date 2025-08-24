@@ -14,7 +14,8 @@ import {
   XCircle,
   AlertTriangle,
   Loader,
-  RefreshCw
+  RefreshCw,
+  MessageSquare
 } from 'lucide-react';
 import Link from 'next/link';
 import ActivityFeed from '@/components/ActivityFeed';
@@ -120,6 +121,13 @@ export default function AdminDashboard() {
       href: '/admin/submissions',
       icon: FileText,
       color: 'text-purple-600 bg-purple-100'
+    },
+    {
+      title: 'Broadcast Message',
+      description: 'Send notifications to all Telegram users',
+      href: '/admin/broadcast',
+      icon: MessageSquare,
+      color: 'text-orange-600 bg-orange-100'
     }
   ];
 

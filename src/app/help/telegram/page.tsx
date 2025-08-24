@@ -248,9 +248,6 @@ export default function TelegramHelpPage() {
               Good Submission
             </h3>
             <div className="bg-primary-50 p-4 rounded-lg mb-4">
-              <div className="bg-gray-200 h-32 rounded-lg flex items-center justify-center text-gray-500 mb-3">
-                [Clear photo showing both partners at restaurant with food visible]
-              </div>
               <p className="text-sm text-primary-800">
                 <strong>Quest:</strong> &quot;Dine at a new restaurant with your partner&quot;
               </p>
@@ -270,9 +267,6 @@ export default function TelegramHelpPage() {
               Poor Submission
             </h3>
             <div className="bg-muted-50 p-4 rounded-lg mb-4">
-              <div className="bg-gray-200 h-32 rounded-lg flex items-center justify-center text-gray-500 mb-3">
-                [Blurry selfie, only one person visible, unclear location]
-              </div>
               <p className="text-sm text-muted-800">
                 <strong>Quest:</strong> &quot;Dine at a new restaurant with your partner&quot;
               </p>
