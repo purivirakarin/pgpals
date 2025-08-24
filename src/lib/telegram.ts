@@ -89,7 +89,7 @@ export class TelegramService {
 
       const message = `🔔 **Partner Submission Alert**\n\n` +
         `${submitter.name} just submitted:\n` +
-        `**${quest.title}**\n\n` +
+        `**${quest.title} (ID: ${questId})**\n\n` +
         `📊 Category: ${quest.category}\n` +
         `💎 Points: ${quest.points}\n` +
         `🆔 Submission ID: ${submissionId}\n` +
@@ -144,7 +144,7 @@ export class TelegramService {
 
       const message = `🎯 **Group Submission Created**\n\n` +
         `${submitter.name} submitted on behalf of all groups:\n\n` +
-        `**${quest.title}**\n` +
+        `**${quest.title} (ID: ${questId})**\n` +
         `💎 Points: ${quest.points} per person\n` +
         `👥 Total participants: ${activeParticipants.length}\n` +
         `🏘️ Groups involved: ${totalGroups}\n` +
