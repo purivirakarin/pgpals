@@ -18,7 +18,9 @@ import {
   AlertCircle,
   Trophy,
   Activity,
-  MessageCircle
+  MessageCircle,
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 import ActivityFeed from '@/components/ActivityFeed';
 
@@ -483,80 +485,60 @@ const completedQuests = completedSubmissions.length;
             )}
           </div>
 
-          {/* Completed Quests */}
+          {/* My Submissions */}
           <div className="card p-6">
-            <h2 className="text-xl font-semibold mb-4 flex items-center">
-              <Trophy className="w-5 h-5 text-primary-500 mr-2" />
-              Completed Quests ({completedQuests})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold flex items-center">
+                <FileText className="w-5 h-5 text-primary-500 mr-2" />
+                My Submissions
+              </h2>
+              <a 
+                href="/my-submissions"
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center"
+              >
+                View All
+                <ArrowRight className="w-4 h-4 ml-1" />
+              </a>
+            </div>
             
-            {completedSubmissions.length === 0 ? (
+            {profile.submissions && profile.submissions.length === 0 ? (
               <div className="text-center py-8">
-                <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No completed quests yet</p>
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No submissions yet</p>
                 <a href="/quests" className="text-primary-600 hover:text-primary-700 font-medium mt-2 inline-block">
-                  Browse Available Quests →
+                  Start Completing Quests →
                 </a>
               </div>
             ) : (
               <div className="space-y-4">
-                {completedSubmissions.slice(0, 10).map((submission) => {
-                  const quest = submission.quest || {};
-                  const getSubmitterIcon = (submittedBy: string) => {
-                    switch (submittedBy) {
-                      case 'self': return <User className="w-4 h-4 text-primary-500" />;
-                      case 'partner': return <Users className="w-4 h-4 text-accent-500" />;
-                      case 'group': return <Users className="w-4 h-4 text-purple-500" />;
-                      default: return <Target className="w-4 h-4 text-gray-400" />;
-                    }
-                  };
-
-                  const getSubmitterText = (submittedBy: string, submitterName: string) => {
-                    switch (submittedBy) {
-                      case 'self': return 'You';
-                      case 'partner': return `Partner: ${submitterName}`;
-                      case 'group': return `Group: ${submitterName}`;
-                      default: return submitterName || 'Unknown';
-                    }
-                  };
-
-                  return (
-                    <div key={`${submission.id}-${submission.quest_id}`} className="flex items-start p-4 bg-gray-50 rounded-lg border border-gray-100">
-                      <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mr-4">
-                        <CheckCircle className="w-5 h-5 text-primary-600" />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-gray-900 mb-1">
-                          {quest.title || 'Unknown Quest'}
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {quest.category} • +{submission.points_awarded} points
-                        </p>
-                        
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <div className="flex items-center">
-                            {getSubmitterIcon(submission.submitted_by)}
-                            <span className="ml-1.5">
-                              Submitted by {getSubmitterText(submission.submitted_by, submission.submitter_name)}
-                            </span>
-                          </div>
-                          <span>
-                            {new Date(submission.submitted_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                {completedSubmissions.length > 10 && (
-                  <div className="text-center pt-4">
-                    <p className="text-sm text-gray-500">
-                      Showing 10 of {completedSubmissions.length} completed quests
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                  <div className="bg-primary-50 p-4 rounded-lg border border-primary-100">
+                    <div className="text-2xl font-bold text-primary-600">{completedQuests}</div>
+                    <div className="text-sm text-primary-700">Completed</div>
                   </div>
-                )}
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {profile.submissions?.filter(s => s.status === 'pending_ai' || s.status === 'manual_review').length || 0}
+                    </div>
+                    <div className="text-sm text-yellow-700">Pending</div>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="text-2xl font-bold text-gray-600">
+                      {profile.submissions?.filter(s => s.status === 'rejected' || s.status === 'ai_rejected').length || 0}
+                    </div>
+                    <div className="text-sm text-gray-700">Rejected</div>
+                  </div>
+                </div>
+                
+                <div className="pt-4">
+                  <a 
+                    href="/my-submissions"
+                    className="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors"
+                  >
+                    <FileText className="w-4 h-4 mr-2" />
+                    View All My Submissions
+                  </a>
+                </div>
               </div>
             )}
           </div>

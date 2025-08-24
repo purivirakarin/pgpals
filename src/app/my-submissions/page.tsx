@@ -18,8 +18,12 @@ import {
   Users,
   Trash2,
   UserMinus,
-  UserPlus
+  UserPlus,
+  Search,
+  Filter,
+  X
 } from 'lucide-react';
+import Dropdown from '@/components/Dropdown';
 
 interface SubmissionWithQuest extends Submission {
   quest: Quest;
@@ -28,15 +32,20 @@ interface SubmissionWithQuest extends Submission {
 export default function MySubmissionsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [submissions, setSubmissions] = useState<SubmissionWithQuest[]>([]);
+  const [allSubmissions, setAllSubmissions] = useState<SubmissionWithQuest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
   const [optOutLoading, setOptOutLoading] = useState<number | null>(null);
   
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [submitterFilter, setSubmitterFilter] = useState('');
+  
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalSubmissions, setTotalSubmissions] = useState(0);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -47,31 +56,27 @@ export default function MySubmissionsPage() {
       return;
     }
 
-    fetchSubmissions(1);
-    setCurrentPage(1);
+    fetchAllSubmissions();
   }, [session, status, router]);
 
+  // Reset to page 1 when filters change
   useEffect(() => {
-    if (session && status === 'authenticated') {
-      fetchSubmissions(currentPage);
-    }
-  }, [currentPage, session, status]);
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, categoryFilter, submitterFilter]);
 
-  const fetchSubmissions = async (page: number = 1) => {
+  const fetchAllSubmissions = async () => {
     try {
       setLoading(true);
-      const offset = (page - 1) * itemsPerPage;
-      const response = await fetch(`/api/submissions?limit=${itemsPerPage}&offset=${offset}`);
+      // Fetch all submissions for client-side filtering
+      const response = await fetch(`/api/submissions?limit=1000`);
       if (!response.ok) throw new Error('Failed to fetch submissions');
       const data = await response.json();
       
       // Check if the response has pagination info or is just an array
       if (Array.isArray(data)) {
-        setSubmissions(data);
-        setTotalSubmissions(data.length); // Fallback for backward compatibility
+        setAllSubmissions(data);
       } else {
-        setSubmissions(data.submissions || data);
-        setTotalSubmissions(data.total || data.length || 0);
+        setAllSubmissions(data.submissions || data);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load submissions');
@@ -79,6 +84,35 @@ export default function MySubmissionsPage() {
       setLoading(false);
     }
   };
+
+  // Client-side filtering and pagination
+  const filteredSubmissions = allSubmissions.filter(submission => {
+    const matchesSearch = !searchTerm || 
+      submission.quest?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      submission.quest?.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (submission as any).submitter_name?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = !statusFilter || submission.status === statusFilter;
+
+    const matchesCategory = !categoryFilter || submission.quest?.category === categoryFilter;
+
+    const matchesSubmitter = !submitterFilter || 
+      (submitterFilter === 'self' && ((submission as any).submitted_by === 'self' || !(submission as any).submitted_by)) ||
+      (submitterFilter === 'partner' && (submission as any).submitted_by === 'partner') ||
+      (submitterFilter === 'group' && (submission as any).submitted_by === 'group');
+
+    return matchesSearch && matchesStatus && matchesCategory && matchesSubmitter;
+  });
+
+  const totalSubmissions = filteredSubmissions.length;
+  const totalPages = Math.ceil(totalSubmissions / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const submissions = filteredSubmissions.slice(startIndex, startIndex + itemsPerPage);
+
+  // Get unique categories and submitter types from all submissions
+  const categories = Array.from(new Set(allSubmissions.map(s => s.quest?.category).filter(Boolean)));
+  const submitterTypes = Array.from(new Set(allSubmissions.map(s => (s as any).submitted_by || 'self')));
+  const availableStatuses = Array.from(new Set(allSubmissions.map(s => s.status)));
 
   const deleteSubmission = async (submissionId: number) => {
     if (!confirm('Are you sure you want to delete this submission? This action cannot be undone.')) {
@@ -96,15 +130,12 @@ export default function MySubmissionsPage() {
         throw new Error(errorData.error || 'Failed to delete submission');
       }
 
-      // Remove submission from local state and refresh if needed
-      setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
-      setTotalSubmissions(prev => prev - 1);
+      // Remove submission from local state
+      setAllSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
       
       // If current page becomes empty and it's not the first page, go to previous page
       if (submissions.length === 1 && currentPage > 1) {
-        const newPage = currentPage - 1;
-        setCurrentPage(newPage);
-        fetchSubmissions(newPage);
+        setCurrentPage(currentPage - 1);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete submission');
@@ -137,7 +168,7 @@ export default function MySubmissionsPage() {
       const result = await response.json();
       
       // Update the submission in local state
-      setSubmissions(prev => prev.map(sub => 
+      setAllSubmissions(prev => prev.map(sub => 
         sub.id === submissionId 
           ? { ...sub, user_opted_out: !currentlyOptedOut }
           : sub
@@ -155,10 +186,14 @@ export default function MySubmissionsPage() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    fetchSubmissions(page);
   };
 
-  const totalPages = Math.ceil(totalSubmissions / itemsPerPage);
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setCategoryFilter('');
+    setSubmitterFilter('');
+  };
 
   const getSubmitterInfo = (submission: any) => {
     // Handle various possible values for submitted_by
@@ -278,12 +313,38 @@ export default function MySubmissionsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           {/* Hero section skeleton */}
           <div className="text-center mb-8 sm:mb-12 animate-pulse">
             <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-2xl mb-4 sm:mb-6 mx-auto"></div>
             <div className="h-10 bg-gray-200 rounded w-64 mx-auto mb-3 sm:mb-4"></div>
             <div className="h-6 bg-gray-200 rounded w-80 mx-auto"></div>
+          </div>
+
+          {/* Search and filters skeleton */}
+          <div className="mb-8 card p-6 animate-pulse">
+            <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </div>
+              <div className="lg:w-48">
+                <div className="h-4 bg-gray-200 rounded w-16 mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </div>
+              <div className="lg:w-48">
+                <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </div>
+              <div className="lg:w-48">
+                <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between">
+              <div className="h-4 bg-gray-200 rounded w-48"></div>
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+            </div>
           </div>
 
           {/* Submissions list skeleton */}
@@ -386,7 +447,7 @@ export default function MySubmissionsPage() {
             <h3 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Submissions</h3>
             <p className="text-gray-600 mb-8">{error}</p>
             <button
-              onClick={() => fetchSubmissions(currentPage)}
+              onClick={() => fetchAllSubmissions()}
               className="btn-primary"
             >
               Try Again
@@ -399,7 +460,7 @@ export default function MySubmissionsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Hero Section */}
         <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-primary-100 rounded-2xl mb-4 sm:mb-6">
@@ -413,8 +474,125 @@ export default function MySubmissionsPage() {
           </p>
         </div>
 
+        {/* Search and Filters */}
+        <div className="mb-8 card p-6">
+          <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                Search Submissions
+              </label>
+              <div className="relative">
+                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input
+                  id="search"
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Search by quest title, description, or submitter..."
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="lg:w-48">
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+                Status
+              </label>
+              <Dropdown
+                options={[
+                  { value: "", label: "All Statuses" },
+                  ...availableStatuses.map(status => ({
+                    value: status,
+                    label: getStatusText(status)
+                  }))
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                placeholder="All Statuses"
+                icon={<Filter className="w-4 h-4" />}
+              />
+            </div>
+
+            {/* Category Filter */}
+            <div className="lg:w-48">
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <Dropdown
+                options={[
+                  { value: "", label: "All Categories" },
+                  ...categories.map(category => ({
+                    value: category,
+                    label: category.charAt(0).toUpperCase() + category.slice(1)
+                  }))
+                ]}
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                placeholder="All Categories"
+                icon={<Target className="w-4 h-4" />}
+              />
+            </div>
+
+            {/* Submitter Filter */}
+            <div className="lg:w-48">
+              <label htmlFor="submitter" className="block text-sm font-medium text-gray-700 mb-2">
+                Submitted By
+              </label>
+              <Dropdown
+                options={[
+                  { value: "", label: "All Submitters" },
+                  { value: "self", label: "You" },
+                  { value: "partner", label: "Partner" },
+                  { value: "group", label: "Group" }
+                ]}
+                value={submitterFilter}
+                onChange={setSubmitterFilter}
+                placeholder="All Submitters"
+                icon={<Users className="w-4 h-4" />}
+              />
+            </div>
+
+            {/* Clear Filters */}
+            {(searchTerm || statusFilter || categoryFilter || submitterFilter) && (
+              <div className="flex items-end">
+                <button
+                  onClick={clearAllFilters}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Results summary */}
+          <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+            <span>
+              {totalSubmissions === allSubmissions.length 
+                ? `Showing all ${totalSubmissions} submissions`
+                : `Showing ${totalSubmissions} of ${allSubmissions.length} submissions`
+              }
+            </span>
+            {(searchTerm || statusFilter || categoryFilter || submitterFilter) && (
+              <span className="text-primary-600">
+                Filters active
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Submissions List */}
-        {submissions.length === 0 ? (
+        {submissions.length === 0 && totalSubmissions === 0 && allSubmissions.length === 0 ? (
           <div className="text-center py-16 px-4">
             <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
               <FileText className="w-10 h-10 text-gray-400" />
@@ -430,6 +608,23 @@ export default function MySubmissionsPage() {
               <Target className="w-5 h-5 mr-2" />
               Browse Quests
             </a>
+          </div>
+        ) : submissions.length === 0 && totalSubmissions === 0 ? (
+          <div className="text-center py-16 px-4">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-6">
+              <Search className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">No matching submissions</h3>
+            <p className="text-gray-600 text-base sm:text-lg mb-8 max-w-md mx-auto">
+              No submissions match your current filters. Try adjusting your search criteria.
+            </p>
+            <button
+              onClick={clearAllFilters}
+              className="inline-flex items-center justify-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors shadow-sm"
+            >
+              <X className="w-5 h-5 mr-2" />
+              Clear Filters
+            </button>
           </div>
         ) : (
           <div className="space-y-6">
