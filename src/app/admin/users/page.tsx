@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      // Remove server-side filtering, fetch all users for frontend filtering
+      // Fetch all users for admin management (API will return all users when no limit specified)
       const response = await fetch('/api/users');
       if (!response.ok) throw new Error('Failed to fetch users');
       
@@ -338,7 +338,7 @@ export default function AdminUsersPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-6 card p-6">
+      <div className="mb-6 card p-6 relative z-10">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
@@ -357,7 +357,7 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
-          <div className="md:w-48">
+          <div className="md:w-48 relative">
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Role
             </label>
@@ -377,7 +377,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users List */}
-      <div className="card">
+      <div className="card relative z-0">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
             Users ({totalFilteredUsers})
