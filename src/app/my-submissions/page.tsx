@@ -278,11 +278,98 @@ export default function MySubmissionsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Loader className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Loading your submissions...</p>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {/* Hero section skeleton */}
+          <div className="text-center mb-8 sm:mb-12 animate-pulse">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 bg-gray-200 rounded-2xl mb-4 sm:mb-6 mx-auto"></div>
+            <div className="h-10 bg-gray-200 rounded w-64 mx-auto mb-3 sm:mb-4"></div>
+            <div className="h-6 bg-gray-200 rounded w-80 mx-auto"></div>
+          </div>
+
+          {/* Submissions list skeleton */}
+          <div className="space-y-6">
+            {Array.from({ length: 5 }, (_, i) => (
+              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 animate-pulse">
+                {/* Mobile layout skeleton */}
+                <div className="sm:hidden">
+                  {/* Status and actions at top */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="h-8 bg-gray-200 rounded-full w-32"></div>
+                    <div className="flex space-x-2">
+                      <div className="h-8 bg-gray-200 rounded w-20"></div>
+                      <div className="h-8 bg-gray-200 rounded w-20"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="h-5 bg-gray-200 rounded w-48 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                  <div className="flex flex-col gap-2">
+                    <div className="h-4 bg-gray-200 rounded w-32"></div>
+                    <div className="h-4 bg-gray-200 rounded w-40"></div>
+                    <div className="h-4 bg-gray-200 rounded w-36"></div>
+                    <div className="h-4 bg-gray-200 rounded w-24"></div>
+                  </div>
+                </div>
+
+                {/* Desktop layout skeleton */}
+                <div className="hidden sm:block">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="h-6 bg-gray-200 rounded w-64 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-full mb-3"></div>
+                      <div className="flex items-center space-x-4">
+                        <div className="h-4 bg-gray-200 rounded w-20"></div>
+                        <div className="h-4 bg-gray-200 rounded w-32"></div>
+                        <div className="h-4 bg-gray-200 rounded w-28"></div>
+                        <div className="h-4 bg-gray-200 rounded w-16"></div>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="h-8 bg-gray-200 rounded-full w-32"></div>
+                      <div className="h-8 bg-gray-200 rounded w-20"></div>
+                      <div className="h-8 bg-gray-200 rounded w-20"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status info skeleton */}
+                {i % 3 === 0 && (
+                  <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-start">
+                      <div className="w-5 h-5 bg-gray-200 rounded mt-0.5 mr-3"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-24 mb-1"></div>
+                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination skeleton */}
+          <div className="mt-8 px-4 animate-pulse">
+            <div className="flex items-center justify-between">
+              <div className="h-4 bg-gray-200 rounded w-48"></div>
+              <div className="flex items-center space-x-2">
+                <div className="h-8 bg-gray-200 rounded w-20"></div>
+                <div className="flex space-x-1">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <div key={i} className="w-8 h-8 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+                <div className="h-8 bg-gray-200 rounded w-16"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation skeleton */}
+          <div className="mt-12 px-4 animate-pulse">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 sm:justify-center">
+              <div className="h-12 bg-gray-200 rounded-xl w-full sm:w-48"></div>
+              <div className="h-12 bg-gray-200 rounded-xl w-full sm:w-40"></div>
             </div>
           </div>
         </div>

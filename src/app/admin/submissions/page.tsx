@@ -206,10 +206,148 @@ export default function AdminSubmissionsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading submissions...</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="flex items-center mb-4">
+              <div className="w-8 h-8 bg-gray-200 rounded mr-3"></div>
+              <div className="h-8 bg-gray-200 rounded w-64"></div>
+              <div className="ml-4 h-6 bg-gray-200 rounded-full w-24"></div>
+            </div>
+            <div className="h-6 bg-gray-200 rounded w-72"></div>
+          </div>
+
+          {/* Filters skeleton */}
+          <div className="mb-6 card p-6 animate-pulse">
+            <div className="flex flex-col md:flex-row md:items-end gap-4">
+              <div className="flex-1">
+                <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </div>
+              <div className="md:w-64">
+                <div className="h-4 bg-gray-200 rounded w-28 mb-2"></div>
+                <div className="h-10 bg-gray-200 rounded w-full"></div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="h-10 bg-gray-200 rounded w-40"></div>
+                <div className="h-10 bg-gray-200 rounded w-20"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Submissions list skeleton */}
+          <div className="card animate-pulse">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="h-6 bg-gray-200 rounded w-32"></div>
+              <div className="h-4 bg-gray-200 rounded w-48"></div>
+            </div>
+
+            <div className="space-y-4 p-6">
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="card p-4 sm:p-6">
+                  {/* Mobile skeleton */}
+                  <div className="block lg:hidden space-y-4">
+                    {/* User info */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center flex-1">
+                        <div className="w-5 h-5 bg-gray-200 rounded mr-2"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-200 rounded w-32 mb-1"></div>
+                          <div className="h-3 bg-gray-200 rounded w-24"></div>
+                        </div>
+                      </div>
+                      <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+                    </div>
+
+                    {/* Quest info */}
+                    <div className="flex items-start">
+                      <div className="w-5 h-5 bg-gray-200 rounded mr-2 mt-0.5"></div>
+                      <div className="flex-1">
+                        <div className="h-4 bg-gray-200 rounded w-48 mb-1"></div>
+                        <div className="flex items-center justify-between">
+                          <div className="h-3 bg-gray-200 rounded w-20"></div>
+                          <div className="h-4 bg-gray-200 rounded w-16"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Timestamp */}
+                    <div className="h-3 bg-gray-200 rounded w-40"></div>
+
+                    {/* Buttons */}
+                    <div className="flex flex-col space-y-2">
+                      <div className="h-8 bg-gray-200 rounded w-full"></div>
+                      <div className="flex space-x-2">
+                        <div className="h-8 bg-gray-200 rounded flex-1"></div>
+                        <div className="h-8 bg-gray-200 rounded flex-1"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop skeleton */}
+                  <div className="hidden lg:block">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center mb-2">
+                          <div className="w-5 h-5 bg-gray-200 rounded mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-32 mr-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-20 mr-4"></div>
+                          <div className="h-6 bg-gray-200 rounded-full w-24"></div>
+                        </div>
+
+                        <div className="flex items-center mb-2">
+                          <div className="w-5 h-5 bg-gray-200 rounded mr-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-48 mr-2"></div>
+                          <div className="h-3 bg-gray-200 rounded w-16 mr-4"></div>
+                          <div className="h-4 bg-gray-200 rounded w-16"></div>
+                        </div>
+
+                        <div className="h-3 bg-gray-200 rounded w-64"></div>
+                      </div>
+
+                      <div className="flex flex-col items-end space-y-2 ml-6">
+                        <div className="h-6 bg-gray-200 rounded w-24"></div>
+                        <div className="flex space-x-2">
+                          <div className="h-8 bg-gray-200 rounded w-20"></div>
+                          <div className="h-8 bg-gray-200 rounded w-20"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination skeleton */}
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gray-200 rounded"></div>
+                <div className="flex space-x-1">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <div key={i} className="w-8 h-8 bg-gray-200 rounded"></div>
+                  ))}
+                </div>
+                <div className="w-8 h-8 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats cards skeleton */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6 animate-pulse">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="card p-6">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gray-200 rounded mr-4"></div>
+                  <div>
+                    <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-12"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
