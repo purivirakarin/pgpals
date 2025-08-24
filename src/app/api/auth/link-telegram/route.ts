@@ -20,12 +20,8 @@ export async function POST(request: NextRequest) {
         required: true,
         pattern: patterns.telegramId,
         sanitizer: sanitizers.trim
-      },
-      telegram_username: {
-        required: false,
-        pattern: patterns.telegramUsername,
-        sanitizer: sanitizers.trim
       }
+      // Remove telegram_username validation since it's not user-provided anymore
     });
     
     if (!validation.isValid) {
@@ -35,7 +31,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
-    const { telegram_id, telegram_username } = validation.data!;
+    const { telegram_id } = validation.data!;
 
     // Check if this Telegram account is already linked to another user
     const { data: existingLink } = await supabaseAdmin
@@ -51,11 +47,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Update the user's Telegram information
+    // Note: Telegram username is not stored here since it can be changed by users
+    // and we cannot reliably fetch it without the user being part of a chat with our bot
     const { data: updatedUser, error } = await supabaseAdmin
       .from('users')
       .update({
         telegram_id: telegram_id.toString(),
-        telegram_username: telegram_username || null
+        // Do not update telegram_username - it should be managed through bot interactions
       })
       .eq('id', session.user.id)
       .select()

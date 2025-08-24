@@ -44,7 +44,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [linkLoading, setLinkLoading] = useState(false);
   const [telegramId, setTelegramId] = useState('');
-  const [telegramUsername, setTelegramUsername] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,10 +62,10 @@ export default function ProfilePage() {
         setUserStats(statsData);
       }
       
-      // Pre-fill Telegram fields if already linked
+      // Pre-fill Telegram ID if already linked
       if (data.telegram_id) {
         setTelegramId(data.telegram_id);
-        setTelegramUsername(data.telegram_username || '');
+        // Telegram username is read-only, fetched automatically
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
@@ -100,8 +99,8 @@ export default function ProfilePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          telegram_id: telegramId,
-          telegram_username: telegramUsername
+          telegram_id: telegramId
+          // Don't send telegram_username, let the system fetch it automatically
         })
       });
 
@@ -114,6 +113,7 @@ export default function ProfilePage() {
       setProfile(data.user);
       await update(); // Update session
       setError(null);
+      // Note: Telegram username will be fetched automatically by the system
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to link Telegram account');
     } finally {
@@ -138,7 +138,7 @@ export default function ProfilePage() {
 
       setProfile(data.user);
       setTelegramId('');
-      setTelegramUsername('');
+      // Telegram username is managed automatically by the system
       await update(); // Update session
       setError(null);
     } catch (err) {
@@ -321,7 +321,7 @@ const completedQuests = completedSubmissions.length;
                     <li>4. Paste it in the field below and click &quot;Link Account&quot;</li>
                   </ol>
                   <div className="mt-2 p-2 bg-primary-100 rounded text-xs text-primary-700">
-                    <strong>Note:</strong> You must create your website account first before linking Telegram!
+                    <strong>Note:</strong> You must create your website account first before linking Telegram! Your Telegram username is managed automatically and cannot be manually edited.
                   </div>
                 </div>
 
@@ -338,21 +338,8 @@ const completedQuests = completedSubmissions.length;
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Send /start to our bot to get your Telegram ID
+                      Send /start to our bot to get your Telegram ID. Username is managed automatically.
                     </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Telegram Username (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={telegramUsername}
-                      onChange={(e) => setTelegramUsername(e.target.value.replace('@', ''))}
-                      placeholder="Enter your username (without @)"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
                   </div>
 
                   <button
