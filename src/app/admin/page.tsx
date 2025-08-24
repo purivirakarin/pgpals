@@ -321,7 +321,7 @@ export default function AdminDashboard() {
       <div className="card p-6">
         <ActivityFeed 
           limit={10} 
-          enableSearch={false} 
+          enableSearch={true} 
           enablePagination={true} 
           showRefresh={true}
           maxHeight="600px"

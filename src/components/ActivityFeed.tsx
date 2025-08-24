@@ -95,9 +95,20 @@ export default function ActivityFeed({
       }
       setError(null);
       
+      // Limit to top 50 activities maximum
+      const maxActivities = 50;
       const currentOffset = isLoadMore ? offset : (resetPage ? 0 : (currentPage - 1) * limit);
+      
+      // Don't fetch beyond 50 activities
+      if (currentOffset >= maxActivities) {
+        setHasMore(false);
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+      
       const params = new URLSearchParams();
-      params.append('limit', limit.toString());
+      params.append('limit', Math.min(limit, maxActivities - currentOffset).toString());
       params.append('offset', currentOffset.toString());
       if (userId) params.append('user_id', userId);
       if (searchTerm) params.append('search', searchTerm);
@@ -114,21 +125,23 @@ export default function ActivityFeed({
       }
 
       const data = await response.json();
+      const activitiesData = data.activities || data;
+      const totalFromServer = Math.min(data.total || data.length, maxActivities);
       
       if (enablePagination) {
-        setActivities(data.activities || data);
-        setTotalCount(data.total || data.length);
-        setHasMore((currentPage * limit) < (data.total || data.length));
+        setActivities(activitiesData);
+        setTotalCount(totalFromServer);
+        setHasMore((currentPage * limit) < totalFromServer);
       } else {
         if (isLoadMore) {
-          setActivities(prev => [...prev, ...(data.activities || data)]);
+          setActivities(prev => [...prev, ...activitiesData]);
           setOffset(prev => prev + limit);
         } else {
-          setActivities(data.activities || data);
+          setActivities(activitiesData);
           setOffset(limit);
         }
-        // If we got fewer activities than requested, we've reached the end
-        setHasMore((data.activities || data).length === limit);
+        // If we got fewer activities than requested or reached max, we've reached the end
+        setHasMore(activitiesData.length === limit && (offset + limit) < maxActivities);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load activities');
@@ -156,7 +169,8 @@ export default function ActivityFeed({
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    fetchActivities(false, false);
+    // Force re-fetch when page changes
+    setTimeout(() => fetchActivities(false, false), 0);
   };
 
   const totalPages = Math.ceil(totalCount / limit);
@@ -284,7 +298,12 @@ export default function ActivityFeed({
     <div className={`${className}`}>
       {showHeader && (
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+            {!userId && (
+              <p className="text-sm text-gray-500">Showing latest 50 activities</p>
+            )}
+          </div>
           {showRefresh && (
             <button
               onClick={() => fetchActivities(false, true)}
@@ -407,6 +426,7 @@ export default function ActivityFeed({
         <div className="flex items-center justify-between mt-4">
           <div className="text-sm text-gray-700">
             Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalCount)} of {totalCount} results
+            <span className="text-gray-500 ml-2">(top 50 activities)</span>
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -420,19 +440,29 @@ export default function ActivityFeed({
             
             <div className="flex items-center space-x-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const page = i + 1;
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
                 return (
                   <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
                     disabled={loading}
                     className={`px-3 py-1 text-sm rounded-md ${
-                      currentPage === page
+                      currentPage === pageNum
                         ? 'bg-primary-600 text-white'
                         : 'bg-white border border-gray-300 hover:bg-gray-50'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    {page}
+                    {pageNum}
                   </button>
                 );
               })}
