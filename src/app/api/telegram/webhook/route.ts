@@ -54,15 +54,15 @@ async function handleMessage(message: any) {
     } else if (photo && caption) {
       await safeSendMessage(chatId, '📸 Use: `/submit [quest_id]` as photo caption');
     } else {
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       await safeSendMessage(chatId, 
-        '🤖 **PGPals Bot**\n\n' +
-        '🎮 `/quests` - View challenges\n' +
-        '📸 `/submit [id]` - Upload proof\n' +
-        '📊 `/status` - Check progress\n' +
-        '🏆 `/leaderboard` - Rankings\n' +
-        '👥 `/groups` - View group codes\n\n' +
-        `🌐 [Visit Web App](${webAppUrl}) | [Help Guide](${webAppUrl}/help)\n\n` +
+        '**PGPals Bot**\n\n' +
+        '`/quests` - View challenges\n' +
+        '`/submit [id]` - Upload proof\n' +
+        '`/status` - Check progress\n' +
+        '`/leaderboard` - Rankings\n' +
+        '`/groups` - View group codes\n\n' +
+        `[Visit Web App](${webAppUrl}) | [Help Guide](${webAppUrl}/help)\n\n` +
         '⚠️ Link your account first with `/start`',
         { parse_mode: 'Markdown' }
       );
@@ -110,15 +110,15 @@ async function handleStartCommand(chatId: number, telegramId: number, username?:
       // Count completed quests (approved submissions)
       const completedQuests = submissions?.length || 0;
       
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
         `🎉 Welcome back, ${existingUser.name}!\n` +
         `⭐ ${totalPoints} pts | ✅ ${completedQuests} quests\n\n` +
         `🎮 Try /quests for new challenges\n` +
-        `🌐 [Web Dashboard](${webAppUrl})`
+        `🌐 [Visit Web App](${webAppUrl})`
       );
     } else {
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
         `🎮 Welcome to PGPals!\n\n` +
         `📋 **Setup Required:**\n` +
@@ -151,12 +151,12 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
       .single();
 
     if (!user) {
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
         '🚫 Account not linked\n\n' +
         `1. [Create Account](${webAppUrl}/auth/signup)\n` +
         '2. Use /start for setup\n' +
-        `📖 [Help](${webAppUrl}/help)`,
+        `📖 [Help Guide](${webAppUrl}/help)`,
         { parse_mode: 'Markdown' }
       );
       return;
@@ -231,7 +231,7 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
     if (user.partner_id) {
       message += '👥 Partner quests excluded\n';
     } else {
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       message += `👥 [Link Partner](${webAppUrl}/profile)\n`;
     }
     
@@ -350,7 +350,7 @@ async function handlePhotoSubmission(
       .single();
 
     if (!user) {
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       await safeSendMessage(chatId, 
         '🚫 Account not linked\n\n' +
         `[Create Account](${webAppUrl}/auth/signup) → Use /start`,
@@ -607,7 +607,7 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       .single();
 
     if (!user) {
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
         '🚫 Account not linked\n\n' +
         `[Create Account](${webAppUrl}/auth/signup) → Use /start`,
@@ -727,7 +727,7 @@ async function handleGroupsCommand(chatId: number, telegramId: number) {
       .single();
 
     if (!user) {
-      const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
+      const webAppUrl = 'https://pgpals.vercel.app';
       await bot.sendMessage(chatId, 
         '🚫 Account not linked\n\n' +
         `[Create Account](${webAppUrl}/auth/signup) → Use /start`,

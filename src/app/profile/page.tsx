@@ -17,7 +17,8 @@ import {
   Loader,
   AlertCircle,
   Trophy,
-  Activity
+  Activity,
+  MessageCircle
 } from 'lucide-react';
 import ActivityFeed from '@/components/ActivityFeed';
 
@@ -315,7 +316,7 @@ const completedQuests = completedSubmissions.length;
                 <div className="p-4 bg-primary-50 border border-primary-200 rounded-lg">
                   <h3 className="font-medium text-primary-900 mb-2">How to link your Telegram account:</h3>
                   <ol className="text-sm text-primary-800 space-y-1">
-                    <li>1. Find our bot on Telegram</li>
+                    <li>1. <a href="https://t.me/pgpals_quest_bot" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:text-primary-800 underline">Open our Telegram bot</a></li>
                     <li>2. Send <code className="bg-primary-100 px-1 rounded">/start</code> to get your Telegram ID</li>
                     <li>3. Copy the Telegram ID from the bot&apos;s message</li>
                     <li>4. Paste it in the field below and click &quot;Link Account&quot;</li>
@@ -534,6 +535,18 @@ const completedQuests = completedSubmissions.length;
                   <p>• Check status anytime</p>
                 </div>
               )}
+              
+              <div className="pt-2 border-t border-gray-200">
+                <a 
+                  href="https://t.me/pgpals_quest_bot" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-primary-600 hover:text-primary-800 text-sm font-medium"
+                >
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                  Open Telegram Bot
+                </a>
+              </div>
             </div>
           </div>
         </div>
