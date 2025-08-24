@@ -137,7 +137,7 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
                   </h3>
                   {entry.telegram_username && (
                     <span className="ml-2 text-sm text-gray-500">
-                      @{entry.telegram_username}
+                      {entry.telegram_username}
                     </span>
                   )}
                 </div>
