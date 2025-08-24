@@ -178,24 +178,6 @@ const GroupSubmissionStatus: React.FC<GroupSubmissionStatusProps> = ({
     return null;
   }
 
-  if (!data.hasGroupSubmission) {
-    return (
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start">
-          <Users className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
-          <div>
-            <h4 className="text-sm font-medium text-blue-800 mb-1">
-              Multiple-Pair Task
-            </h4>
-            <p className="text-sm text-blue-700">
-              One pair can submit on behalf of multiple pairs (other 1-4 pairs total).
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const { groupSubmission, participants = [], currentUserStatus } = data;
 
   if (!groupSubmission) {
