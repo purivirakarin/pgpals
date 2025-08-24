@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
     const search = searchParams.get('search');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : null;
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Get users with partner info using the view
@@ -34,8 +34,12 @@ export async function GET(request: NextRequest) {
         created_at,
         updated_at
       `)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('created_at', { ascending: false });
+
+    // Only apply range if limit is specified
+    if (limit !== null) {
+      query = query.range(offset, offset + limit - 1);
+    }
 
     if (role) {
       query = query.eq('role', role);
