@@ -429,7 +429,9 @@ async function handlePhotoSubmission(
       // User has no partner assigned, can submit any quest
     }
 
-    // Check for existing submissions from this user
+    // Enhanced duplicate submission checks
+    
+    // 1. Check for existing submissions from this user
     const { data: existingSubmissions } = await supabaseAdmin
       .from('submissions')
       .select('*')
@@ -444,14 +446,14 @@ async function handlePhotoSubmission(
       if (latestSubmission.status === 'approved' || latestSubmission.status === 'ai_approved') {
         await safeSendMessage(chatId, 
           `🎉 Already completed!\n\n` +
-          `${quest.title}\n` +
+          `${quest.title} (ID: ${questId})\n` +
           `✅ ${quest.points} pts earned`
         );
         return;
       } else if (latestSubmission.status === 'pending_ai' || latestSubmission.status === 'manual_review') {
         await safeSendMessage(chatId, 
-          `⏳ Submission pending review\n\n` +
-          `${quest.title}\n` +
+          `⏳ Submission already pending\n\n` +
+          `${quest.title} (ID: ${questId})\n` +
           `${new Date(latestSubmission.submitted_at).toLocaleDateString()}\n\n` +
           `Please wait for current review`
         );
@@ -459,9 +461,48 @@ async function handlePhotoSubmission(
       } else if (latestSubmission.status === 'rejected' || latestSubmission.status === 'ai_rejected') {
         await safeSendMessage(chatId, 
           `🔄 Resubmitting quest\n\n` +
-          `${quest.title}\n` +
+          `${quest.title} (ID: ${questId})\n` +
           `💡 Ensure photo shows quest clearly`
         );
+      }
+    }
+
+    // 2. Enhanced partner duplicate submission check for pair quests
+    if (!isGroupSubmission && user.partner_id) {
+      // Check if either partner has already submitted this quest successfully
+      const { data: partnerOrSelfSubmissions } = await supabaseAdmin
+        .from('submissions')
+        .select('*')
+        .eq('quest_id', questId)
+        .or(`user_id.eq.${user.id},user_id.eq.${user.partner_id}`)
+        .in('status', ['approved', 'ai_approved', 'pending_ai', 'manual_review'])
+        .order('submitted_at', { ascending: false });
+
+      if (partnerOrSelfSubmissions && partnerOrSelfSubmissions.length > 0) {
+        // Find submissions from partner (not current user)
+        const partnerSubmissions = partnerOrSelfSubmissions.filter(s => s.user_id !== user.id);
+        
+        if (partnerSubmissions.length > 0) {
+          const partnerSubmission = partnerSubmissions[0];
+          
+          if (partnerSubmission.status === 'approved' || partnerSubmission.status === 'ai_approved') {
+            await safeSendMessage(chatId, 
+              `🚫 Partner already completed this quest\n\n` +
+              `${quest.title} (ID: ${questId})\n` +
+              `Your partner has already earned points for this quest.\n\n` +
+              `Try /quests for new challenges`
+            );
+            return;
+          } else if (partnerSubmission.status === 'pending_ai' || partnerSubmission.status === 'manual_review') {
+            await safeSendMessage(chatId, 
+              `⏳ Partner submission already pending\n\n` +
+              `${quest.title} (ID: ${questId})\n` +
+              `Your partner has already submitted this quest and it's under review.\n\n` +
+              `Try /quests for other challenges`
+            );
+            return;
+          }
+        }
       }
     }
 
@@ -502,7 +543,7 @@ async function handlePhotoSubmission(
         
         await safeSendMessage(chatId, 
           `✅ Group submission received!\n\n` +
-          `${quest.title}\n` +
+          `${quest.title} (ID: ${questId})\n` +
           `👥 ${participantCount} people\n` +
           `Groups: ${participantInfo}\n` +
           `⏳ Validating...`
@@ -523,9 +564,9 @@ async function handlePhotoSubmission(
           await safeSendMessage(process.env.ADMIN_TELEGRAM_ID, 
             `🎯 New GROUP submission:\n` +
             `Submitter: ${user.name}\n` +
-            `Quest: ${quest.title}\n` +
+            `Quest: ${quest.title} (ID: ${questId})\n` +
             `Groups: ${participantInfo}\n` +
-            `ID: ${groupResult.submission_id}`
+            `Submission ID: ${groupResult.submission_id}`
           );
         }
 
@@ -568,7 +609,7 @@ async function handlePhotoSubmission(
 
     await safeSendMessage(chatId, 
       `✅ Submission received!\n\n` +
-      `${quest.title}\n` +
+      `${quest.title} (ID: ${questId})\n` +
       `⏳ Validating...`
     );
 
@@ -586,8 +627,8 @@ async function handlePhotoSubmission(
       await safeSendMessage(process.env.ADMIN_TELEGRAM_ID, 
         `🔔 New submission:\n` +
         `User: ${user.name}\n` +
-        `Quest: ${quest.title}\n` +
-        `ID: ${submission.id}`
+        `Quest: ${quest.title} (ID: ${questId})\n` +
+        `Submission ID: ${submission.id}`
       );
     }
 

@@ -18,14 +18,14 @@ export async function POST(request: NextRequest) {
       const { telegram_user_id } = body;
       if (telegram_user_id) {
         // Get user by telegram ID for webhook requests
-        const { data: user } = await supabaseAdmin
+        const { data: user, error: userError } = await supabaseAdmin
           .from('users')
           .select('id')
           .eq('telegram_id', telegram_user_id.toString())
           .single();
         
         if (user) {
-          userId = user.id.toString();
+          userId = String(user.id); // Ensure it's a string for consistency
         }
       }
       
@@ -81,6 +81,126 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Enhanced validation for group submissions
+    if (group_codes) {
+      // 3. Check for duplicate group submissions and cross-group validation
+      
+      // Get submitter's group information
+      const { data: submitterUser } = await supabaseAdmin
+        .from('users')
+        .select('id, partner_id')
+        .eq('id', userId)
+        .single();
+
+      if (!submitterUser) {
+        return NextResponse.json({ 
+          error: 'User not found' 
+        }, { status: 400 });
+      }
+
+      // Get submitter's group
+      const { data: submitterGroup } = await supabaseAdmin
+        .from('partner_groups')
+        .select('group_code')
+        .or(`user1_id.eq.${userId},user2_id.eq.${userId}`)
+        .eq('is_active', true)
+        .single();
+
+      if (!submitterGroup) {
+        return NextResponse.json({ 
+          error: 'User must be assigned to a group to submit group quests' 
+        }, { status: 400 });
+      }
+
+      const submitterGroupCode = submitterGroup.group_code;
+      
+      // Check all groups involved in this submission (submitter's group + target groups)
+      const allInvolvedGroups = [submitterGroupCode, ...group_codes];
+      
+      // Remove duplicates
+      const uniqueGroups = Array.from(new Set(allInvolvedGroups));
+      
+      // Check if any of the involved groups have already submitted this quest
+      // First get all group submissions for this quest
+      const { data: existingGroupSubmissions } = await supabaseAdmin
+        .from('group_submissions')
+        .select(`
+          id,
+          quest_id,
+          submission_id
+        `)
+        .eq('quest_id', quest_id);
+
+      if (existingGroupSubmissions && existingGroupSubmissions.length > 0) {
+        // For each existing group submission, check the submission status and involved groups
+        for (const groupSubmission of existingGroupSubmissions) {
+          // Get submission status
+          const { data: submissionStatus } = await supabaseAdmin
+            .from('submissions')
+            .select('status')
+            .eq('id', groupSubmission.submission_id)
+            .in('status', ['approved', 'ai_approved', 'pending_ai', 'manual_review'])
+            .single();
+
+          if (submissionStatus) {
+            // Get groups involved in this submission  
+            const { data: participatingGroups } = await supabaseAdmin
+              .from('group_participants')
+              .select(`
+                user_id,
+                partner_id
+              `)
+              .eq('group_submission_id', groupSubmission.id);
+
+            if (participatingGroups && participatingGroups.length > 0) {
+              // Get the group codes for users involved in this submission
+              const userIds = participatingGroups.flatMap(p => [p.user_id, p.partner_id].filter(Boolean));
+              
+              const { data: existingGroupData } = await supabaseAdmin
+                .from('partner_groups')
+                .select('group_code')
+                .or(userIds.map(id => `user1_id.eq.${id},user2_id.eq.${id}`).join(','))
+                .eq('is_active', true);
+                
+              const existingGroupCodes = existingGroupData?.map(g => g.group_code) || [];
+              
+              // Check for overlap
+              const hasOverlap = uniqueGroups.some(groupCode => existingGroupCodes.includes(groupCode));
+              
+              if (hasOverlap) {
+                const overlappingGroups = uniqueGroups.filter(groupCode => existingGroupCodes.includes(groupCode));
+                
+                if (submissionStatus.status === 'approved' || submissionStatus.status === 'ai_approved') {
+                  return NextResponse.json({ 
+                    error: `Quest already completed by group(s): ${overlappingGroups.join(', ')}. Groups can only submit each quest once.` 
+                  }, { status: 400 });
+                } else if (submissionStatus.status === 'pending_ai' || submissionStatus.status === 'manual_review') {
+                  return NextResponse.json({ 
+                    error: `Quest submission already pending for group(s): ${overlappingGroups.join(', ')}. Wait for current review to complete.` 
+                  }, { status: 400 });
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Validate that all target groups exist and are active
+      const { data: targetGroups } = await supabaseAdmin
+        .from('partner_groups')
+        .select('group_code, user1_id, user2_id')
+        .in('group_code', group_codes)
+        .eq('is_active', true);
+      
+      if (!targetGroups || targetGroups.length !== group_codes.length) {
+        const foundCodes = targetGroups?.map(g => g.group_code) || [];
+        const missingCodes = group_codes.filter((code: string) => !foundCodes.includes(code));
+        return NextResponse.json({ 
+          error: `Invalid or inactive group codes: ${missingCodes.join(', ')}` 
+        }, { status: 400 });
+      }
+    }
+
     let result;
     let transactionError;
 
@@ -104,6 +224,35 @@ export async function POST(request: NextRequest) {
         if (!pair.user1_name || !pair.user2_name) {
           return NextResponse.json({ 
             error: 'Each pair must have user1_name and user2_name' 
+          }, { status: 400 });
+        }
+      }
+      
+      // For legacy format, we still need to check for duplicate submissions
+      // This is a simplified check since legacy format doesn't have group codes
+      const { data: existingLegacySubmissions } = await supabaseAdmin
+        .from('group_submissions')
+        .select(`
+          id,
+          quest_id,
+          submitter_user_id,
+          submissions!group_submissions_submission_id_fkey(status)
+        `)
+        .eq('quest_id', quest_id)
+        .eq('submitter_user_id', parseInt(userId))
+        .in('submissions.status', ['approved', 'ai_approved', 'pending_ai', 'manual_review']);
+
+      if (existingLegacySubmissions && existingLegacySubmissions.length > 0) {
+        const existingSubmission = existingLegacySubmissions[0];
+        const submissionStatus = (existingSubmission as any).submissions?.status;
+        
+        if (submissionStatus === 'approved' || submissionStatus === 'ai_approved') {
+          return NextResponse.json({ 
+            error: 'You have already completed this quest in a group submission.' 
+          }, { status: 400 });
+        } else if (submissionStatus === 'pending_ai' || submissionStatus === 'manual_review') {
+          return NextResponse.json({ 
+            error: 'You already have a pending group submission for this quest.' 
           }, { status: 400 });
         }
       }
