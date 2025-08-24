@@ -218,12 +218,13 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
       '🎯 **Top Available Quests** (Top 5 by Points):\n\n';
     
     quests.forEach((quest: Quest, index: number) => {
-      message += `${index + 1}. **${quest.title}** (${quest.points} pts)\n`;
+      message += `${index + 1}. **${escapeMarkdown(quest.title)}** (${quest.points} pts)\n`;
       message += `ID: \`${quest.id}\`\n`;
-      message += `Category: ${quest.category}\n`;
+      message += `Category: ${escapeMarkdown(quest.category)}\n`;
       // Truncate description to prevent message being too long
       const maxDescLength = showAll ? 80 : 100;
-      message += `${quest.description.length > maxDescLength ? quest.description.substring(0, maxDescLength) + '...' : quest.description}\n\n`;
+      const description = quest.description.length > maxDescLength ? quest.description.substring(0, maxDescLength) + '...' : quest.description;
+      message += `${escapeMarkdown(description)}\n\n`;
     });
     
     message += '📸 Submit: Photo + `/submit [quest_id]`\n';
@@ -239,7 +240,7 @@ async function handleQuestsCommand(chatId: number, userId: string, showAll: bool
       message += '\n📋 `/quests all` for more';
     }
 
-    await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+    await safeSendMessage(chatId, message, { parse_mode: 'Markdown' });
   } catch (error) {
     console.error('Quests command error:', error);
     await bot.sendMessage(chatId, '❌ Error fetching quests');
@@ -267,8 +268,20 @@ async function safeSendMessage(chatId: number | string, message: string, options
     try {
       await bot.sendMessage(chatId, message, options);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Telegram send attempt ${i + 1} failed:`, error);
+      
+      // If it's a parse error and we're using markdown/HTML, try without formatting
+      if (error?.response?.body?.description?.includes("can't parse entities") && options?.parse_mode) {
+        try {
+          console.log('Trying to send without parse_mode due to entity parsing error');
+          await bot.sendMessage(chatId, message);
+          return true;
+        } catch (fallbackError) {
+          console.error('Fallback send also failed:', fallbackError);
+        }
+      }
+      
       if (i === retries - 1) {
         console.error('All Telegram send attempts failed, giving up');
         return false;
@@ -680,20 +693,25 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
       .order('submitted_at', { ascending: false })
       .limit(10);
 
-    let message = `📊 **Your Status**\n\n`;
+    let message = `📊 <b>Your Status</b>\n\n`;
     message += `⭐ ${totalPoints} pts | ✅ ${completedQuests} quests\n\n`;
 
     if (submissions && submissions.length > 0) {
-      message += `**Recent Submissions:**\n`;
+      message += `<b>Recent Submissions:</b>\n`;
       submissions.forEach((sub: any) => {
         const statusEmoji = getStatusEmoji(sub.status);
-        message += `${statusEmoji} ${sub.quest.title} - ${sub.status}\n`;
+        // Escape HTML characters in quest title
+        const escapedTitle = sub.quest.title
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        message += `${statusEmoji} ${escapedTitle} - ${sub.status}\n`;
       });
     } else {
       message += 'No submissions yet. Try /quests!';
     }
 
-    await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+    await safeSendMessage(chatId, message, { parse_mode: 'HTML' });
   } catch (error) {
     console.error('Status command error:', error);
     await bot.sendMessage(chatId, '❌ Error fetching status');
@@ -823,4 +841,9 @@ function getStatusEmoji(status: string): string {
     case 'manual_review': return '👁️';
     default: return '❓';
   }
+}
+
+function escapeMarkdown(text: string): string {
+  // Escape special markdown characters
+  return text.replace(/([_*\[\]()~`>#+\-=|{}.!\\])/g, '\\$1');
 }

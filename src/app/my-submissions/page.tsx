@@ -156,8 +156,22 @@ export default function MySubmissionsPage() {
 
     try {
       setOptOutLoading(submissionId);
-      const response = await fetch(`/api/submissions/${submissionId}/opt-out`, {
-        method: currentlyOptedOut ? 'DELETE' : 'POST',
+      
+      // Find the submission to get the group_submission_id
+      const submission = allSubmissions.find(sub => sub.id === submissionId);
+      if (!submission || !submission.group_submission_id) {
+        throw new Error('Group submission not found');
+      }
+      
+      const response = await fetch('/api/submissions/opt-out', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          group_submission_id: submission.group_submission_id,
+          opted_out: !currentlyOptedOut
+        })
       });
 
       if (!response.ok) {
