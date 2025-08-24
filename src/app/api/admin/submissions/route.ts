@@ -26,7 +26,19 @@ export async function GET(request: NextRequest) {
         user:users!submissions_user_id_fkey(id, name, email, telegram_username),
         quest:quests(id, title, category, points),
         reviewer:users!submissions_reviewed_by_fkey(id, name, email),
-        deleter:users!submissions_deleted_by_fkey(id, name, email)
+        deleter:users!submissions_deleted_by_fkey(id, name, email),
+        group_submission:group_submissions!submissions_group_submission_id_fkey(
+          id,
+          submitter_user_id,
+          submitter:users!group_submissions_submitter_user_id_fkey(id, name, email, telegram_username),
+          group_participants(
+            user_id,
+            partner_id,
+            opted_out,
+            opted_out_at,
+            participant:users!group_participants_user_id_fkey(id, name, email, telegram_username)
+          )
+        )
       `)
       .order('submitted_at', { ascending: false })
       .range(offset, offset + limit - 1);

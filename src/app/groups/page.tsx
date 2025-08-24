@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Copy, Check, User, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Users, Copy, Check, User, Search, ChevronLeft, ChevronRight, X, RefreshCw } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface GroupInfo {
@@ -36,14 +36,21 @@ export default function GroupsPage() {
     fetchGroups();
   }, [session, status, router]);
 
-  const fetchGroups = async () => {
+  const fetchGroups = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      // Call the database function via RPC
-      const response = await fetch('/api/groups');
+      // Call the database function via RPC with cache busting if needed
+      const url = forceRefresh ? `/api/groups?t=${Date.now()}` : '/api/groups';
+      const response = await fetch(url, {
+        cache: 'no-store', // Ensure fresh data from API
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch groups');
       const data = await response.json();
       setGroups(data);
+      setError(null); // Clear any previous errors
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load groups');
     } finally {
@@ -174,7 +181,7 @@ export default function GroupsPage() {
             <h3 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Groups</h3>
             <p className="text-gray-600 mb-8">{error}</p>
             <button
-              onClick={fetchGroups}
+              onClick={() => fetchGroups()}
               className="btn-primary"
             >
               Try Again
@@ -243,13 +250,25 @@ export default function GroupsPage() {
                 </div>
               </div>
               
-              {/* Results summary */}
-              <div className="bg-primary-50 rounded-xl px-4 py-3 text-center min-w-[100px]">
-                <div className="text-2xl font-bold text-primary-600">{filteredGroups.length}</div>
-                <div className="text-sm text-primary-700">
-                  {filteredGroups.length === 1 ? 'group' : 'groups'}
-                  {searchTerm && ' found'}
+              {/* Results summary and refresh button */}
+              <div className="flex items-center space-x-4">
+                <div className="bg-primary-50 rounded-xl px-4 py-3 text-center min-w-[100px]">
+                  <div className="text-2xl font-bold text-primary-600">{filteredGroups.length}</div>
+                  <div className="text-sm text-primary-700">
+                    {filteredGroups.length === 1 ? 'group' : 'groups'}
+                    {searchTerm && ' found'}
+                  </div>
                 </div>
+                
+                {/* Refresh button */}
+                <button
+                  onClick={() => fetchGroups(true)}
+                  disabled={loading}
+                  className="p-3 bg-white border-2 border-gray-200 rounded-xl hover:border-primary-300 hover:bg-primary-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Refresh groups data"
+                >
+                  <RefreshCw className={`w-5 h-5 text-gray-600 hover:text-primary-600 transition-colors ${loading ? 'animate-spin' : ''}`} />
+                </button>
               </div>
             </div>
             
