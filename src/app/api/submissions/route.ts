@@ -159,7 +159,8 @@ export async function GET(request: NextRequest) {
             )
           )
         `)
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .not('group_submissions.submissions.is_deleted', 'eq', true);
 
       if (groupParticipations) {
         groupParticipations.forEach(participation => {
