@@ -87,10 +87,74 @@ export default function AdminDashboard() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-        <div className="text-center">
-          <Loader className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header skeleton */}
+          <div className="mb-8 animate-pulse">
+            <div className="flex items-center mb-4">
+              <div className="w-8 h-8 bg-gray-200 rounded mr-3"></div>
+              <div className="h-8 bg-gray-200 rounded w-48"></div>
+            </div>
+            <div className="h-6 bg-gray-200 rounded w-80"></div>
+          </div>
+
+          {/* Stats cards skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="card p-6 animate-pulse">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gray-200 rounded mr-4"></div>
+                  <div>
+                    <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-12"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick actions skeleton */}
+          <div className="mb-8">
+            <div className="h-6 bg-gray-200 rounded w-28 mb-4 animate-pulse"></div>
+            <div className="grid md:grid-cols-3 gap-6">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div key={i} className="card p-6 animate-pulse">
+                  <div className="flex items-center mb-4">
+                    <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                  </div>
+                  <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-48"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Alert skeleton */}
+          <div className="card p-6 bg-orange-50 border-orange-200 mb-8 animate-pulse">
+            <div className="flex items-center">
+              <div className="w-6 h-6 bg-gray-200 rounded mr-3"></div>
+              <div>
+                <div className="h-5 bg-gray-200 rounded w-48 mb-1"></div>
+                <div className="h-4 bg-gray-200 rounded w-64"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Activity feed skeleton */}
+          <div className="card p-6 animate-pulse">
+            <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
+            <div className="space-y-4">
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="flex items-start space-x-3 p-4 bg-gray-50 rounded-lg">
+                  <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
