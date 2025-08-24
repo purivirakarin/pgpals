@@ -22,7 +22,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch groups' }, { status: 500 });
     }
 
-    return NextResponse.json(groups || []);
+    // Set cache-control headers to ensure fresh data
+    const response = NextResponse.json(groups || []);
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+    
+    return response;
 
   } catch (error) {
     console.error('Groups API error:', error);

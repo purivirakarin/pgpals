@@ -21,7 +21,15 @@ export async function DELETE(
     // Get the submission details
     const { data: submission, error: fetchError } = await supabaseAdmin
       .from('submissions')
-      .select('user_id, quest_id, is_group_submission, group_submission_id, is_deleted')
+      .select(`
+        user_id, 
+        quest_id, 
+        is_group_submission, 
+        group_submission_id, 
+        is_deleted,
+        status,
+        quest:quests(title)
+      `)
       .eq('id', submissionId)
       .single();
 
@@ -38,9 +46,26 @@ export async function DELETE(
     const isOwner = submission.user_id === userId;
     const isAdmin = session.user.role === 'admin';
 
-    // Check permissions: owner can delete their own submissions, admins can delete any
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json({ error: 'You can only delete your own submissions' }, { status: 403 });
+    // For group submissions, only the original submitter or admin can delete
+    if (submission.is_group_submission && submission.group_submission_id) {
+      const { data: groupSubmission } = await supabaseAdmin
+        .from('group_submissions')
+        .select('submitter_user_id')
+        .eq('id', submission.group_submission_id)
+        .single();
+
+      const isGroupSubmitter = groupSubmission?.submitter_user_id === userId;
+
+      if (!isGroupSubmitter && !isAdmin) {
+        return NextResponse.json({ 
+          error: 'Only the original submitter of a group submission can delete it. Other participants can opt out instead.' 
+        }, { status: 403 });
+      }
+    } else {
+      // For regular submissions, check ownership
+      if (!isOwner && !isAdmin) {
+        return NextResponse.json({ error: 'You can only delete your own submissions' }, { status: 403 });
+      }
     }
 
     // If this is a group submission, opt out all participants instead of deleting

@@ -69,7 +69,10 @@ export async function GET(request: NextRequest) {
             ...cleanSubmission,
             submitted_by: 'self',
             submitter_name: session.user.name,
-            submitter_telegram: user?.telegram_username
+            submitter_telegram: user?.telegram_username,
+            is_submitter: true,
+            can_delete: true,
+            can_opt_out: false
           });
         });
       }
@@ -112,18 +115,22 @@ export async function GET(request: NextRequest) {
               ...cleanSubmission,
               submitted_by: 'partner',
               submitter_name: user?.name,
-              submitter_telegram: user?.telegram_username
+              submitter_telegram: user?.telegram_username,
+              is_submitter: false,
+              can_delete: false,
+              can_opt_out: false
             });
           });
         }
       }
 
-      // 3. Get group submissions where user participated and not opted out
+      // 3. Get group submissions where user participated (including opted out ones for visibility)
       const { data: groupParticipations } = await supabaseAdmin
         .from('group_participants')
         .select(`
           group_submission_id,
           opted_out,
+          opted_out_at,
           group_submissions!inner(
             id,
             quest_id,
@@ -152,8 +159,7 @@ export async function GET(request: NextRequest) {
             )
           )
         `)
-        .eq('user_id', userId)
-        .eq('opted_out', false);
+        .eq('user_id', userId);
 
       if (groupParticipations) {
         groupParticipations.forEach(participation => {
@@ -171,7 +177,12 @@ export async function GET(request: NextRequest) {
               group_submission_id: groupSubmission.id,
               submitted_by: 'group',
               submitter_name: user?.name,
-              submitter_telegram: user?.telegram_username
+              submitter_telegram: user?.telegram_username,
+              user_opted_out: participation.opted_out || false,
+              opted_out_at: participation.opted_out_at,
+              is_submitter: groupSubmission.submitter_user_id === userId,
+              can_delete: groupSubmission.submitter_user_id === userId, // Only submitter can delete
+              can_opt_out: !participation.opted_out && groupSubmission.submitter_user_id !== userId // Non-submitters can opt out
             });
           }
         });

@@ -7,9 +7,31 @@ import { sendGroupSubmissionNotification } from '@/lib/notifications';
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    const body = await request.json();
     
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // For internal Telegram webhook calls, we need to authenticate differently
+    let userId: string | undefined;
+    if (session?.user) {
+      userId = session.user.id;
+    } else {
+      // Check if this is a request from Telegram webhook with user context
+      const { telegram_user_id } = body;
+      if (telegram_user_id) {
+        // Get user by telegram ID for webhook requests
+        const { data: user } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('telegram_id', telegram_user_id.toString())
+          .single();
+        
+        if (user) {
+          userId = user.id.toString();
+        }
+      }
+      
+      if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
 
     const { 
@@ -18,7 +40,7 @@ export async function POST(request: NextRequest) {
       group_codes,
       telegram_file_id, 
       telegram_message_id 
-    } = await request.json();
+    } = body;
 
     // Support both new group codes format and legacy participant pairs format
     if (!quest_id || (!group_codes && !participant_pairs)) {
@@ -67,7 +89,7 @@ export async function POST(request: NextRequest) {
       const { data: groupResult, error: groupError } = await supabaseAdmin
         .rpc('create_multi_group_submission_transaction', {
           p_quest_id: quest_id,
-          p_submitter_user_id: session.user.id,
+          p_submitter_user_id: parseInt(userId),
           p_telegram_file_id: telegram_file_id || '',
           p_telegram_message_id: telegram_message_id || 0,
           p_group_codes: group_codes
@@ -92,7 +114,7 @@ export async function POST(request: NextRequest) {
       const { data: legacyResult, error: legacyError } = await supabaseAdmin
         .rpc('create_group_submission_transaction', {
           p_quest_id: quest_id,
-          p_submitter_user_id: session.user.id,
+          p_submitter_user_id: parseInt(userId),
           p_telegram_file_id: telegram_file_id || '',
           p_telegram_message_id: telegram_message_id || 0,
           p_participant_names: participantNames
@@ -119,11 +141,18 @@ export async function POST(request: NextRequest) {
     const submissionResult = typeof result === 'string' ? JSON.parse(result) : result;
     const groupSubmissionId = submissionResult.group_submission_id;
 
-    // Send notifications (this would need to be enhanced to handle actual user IDs)
+    // Send notifications
     try {
+      // Get user name for notification
+      const { data: user } = await supabaseAdmin
+        .from('users')
+        .select('name')
+        .eq('id', parseInt(userId))
+        .single();
+      
       await sendGroupSubmissionNotification(
         groupSubmissionId,
-        session.user.name || 'Unknown User',
+        user?.name || 'Unknown User',
         quest.title
       );
     } catch (notificationError) {

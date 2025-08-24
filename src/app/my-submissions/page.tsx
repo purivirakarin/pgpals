@@ -16,7 +16,9 @@ import {
   AlertCircle,
   User,
   Users,
-  Trash2
+  Trash2,
+  UserMinus,
+  UserPlus
 } from 'lucide-react';
 
 interface SubmissionWithQuest extends Submission {
@@ -30,6 +32,7 @@ export default function MySubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [optOutLoading, setOptOutLoading] = useState<number | null>(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -110,6 +113,46 @@ export default function MySubmissionsPage() {
     }
   };
 
+  const optOutSubmission = async (submissionId: number, currentlyOptedOut: boolean) => {
+    const action = currentlyOptedOut ? 'opt back into' : 'opt out of';
+    const confirmMessage = currentlyOptedOut 
+      ? 'Are you sure you want to opt back into this group submission? You and your partner will be included again.'
+      : 'Are you sure you want to opt out of this group submission? This will remove you and your partner from receiving points if the submission is approved.';
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      setOptOutLoading(submissionId);
+      const response = await fetch(`/api/submissions/${submissionId}/opt-out`, {
+        method: currentlyOptedOut ? 'DELETE' : 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${action} submission`);
+      }
+
+      const result = await response.json();
+      
+      // Update the submission in local state
+      setSubmissions(prev => prev.map(sub => 
+        sub.id === submissionId 
+          ? { ...sub, user_opted_out: !currentlyOptedOut }
+          : sub
+      ));
+
+      // Show success message (you could use a toast notification here)
+      console.log(result.message);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Failed to ${action} submission`);
+    } finally {
+      setOptOutLoading(null);
+    }
+  };
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     fetchSubmissions(page);
@@ -140,10 +183,16 @@ export default function MySubmissionsPage() {
         color: 'text-accent-600'
       };
     } else if (submittedBy === 'group') {
+      const isOptedOut = submission.user_opted_out;
+      const isSubmitter = submission.is_submitter;
+      
       return {
-        text: `Group: ${submission.submitter_name || 'Unknown'}`,
-        icon: <Users className="w-4 h-4 text-purple-500" />,
-        color: 'text-purple-600'
+        text: `Group: ${submission.submitter_name || 'Unknown'}${
+          isSubmitter ? ' (you submitted)' : 
+          isOptedOut ? ' (opted out)' : ''
+        }`,
+        icon: <Users className={`w-4 h-4 ${isOptedOut ? 'text-orange-500' : 'text-purple-500'}`} />,
+        color: isOptedOut ? 'text-orange-600' : 'text-purple-600'
       };
     } else {
       // Fallback for any unexpected values
@@ -309,19 +358,45 @@ export default function MySubmissionsPage() {
                     <span className="ml-2">{getStatusText(submission.status)}</span>
                   </div>
                   
-                  <button
-                    onClick={() => deleteSubmission(submission.id)}
-                    disabled={deleteLoading === submission.id}
-                    className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-muted-600 bg-muted-50 border border-muted-200 rounded-lg hover:bg-muted-100 hover:text-muted-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Delete submission"
-                  >
-                    {deleteLoading === submission.id ? (
-                      <Loader className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
-                    <span className="ml-1.5 hidden xs:inline">Delete</span>
-                  </button>
+                  {(submission as any).can_delete && (
+                    <button
+                      onClick={() => deleteSubmission(submission.id)}
+                      disabled={deleteLoading === submission.id}
+                      className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-muted-600 bg-muted-50 border border-muted-200 rounded-lg hover:bg-muted-100 hover:text-muted-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete submission"
+                    >
+                      {deleteLoading === submission.id ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      <span className="ml-1.5 hidden xs:inline">Delete</span>
+                    </button>
+                  )}
+                  
+                  {(submission as any).can_opt_out && (
+                    <button
+                      onClick={() => optOutSubmission(submission.id, (submission as any).user_opted_out)}
+                      disabled={optOutLoading === submission.id}
+                      className={`inline-flex items-center justify-center px-3 py-2 text-sm font-medium border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        (submission as any).user_opted_out
+                          ? 'text-green-600 bg-green-50 border-green-200 hover:bg-green-100'
+                          : 'text-orange-600 bg-orange-50 border-orange-200 hover:bg-orange-100'
+                      }`}
+                      title={(submission as any).user_opted_out ? "Opt back into group submission" : "Opt out of group submission"}
+                    >
+                      {optOutLoading === submission.id ? (
+                        <Loader className="w-4 h-4 animate-spin" />
+                      ) : (submission as any).user_opted_out ? (
+                        <UserPlus className="w-4 h-4" />
+                      ) : (
+                        <UserMinus className="w-4 h-4" />
+                      )}
+                      <span className="ml-1.5 hidden xs:inline">
+                        {(submission as any).user_opted_out ? 'Opt In' : 'Opt Out'}
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Desktop Layout: Original structure */}
@@ -362,19 +437,45 @@ export default function MySubmissionsPage() {
                       <span className="ml-2">{getStatusText(submission.status)}</span>
                     </div>
                     
-                    <button
-                      onClick={() => deleteSubmission(submission.id)}
-                      disabled={deleteLoading === submission.id}
-                      className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-muted-600 bg-muted-50 border border-muted-200 rounded-lg hover:bg-muted-100 hover:text-muted-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Delete submission"
-                    >
-                      {deleteLoading === submission.id ? (
-                        <Loader className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                      <span className="ml-1">Delete</span>
-                    </button>
+                    {(submission as any).can_delete && (
+                      <button
+                        onClick={() => deleteSubmission(submission.id)}
+                        disabled={deleteLoading === submission.id}
+                        className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-muted-600 bg-muted-50 border border-muted-200 rounded-lg hover:bg-muted-100 hover:text-muted-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Delete submission"
+                      >
+                        {deleteLoading === submission.id ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        <span className="ml-1">Delete</span>
+                      </button>
+                    )}
+                    
+                    {(submission as any).can_opt_out && (
+                      <button
+                        onClick={() => optOutSubmission(submission.id, (submission as any).user_opted_out)}
+                        disabled={optOutLoading === submission.id}
+                        className={`inline-flex items-center justify-center px-3 py-2 text-sm font-medium border rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          (submission as any).user_opted_out
+                            ? 'text-green-600 bg-green-50 border-green-200 hover:bg-green-100'
+                            : 'text-orange-600 bg-orange-50 border-orange-200 hover:bg-orange-100'
+                        }`}
+                        title={(submission as any).user_opted_out ? "Opt back into group submission" : "Opt out of group submission"}
+                      >
+                        {optOutLoading === submission.id ? (
+                          <Loader className="w-4 h-4 animate-spin" />
+                        ) : (submission as any).user_opted_out ? (
+                          <UserPlus className="w-4 h-4" />
+                        ) : (
+                          <UserMinus className="w-4 h-4" />
+                        )}
+                        <span className="ml-1">
+                          {(submission as any).user_opted_out ? 'Opt In' : 'Opt Out'}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 </div>
 

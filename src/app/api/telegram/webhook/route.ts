@@ -475,6 +475,7 @@ async function handlePhotoSubmission(
           quest_id: questId,
           telegram_file_id: fileId,
           telegram_message_id: messageId,
+          telegram_user_id: telegramId, // Add telegram user ID for authentication
           ...(groupCodes.length > 0 
             ? { group_codes: groupCodes } 
             : { participant_pairs: participantPairs }
@@ -520,8 +521,15 @@ async function handlePhotoSubmission(
         return;
       } catch (error) {
         console.error('Group submission error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Group submission failed';
-        await safeSendMessage(chatId, `❌ ${errorMessage}\n\nTry: \`/groups\` to see valid group codes`, { parse_mode: 'Markdown' });
+        let errorMessage = error instanceof Error ? error.message : 'Group submission failed';
+        
+        // Clean up error message for Telegram (remove technical details)
+        if (errorMessage.includes('check constraint')) {
+          errorMessage = 'Group submission validation failed';
+        }
+        
+        // Send simple message without problematic markdown
+        await safeSendMessage(chatId, `❌ ${errorMessage}\n\nTry: /groups to see valid group codes`);
         return;
       }
     }
