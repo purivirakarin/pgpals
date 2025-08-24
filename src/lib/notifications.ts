@@ -187,10 +187,10 @@ function getStatusEmoji(status: string): string {
 
 function getStatusText(status: string): string {
   switch (status) {
-    case 'pending_ai': return 'Pending AI Review';
-    case 'ai_approved': return 'AI Approved';
-    case 'ai_rejected': return 'AI Rejected';
-    case 'manual_review': return 'Under Manual Review';
+    case 'pending_ai': return 'Pending Review';
+    case 'ai_approved': return 'Auto Approved';
+    case 'ai_rejected': return 'Auto Rejected';
+    case 'manual_review': return 'Under Review';
     case 'approved': return 'Approved';
     case 'rejected': return 'Rejected';
     default: return status.replace('_', ' ');

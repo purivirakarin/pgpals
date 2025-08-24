@@ -61,8 +61,12 @@ export async function GET(request: NextRequest) {
       if (userSubmissions) {
         userSubmissions.forEach(submission => {
           const user = submission.users as any;
+          // Ensure submitted_by is always 'self' for user's own submissions, regardless of any database field
+          const cleanSubmission = { ...submission } as any;
+          delete cleanSubmission.submitted_by; // Remove any existing submitted_by field that might come from database
+          
           allSubmissions.push({
-            ...submission,
+            ...cleanSubmission,
             submitted_by: 'self',
             submitter_name: session.user.name,
             submitter_telegram: user?.telegram_username
@@ -100,8 +104,12 @@ export async function GET(request: NextRequest) {
         if (partnerSubmissions) {
           partnerSubmissions.forEach(submission => {
             const user = submission.users as any;
+            // Ensure submitted_by is always 'partner' for partner submissions
+            const cleanSubmission = { ...submission } as any;
+            delete cleanSubmission.submitted_by; // Remove any existing submitted_by field that might come from database
+            
             allSubmissions.push({
-              ...submission,
+              ...cleanSubmission,
               submitted_by: 'partner',
               submitter_name: user?.name,
               submitter_telegram: user?.telegram_username
@@ -154,8 +162,12 @@ export async function GET(request: NextRequest) {
           
           if (submission && !submission.is_deleted) {
             const user = submission.users as any;
+            // Ensure submitted_by is always 'group' for group submissions
+            const cleanSubmission = { ...submission } as any;
+            delete cleanSubmission.submitted_by; // Remove any existing submitted_by field that might come from database
+            
             allSubmissions.push({
-              ...submission,
+              ...cleanSubmission,
               group_submission_id: groupSubmission.id,
               submitted_by: 'group',
               submitter_name: user?.name,

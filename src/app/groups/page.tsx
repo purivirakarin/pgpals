@@ -210,7 +210,7 @@ export default function GroupsPage() {
               <p>• Use group codes for multiple-pair quest submissions via Telegram</p>
               <p>• Format: <code className="bg-blue-100 px-2 py-1 rounded font-mono text-sm">/submit [quest_id] group:GRP002</code></p>
               <p>• Your group is automatically included - just specify other groups</p>
-              <p>• You need at least 1 other group (4+ people total) for group submissions</p>
+              <p>• You need to include at least 1 other group for group submissions</p>
               <p>• Copy group codes below to use in your submissions</p>
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function GroupsPage() {
           {/* Enhanced Search */}
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
             <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1 max-w-md">
+              <div className="flex-1">
                 <label htmlFor="search" className="block text-sm font-semibold text-gray-700 mb-3">
                   Search Groups
                 </label>
@@ -298,26 +298,6 @@ export default function GroupsPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Summary */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
-                <div>
-                  <div className="text-3xl font-bold text-primary-600">{filteredGroups.length}</div>
-                  <div className="text-gray-600">Active Groups</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-green-600">{filteredGroups.length * 2}</div>
-                  <div className="text-gray-600">Total Members</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold text-blue-600">
-                    {Math.floor(filteredGroups.length / 2)}+
-                  </div>
-                  <div className="text-gray-600">Possible 4+ Groups</div>
-                </div>
-              </div>
-            </div>
-
             {/* Pagination Summary */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 p-4 mb-6">
@@ -500,7 +480,7 @@ export default function GroupsPage() {
               Browse Multiple-Pair Quests
             </Link>
             <a
-              href="/help"
+              href="/help/quests"
               className="inline-flex items-center text-gray-600 hover:text-gray-700 font-medium"
             >
               <User className="w-4 h-4 mr-2" />

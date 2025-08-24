@@ -52,10 +52,10 @@ async function handleMessage(message: any) {
     } else if (text?.startsWith('/groups')) {
       await handleGroupsCommand(chatId, userId);
     } else if (photo && caption) {
-      await bot.sendMessage(chatId, '📸 Use: `/submit [quest_id]` as photo caption');
+      await safeSendMessage(chatId, '📸 Use: `/submit [quest_id]` as photo caption');
     } else {
       const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
-      await bot.sendMessage(chatId, 
+      await safeSendMessage(chatId, 
         '🤖 **PGPals Bot**\n\n' +
         '🎮 `/quests` - View challenges\n' +
         '📸 `/submit [id]` - Upload proof\n' +
@@ -71,7 +71,7 @@ async function handleMessage(message: any) {
     console.error('Error in handleMessage:', error);
     // Send error message to user
     try {
-      await bot.sendMessage(message.chat.id, '❌ Error processing message. Try again?');
+      await safeSendMessage(message.chat.id, '❌ Error processing message. Try again?');
     } catch (sendError) {
       console.error('Failed to send error message:', sendError);
     }
@@ -261,6 +261,25 @@ async function handleSubmitCommand(chatId: number, text: string, photo: any, tel
   await handlePhotoSubmission(chatId, photo, `/submit ${questId}`, telegramId, 0);
 }
 
+// Helper function for safe Telegram messaging with retry logic
+async function safeSendMessage(chatId: number | string, message: string, options?: any, retries = 3): Promise<boolean> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await bot.sendMessage(chatId, message, options);
+      return true;
+    } catch (error) {
+      console.error(`Telegram send attempt ${i + 1} failed:`, error);
+      if (i === retries - 1) {
+        console.error('All Telegram send attempts failed, giving up');
+        return false;
+      }
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+    }
+  }
+  return false;
+}
+
 async function handlePhotoSubmission(
   chatId: number, 
   photo: any[], 
@@ -271,7 +290,7 @@ async function handlePhotoSubmission(
   try {
     const questIdMatch = caption.match(/\/submit\s+([a-zA-Z0-9-#]+)/);
     if (!questIdMatch) {
-      await bot.sendMessage(chatId, '❌ Invalid format\n\n📸 Individual: `/submit [quest_id]`\n👥 Group: `/submit [id] group:GRP002`\n🔍 Use `/groups` to see group codes');
+      await safeSendMessage(chatId, '❌ Invalid format\n\n📸 Individual: `/submit [quest_id]`\n👥 Group: `/submit [id] group:GRP002`\n🔍 Use `/groups` to see group codes');
       return;
     }
 
@@ -292,7 +311,7 @@ async function handlePhotoSubmission(
         groupCodes = groupInput.split(',').map(code => code.trim().toUpperCase());
         
         if (groupCodes.length < 1) {
-          await bot.sendMessage(chatId, '👥 Need at least 1 other group\nFormat: `/submit [id] group:GRP002`\nYour group is automatically included');
+          await safeSendMessage(chatId, '👥 Need at least 1 other group\nFormat: `/submit [id] group:GRP002`\nYour group is automatically included');
           return;
         }
       } else {
@@ -310,7 +329,7 @@ async function handlePhotoSubmission(
         });
         
         if (participantPairs.length < 1) {
-          await bot.sendMessage(chatId, '👥 Need at least 1 other pair\nFormat: `/submit [id] group:GRP002`\nYour group is automatically included');
+          await safeSendMessage(chatId, '👥 Need at least 1 other pair\nFormat: `/submit [id] group:GRP002`\nYour group is automatically included');
           return;
         }
       }
@@ -319,7 +338,7 @@ async function handlePhotoSubmission(
     // Parse the quest ID input (now expecting integers)
     const questId = parseQuestId(questIdInput);
     if (!questId) {
-      await bot.sendMessage(chatId, `❌ Invalid quest ID: ${questIdInput}\nUse: /submit 1 or /submit #1`);
+      await safeSendMessage(chatId, `❌ Invalid quest ID: ${questIdInput}\nUse: /submit 1 or /submit #1`);
       return;
     }
     
@@ -332,7 +351,7 @@ async function handlePhotoSubmission(
 
     if (!user) {
       const webAppUrl = process.env.NEXTAUTH_URL || 'https://pgpals.vercel.app';
-      await bot.sendMessage(chatId, 
+      await safeSendMessage(chatId, 
         '🚫 Account not linked\n\n' +
         `[Create Account](${webAppUrl}/auth/signup) → Use /start`,
         { parse_mode: 'Markdown' }
@@ -349,14 +368,14 @@ async function handlePhotoSubmission(
       .single();
 
     if (!quest) {
-      await bot.sendMessage(chatId, '❌ Quest not found or inactive');
+      await safeSendMessage(chatId, '❌ Quest not found or inactive');
       return;
     }
     
 
     // Check if this is a group submission for a non-group quest
     if (isGroupSubmission && quest.category !== 'multiple-pair') {
-      await bot.sendMessage(chatId, 
+      await safeSendMessage(chatId, 
         `🚫 Individual quest only\n\n` +
         `${quest.title} (${quest.category})\n` +
         `Submit individually or find group quest`
@@ -366,7 +385,7 @@ async function handlePhotoSubmission(
 
     // Check if this is NOT a group submission for a group quest
     if (!isGroupSubmission && quest.category === 'multiple-pair') {
-      await bot.sendMessage(chatId, 
+      await safeSendMessage(chatId, 
         `👥 Group quest required\n\n` +
         `${quest.title}\n\n` +
         `📸 \`/submit ${questId} group:GRP002\`\n` +
@@ -391,14 +410,14 @@ async function handlePhotoSubmission(
         const partnerSubmission = partnerSubmissions[0];
         
         if (partnerSubmission.status === 'approved' || partnerSubmission.status === 'ai_approved') {
-          await bot.sendMessage(chatId, 
+          await safeSendMessage(chatId, 
             `🚫 Partner already completed\n\n` +
             `${quest.title}\n` +
             `Try /quests for new ones`
           );
           return;
         } else if (partnerSubmission.status === 'pending_ai' || partnerSubmission.status === 'manual_review') {
-          await bot.sendMessage(chatId, 
+          await safeSendMessage(chatId, 
             `⏳ Partner submission pending\n\n` +
             `${quest.title}\n` +
             `Try /quests for others`
@@ -423,14 +442,14 @@ async function handlePhotoSubmission(
       
       // Handle different existing submission statuses
       if (latestSubmission.status === 'approved' || latestSubmission.status === 'ai_approved') {
-        await bot.sendMessage(chatId, 
+        await safeSendMessage(chatId, 
           `🎉 Already completed!\n\n` +
           `${quest.title}\n` +
           `✅ ${quest.points} pts earned`
         );
         return;
       } else if (latestSubmission.status === 'pending_ai' || latestSubmission.status === 'manual_review') {
-        await bot.sendMessage(chatId, 
+        await safeSendMessage(chatId, 
           `⏳ Submission pending review\n\n` +
           `${quest.title}\n` +
           `${new Date(latestSubmission.submitted_at).toLocaleDateString()}\n\n` +
@@ -438,7 +457,7 @@ async function handlePhotoSubmission(
         );
         return;
       } else if (latestSubmission.status === 'rejected' || latestSubmission.status === 'ai_rejected') {
-        await bot.sendMessage(chatId, 
+        await safeSendMessage(chatId, 
           `🔄 Resubmitting quest\n\n` +
           `${quest.title}\n` +
           `💡 Ensure photo shows quest clearly`
@@ -480,7 +499,7 @@ async function handlePhotoSubmission(
         const participantCount = groupCodes.length > 0 ? groupCodes.length * 2 : participantPairs.length * 2;
         const participantInfo = groupCodes.length > 0 ? groupCodes.join(', ') : participantPairs.map(pair => `${pair.user1_name} & ${pair.user2_name}`).join(', ');
         
-        await bot.sendMessage(chatId, 
+        await safeSendMessage(chatId, 
           `✅ Group submission received!\n\n` +
           `${quest.title}\n` +
           `👥 ${participantCount} people\n` +
@@ -489,7 +508,7 @@ async function handlePhotoSubmission(
         );
         
         if (process.env.ADMIN_TELEGRAM_ID) {
-          await bot.sendMessage(process.env.ADMIN_TELEGRAM_ID, 
+          await safeSendMessage(process.env.ADMIN_TELEGRAM_ID, 
             `🎯 New GROUP submission:\n` +
             `Submitter: ${user.name}\n` +
             `Quest: ${quest.title}\n` +
@@ -502,7 +521,7 @@ async function handlePhotoSubmission(
       } catch (error) {
         console.error('Group submission error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Group submission failed';
-        await bot.sendMessage(chatId, `❌ ${errorMessage}\n\nTry: \`/groups\` to see valid group codes`, { parse_mode: 'Markdown' });
+        await safeSendMessage(chatId, `❌ ${errorMessage}\n\nTry: \`/groups\` to see valid group codes`, { parse_mode: 'Markdown' });
         return;
       }
     }
@@ -523,12 +542,12 @@ async function handlePhotoSubmission(
 
     if (error) {
       console.error('Submission database error:', error);
-      await bot.sendMessage(chatId, '❌ Submission failed. Try again?');
+      await safeSendMessage(chatId, '❌ Submission failed. Try again?');
       return;
     }
     
 
-    await bot.sendMessage(chatId, 
+    await safeSendMessage(chatId, 
       `✅ Submission received!\n\n` +
       `${quest.title}\n` +
       `⏳ Validating...`
@@ -544,7 +563,7 @@ async function handlePhotoSubmission(
 
       if (partner?.telegram_id) {
         try {
-          await bot.sendMessage(partner.telegram_id, 
+          await safeSendMessage(partner.telegram_id, 
             `🔔 Partner submitted quest\n\n` +
             `${user.name}: ${quest.title}\n` +
             `⏳ Pending validation`,
@@ -558,7 +577,7 @@ async function handlePhotoSubmission(
 
     // Admin notification
     if (process.env.ADMIN_TELEGRAM_ID) {
-      await bot.sendMessage(process.env.ADMIN_TELEGRAM_ID, 
+      await safeSendMessage(process.env.ADMIN_TELEGRAM_ID, 
         `🔔 New submission:\n` +
         `User: ${user.name}\n` +
         `Quest: ${quest.title}\n` +
@@ -568,7 +587,7 @@ async function handlePhotoSubmission(
 
   } catch (error) {
     console.error('Photo submission error:', error);
-    await bot.sendMessage(chatId, '❌ Error processing submission');
+    await safeSendMessage(chatId, '❌ Error processing submission');
   }
 }
 
