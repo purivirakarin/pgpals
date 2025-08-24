@@ -49,7 +49,7 @@ npm run dev
 ### For Participants
 1. **Get Started**: Create account → Link Telegram → Browse quests
 2. **Partner Up**: Optional partnership system for collaborative quests
-3. **Submit Proof**: Send photos via Telegram bot (`/submit [quest_id]`)
+3. **Submit Proof**: Send exactly ONE photo via Telegram bot (`/submit [quest_id]`)
 4. **Track Progress**: View real-time leaderboard and submission history
 
 ### Quest Categories

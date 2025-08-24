@@ -59,8 +59,8 @@ export default function GettingStartedPage() {
       details: [
         'Choose a quest that matches your interests',
         'Complete the quest requirement in real life',
-        'Take a clear photo showing proof of completion',
-        'Submit using /submit [quest_id] on Telegram'
+        'Take exactly ONE clear photo showing proof of completion',
+        'Submit using /submit [quest_id] on Telegram with your single photo'
       ]
     }
   ];
@@ -71,8 +71,8 @@ export default function GettingStartedPage() {
       description: 'Make sure you understand exactly what\'s required before attempting a quest.'
     },
     {
-      title: 'Take Clear Photos',
-      description: 'Your submission photos should clearly show that you\'ve completed the quest requirement.'
+      title: 'Take ONE Clear Photo',
+      description: 'Submit exactly ONE photo that clearly shows you\'ve completed the quest requirement.'
     },
     {
       title: 'Check Point Values',

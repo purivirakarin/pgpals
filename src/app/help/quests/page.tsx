@@ -35,8 +35,8 @@ export default function QuestsHelpPage() {
   const submissionTips = [
     {
       icon: Camera,
-      title: 'Take Clear Photos',
-      description: 'Ensure your photo clearly shows you completing the quest requirement. Good lighting and clear subjects are essential.'
+      title: 'Take One Clear Photo',
+      description: 'Submit exactly ONE photo that clearly shows you completing the quest requirement. Good lighting and clear subjects are essential.'
     },
     {
       icon: CheckCircle,
@@ -224,8 +224,8 @@ export default function QuestsHelpPage() {
                 <div className="flex items-start">
                   <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-gray-700"><strong>Step 3:</strong> Submit with photo</p>
-                    <p className="text-xs text-gray-600">Send photo with the formatted caption</p>
+                    <p className="text-sm text-gray-700"><strong>Step 3:</strong> Submit with one photo</p>
+                    <p className="text-xs text-gray-600">Send exactly ONE photo with the formatted caption</p>
                   </div>
                 </div>
               </div>
