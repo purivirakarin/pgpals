@@ -277,10 +277,10 @@ export default function AdminSubmissionsPage() {
                 { value: "pending_review", label: "Pending Review" },
                 { value: "approved", label: "Approved" },
                 { value: "rejected", label: "Rejected" },
-                { value: "pending_ai", label: "Pending AI" },
+                { value: "pending_ai", label: "Pending Review" },
                 { value: "manual_review", label: "Manual Review" },
-                { value: "ai_approved", label: "AI Approved" },
-                { value: "ai_rejected", label: "AI Rejected" }
+                { value: "ai_approved", label: "Auto Approved" },
+                { value: "ai_rejected", label: "Auto Rejected" }
               ]}
               value={statusFilter}
               onChange={setStatusFilter}

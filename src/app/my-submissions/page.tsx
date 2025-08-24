@@ -118,25 +118,35 @@ export default function MySubmissionsPage() {
   const totalPages = Math.ceil(totalSubmissions / itemsPerPage);
 
   const getSubmitterInfo = (submission: any) => {
-    if (submission.submitted_by === 'self') {
+    // Handle various possible values for submitted_by
+    const submittedBy = submission.submitted_by;
+    
+    // Debug log to understand what we're receiving
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Submission submittedBy value:', submittedBy, 'type:', typeof submittedBy);
+    }
+    
+    // Handle different possible values more robustly
+    if (submittedBy === 'self' || submittedBy === 0 || submittedBy === '0' || !submittedBy) {
       return {
         text: 'You',
         icon: <User className="w-4 h-4 text-primary-500" />,
         color: 'text-primary-600'
       };
-    } else if (submission.submitted_by === 'partner') {
+    } else if (submittedBy === 'partner') {
       return {
         text: `Partner: ${submission.submitter_name || 'Unknown'}`,
         icon: <Users className="w-4 h-4 text-accent-500" />,
         color: 'text-accent-600'
       };
-    } else if (submission.submitted_by === 'group') {
+    } else if (submittedBy === 'group') {
       return {
         text: `Group: ${submission.submitter_name || 'Unknown'}`,
         icon: <Users className="w-4 h-4 text-purple-500" />,
         color: 'text-purple-600'
       };
     } else {
+      // Fallback for any unexpected values
       return {
         text: 'You',
         icon: <User className="w-4 h-4 text-gray-400" />,
@@ -180,7 +190,7 @@ export default function MySubmissionsPage() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending_ai':
-        return 'Pending AI Review';
+        return 'Pending Review';
       case 'ai_approved':
         return 'AI Approved';
       case 'ai_rejected':
@@ -435,7 +445,7 @@ export default function MySubmissionsPage() {
                       <Clock className="w-5 h-5 text-primary-600 mt-0.5 mr-3 flex-shrink-0" />
                       <div>
                         <h4 className="text-sm font-medium text-primary-800 mb-1">
-                          {submission.status === 'pending_ai' ? 'AI Review in Progress' : 'Under Manual Review'}
+                          {submission.status === 'pending_ai' ? 'Review in Progress' : 'Under Review'}
                         </h4>
                         <p className="text-sm text-primary-700">
                           Your submission is being reviewed. You&apos;ll be notified once the review is complete.
