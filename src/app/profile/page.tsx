@@ -233,10 +233,12 @@ const completedQuests = completedSubmissions.length;
                     <span className="text-primary-800 font-medium">You are partnered with:</span>
                   </div>
                   <div className="space-y-1 text-sm">
-                    <p className="text-primary-700 font-semibold">{profile.partner_name}</p>
-                    {profile.partner_telegram && (
-                      <p className="text-primary-700">@{profile.partner_telegram}</p>
-                    )}
+                    <p className="text-primary-700 font-semibold">
+                      {profile.partner_name}
+                      {profile.partner_telegram && (
+                        <span className="text-primary-600 font-normal ml-2">(@{profile.partner_telegram})</span>
+                      )}
+                    </p>
                     <p className="text-primary-600 text-xs mt-2 flex items-center">
                       <Users className="w-3 h-3 mr-1" />
                       You share points and leaderboard ranking with your partner

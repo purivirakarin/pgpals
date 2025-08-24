@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const type = searchParams.get('type');
     const userId = searchParams.get('user_id');
+    const search = searchParams.get('search');
     
     // Build query
     let query = supabaseAdmin
@@ -38,6 +39,11 @@ export async function GET(request: NextRequest) {
       query = query.or(`user_id.eq.${userId},created_by.eq.${userId}`);
     }
 
+    // Search functionality
+    if (search) {
+      query = query.or(`description.ilike.%${search}%,actor_name.ilike.%${search}%,target_user_name.ilike.%${search}%,quest_title.ilike.%${search}%`);
+    }
+
     const { data: activities, error } = await query;
 
     if (error) {
@@ -54,7 +60,34 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch activities' }, { status: 500 });
     }
 
-    return NextResponse.json(activities || []);
+    // Get total count for pagination
+    let totalCountQuery = supabaseAdmin
+      .from('recent_activities_view')
+      .select('*', { count: 'exact', head: true });
+
+    // Apply same filters for count
+    if (type) {
+      totalCountQuery = totalCountQuery.eq('type', type);
+    }
+    if (userId) {
+      totalCountQuery = totalCountQuery.or(`user_id.eq.${userId},created_by.eq.${userId}`);
+    }
+    if (search) {
+      totalCountQuery = totalCountQuery.or(`description.ilike.%${search}%,actor_name.ilike.%${search}%,target_user_name.ilike.%${search}%,quest_title.ilike.%${search}%`);
+    }
+
+    const { count: totalCount, error: countError } = await totalCountQuery;
+
+    if (countError) {
+      console.warn('Failed to get total count:', countError);
+    }
+
+    return NextResponse.json({
+      activities: activities || [],
+      total: totalCount || 0,
+      limit,
+      offset
+    });
   } catch (error) {
     console.error('Activities API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
