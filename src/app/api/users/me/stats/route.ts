@@ -67,7 +67,8 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq('user_id', userId)
-      .eq('opted_out', false);
+      .eq('opted_out', false)
+      .not('group_submissions.submissions.is_deleted', 'eq', true);
 
     if (groupParticipations) {
       groupParticipations.forEach(participation => {
