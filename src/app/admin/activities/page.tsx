@@ -53,8 +53,8 @@ export default function AdminActivitiesPage() {
         {/* Activity Feed */}
         <div className="card p-6">
           <ActivityFeed 
-            limit={20} 
-            enableSearch={false} 
+            limit={10} 
+            enableSearch={true} 
             enablePagination={true} 
             showRefresh={true}
             maxHeight="none"
