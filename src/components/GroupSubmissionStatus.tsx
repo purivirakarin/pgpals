@@ -188,7 +188,7 @@ const GroupSubmissionStatus: React.FC<GroupSubmissionStatusProps> = ({
               Multiple-Pair Task
             </h4>
             <p className="text-sm text-blue-700">
-              This task allows group submissions. One pair can submit on behalf of multiple pairs (2-10 people total).
+              One pair can submit on behalf of multiple pairs (other 1-4 pairs total).
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { bot } from './telegram';
+import { bot, telegramService } from './telegram';
 import { supabaseAdmin } from './supabase';
 
 interface NotificationRecipient {
@@ -38,30 +38,45 @@ export async function sendSubmissionStatusNotification(
     const submitter = submission.users as any;
     const quest = submission.quests as any;
     
-    // Prepare notification message based on status
+    // Prepare enhanced notification message based on status
     const statusEmoji = getStatusEmoji(newStatus);
     const statusText = getStatusText(newStatus);
     
     let message = `${statusEmoji} **Submission ${statusText}**\n\n`;
-    message += `Quest: ${quest.title}\n`;
-    message += `Status: ${statusText}\n`;
+    message += `**${quest.title}**\n`;
+    message += `📊 Status: ${statusText}\n`;
+    message += `🆔 Submission ID: ${submissionId}\n`;
     
     if (newStatus === 'approved' || newStatus === 'ai_approved') {
-      message += `Points Awarded: ${submission.points_awarded || quest.points}\n`;
+      const pointsAwarded = submission.points_awarded || quest.points;
+      message += `💎 Points Awarded: ${pointsAwarded}\n`;
+      message += `🎉 Great job! Keep up the excellent work!\n`;
+    } else if (newStatus === 'rejected' || newStatus === 'ai_rejected') {
+      message += `💡 Don't give up! Review the requirements and try again.\n`;
     }
     
     if (reviewFeedback) {
-      message += `\nFeedback: ${reviewFeedback}`;
+      message += `\n📝 **Feedback:**\n${reviewFeedback}\n`;
     }
 
-    // Collect all recipients
-    const recipients: NotificationRecipient[] = [];
+    message += `\n⏰ ${new Date().toLocaleString('en-US', { 
+      timeZone: 'Asia/Singapore',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })} SGT`;
+
+    // Collect all recipients with enhanced details
+    const recipients: (NotificationRecipient & { relationship: string })[] = [];
     
     // Add submitter
     if (submitter.telegram_id) {
       recipients.push({
         telegram_id: submitter.telegram_id,
-        name: submitter.name
+        name: submitter.name,
+        relationship: 'submitter'
       });
     }
 
@@ -76,7 +91,8 @@ export async function sendSubmissionStatusNotification(
       if (partner?.telegram_id) {
         recipients.push({
           telegram_id: partner.telegram_id,
-          name: partner.name
+          name: partner.name,
+          relationship: 'partner'
         });
       }
     }
@@ -99,25 +115,39 @@ export async function sendSubmissionStatusNotification(
               !recipients.find(r => r.telegram_id === participant.users.telegram_id)) {
             recipients.push({
               telegram_id: participant.users.telegram_id,
-              name: participant.users.name
+              name: participant.users.name,
+              relationship: 'group_participant'
             });
           }
         });
       }
     }
 
-    // Send notifications to all recipients
+    // Send personalized notifications to all recipients
     const notificationPromises = recipients.map(async (recipient) => {
       try {
-        await bot.sendMessage(recipient.telegram_id, message, { parse_mode: 'Markdown' });
-        console.log(`Notification sent to ${recipient.name} (${recipient.telegram_id})`);
+        let personalizedMessage = message;
+        
+        // Add relationship context for non-submitters
+        if (recipient.relationship === 'partner') {
+          personalizedMessage = `👥 **Partner's ${statusText} Submission**\n\n` +
+            `Your partner ${submitter.name}'s submission has been ${statusText.toLowerCase()}:\n\n` +
+            personalizedMessage.split('\n').slice(1).join('\n');
+        } else if (recipient.relationship === 'group_participant') {
+          personalizedMessage = `🏘️ **Group ${statusText} Submission**\n\n` +
+            `Group submission by ${submitter.name} has been ${statusText.toLowerCase()}:\n\n` +
+            personalizedMessage.split('\n').slice(1).join('\n');
+        }
+        
+        await bot.sendMessage(recipient.telegram_id, personalizedMessage, { parse_mode: 'Markdown' });
+        console.log(`Enhanced notification sent to ${recipient.name} (${recipient.relationship})`);
       } catch (error) {
         console.error(`Failed to send notification to ${recipient.name}:`, error);
       }
     });
 
     await Promise.all(notificationPromises);
-    console.log(`Status notification sent for submission ${submissionId} to ${recipients.length} recipients`);
+    console.log(`Enhanced status notification sent for submission ${submissionId} to ${recipients.length} recipients`);
     
   } catch (error) {
     console.error('Error sending submission status notification:', error);

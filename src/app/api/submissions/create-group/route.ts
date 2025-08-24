@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A group submission already exists for this quest' }, { status: 400 });
     }
 
-    // Validate participant count (1-5 pairs = 2-10 people)
+    // Validate participant count (1-5 pairs = other 1-4 pairs)
     if (participantUserIds.length < 2 || participantUserIds.length > 10) {
       return NextResponse.json({ error: 'Group submissions must include 2-10 participants (1-5 pairs)' }, { status: 400 });
     }
