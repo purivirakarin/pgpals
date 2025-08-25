@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     
     if (!validation.isValid) {
       return NextResponse.json({ 
-        error: 'Invalid email address', 
+        error: 'Please enter a valid email address (e.g., eXXXXXXX@u.nus.edu)', 
         details: validation.errors 
       }, { status: 400 });
     }
@@ -33,11 +33,11 @@ export async function POST(request: NextRequest) {
       .single();
     
     if (userError || !user) {
-      // For security, don't reveal if email exists or not
-      // Always return success to prevent email enumeration
+      // Don't reveal if email exists or not for security (prevents email enumeration)
+      // But provide a more helpful message to legitimate users
       return NextResponse.json({
         success: true,
-        message: 'If an account with this email exists, a password reset code has been sent.'
+        message: 'If an account with this email exists in our system, a password reset code has been sent. Please check your email (including spam folder).'
       });
     }
     

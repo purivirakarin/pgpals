@@ -86,25 +86,31 @@ function ResetPasswordForm() {
 
     // Validate inputs
     if (!email.trim()) {
-      setError('Email is required');
+      setError('Please enter your email address');
       setLoading(false);
       return;
     }
 
-    if (token.length !== 6) {
-      setError('Verification code must be 6 digits');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    if (token.length !== 6 || !/^\d{6}$/.test(token)) {
+      setError('Please enter a valid 6-digit verification code');
       setLoading(false);
       return;
     }
 
     if (passwordErrors.length > 0) {
-      setError('Please fix password requirements');
+      setError('Please ensure your password meets all requirements');
       setLoading(false);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match. Please check and try again.');
       setLoading(false);
       return;
     }
@@ -131,7 +137,31 @@ function ResetPasswordForm() {
           router.push('/auth/signin?message=Password reset successful');
         }, 3000);
       } else {
-        setError(data.error || 'Failed to reset password');
+        // Show more helpful error messages
+        let errorMessage = data.error || 'Failed to reset password';
+        
+        if (response.status === 400) {
+          if (data.error && data.error.includes('verification code')) {
+            if (data.error.includes('expired')) {
+              errorMessage = 'Your verification code has expired. Please request a new code.';
+            } else if (data.error.includes('6 digits')) {
+              errorMessage = 'Please enter a valid 6-digit verification code.';
+            } else {
+              errorMessage = data.error;
+            }
+          } else if (data.error && data.error.includes('Password')) {
+            errorMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character (@$!%*?&)';
+          } else if (data.error && data.error.includes('email')) {
+            errorMessage = 'Please enter a valid email address.';
+          } else {
+            errorMessage = data.error;
+          }
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again in a few moments.';
+        }
+        
+        setError(errorMessage);
+        
         if (data.details) {
           console.error('Reset password validation errors:', data.details);
         }
