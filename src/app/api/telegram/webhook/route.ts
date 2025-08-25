@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { bot, telegramService } from '@/lib/telegram';
 import { supabaseAdmin } from '@/lib/supabase';
+import { sendAdminNotification } from '@/lib/notifications';
 import { User, Quest, Submission } from '@/types';
 import { parseQuestId, getQuestByNumericId } from '@/lib/questId';
 
@@ -573,15 +574,14 @@ async function handlePhotoSubmission(
           console.error('Failed to send group submission notifications:', error);
         }
         
-        if (process.env.ADMIN_TELEGRAM_ID) {
-          await safeSendMessage(process.env.ADMIN_TELEGRAM_ID, 
-            `🎯 New GROUP submission:\n` +
-            `Submitter: ${user.name}\n` +
-            `Quest: ${quest.title} (ID: ${questId})\n` +
-            `Groups: ${participantInfo}\n` +
-            `Submission ID: ${groupResult.submission_id}`
-          );
-        }
+        // Admin notification
+        await sendAdminNotification(
+          `🎯 *New GROUP submission:*\n` +
+          `Submitter: ${user.name}\n` +
+          `Quest: ${quest.title} (ID: ${questId})\n` +
+          `Groups: ${participantInfo}\n` +
+          `Submission ID: ${groupResult.submission_id}`
+        );
 
         return;
       } catch (error) {
@@ -636,14 +636,12 @@ async function handlePhotoSubmission(
     }
 
     // Admin notification
-    if (process.env.ADMIN_TELEGRAM_ID) {
-      await safeSendMessage(process.env.ADMIN_TELEGRAM_ID, 
-        `🔔 New submission:\n` +
-        `User: ${user.name}\n` +
-        `Quest: ${quest.title} (ID: ${questId})\n` +
-        `Submission ID: ${submission.id}`
-      );
-    }
+    await sendAdminNotification(
+      `🔔 *New submission:*\n` +
+      `User: ${user.name}\n` +
+      `Quest: ${quest.title} (ID: ${questId})\n` +
+      `Submission ID: ${submission.id}`
+    );
 
   } catch (error) {
     console.error('Photo submission error:', error);
