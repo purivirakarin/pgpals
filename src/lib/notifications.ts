@@ -203,6 +203,44 @@ export async function sendGroupSubmissionNotification(
   }
 }
 
+/**
+ * Send notification to all admin users with telegram accounts
+ */
+export async function sendAdminNotification(message: string) {
+  try {
+    // Get all admin users with telegram IDs
+    const { data: adminUsers, error } = await supabaseAdmin
+      .from('users')
+      .select('id, name, telegram_id')
+      .eq('role', 'admin')
+      .not('telegram_id', 'is', null);
+
+    if (error) {
+      console.error('Error fetching admin users:', error);
+      return;
+    }
+
+    if (!adminUsers || adminUsers.length === 0) {
+      console.log('No admin users with telegram accounts found');
+      return;
+    }
+
+    // Send notification to each admin
+    const notifications = adminUsers.map(async (admin) => {
+      try {
+        await bot.sendMessage(admin.telegram_id!, message, { parse_mode: 'Markdown' });
+        console.log(`✅ Admin notification sent to ${admin.name} (${admin.telegram_id})`);
+      } catch (error) {
+        console.error(`Failed to send notification to admin ${admin.name} (${admin.telegram_id}):`, error);
+      }
+    });
+
+    await Promise.allSettled(notifications);
+  } catch (error) {
+    console.error('Error in sendAdminNotification:', error);
+  }
+}
+
 function getStatusEmoji(status: string): string {
   switch (status) {
     case 'pending_ai': return '⏳';

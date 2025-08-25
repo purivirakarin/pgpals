@@ -241,6 +241,8 @@ if (isDevelopment) {
   console.log('✅ Environment variables validated successfully');
   console.log(`🔧 Running in ${env.NODE_ENV} mode`);
   if (env.ADMIN_TELEGRAM_ID) {
-    console.log('📱 Admin Telegram notifications enabled');
+    console.log('📱 Legacy admin Telegram notifications enabled (consider migrating to database-based admin notifications)');
+  } else {
+    console.log('📱 Using database-based admin notifications (admins with telegram_id will receive notifications)');
   }
 }
