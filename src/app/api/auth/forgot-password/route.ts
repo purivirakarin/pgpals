@@ -11,14 +11,14 @@ export async function POST(request: NextRequest) {
     const validation = validateRequestBody(body, {
       email: {
         required: true,
-        pattern: patterns.email,
+        pattern: patterns.nusEmail,
         sanitizer: (value: string) => sanitizers.toLowerCase(sanitizers.trim(value))
       }
     });
     
     if (!validation.isValid) {
       return NextResponse.json({ 
-        error: 'Please enter a valid email address (e.g., eXXXXXXX@u.nus.edu)', 
+        error: 'Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., E1083043@u.nus.edu)', 
         details: validation.errors 
       }, { status: 400 });
     }

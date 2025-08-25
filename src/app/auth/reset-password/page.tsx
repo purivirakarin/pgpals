@@ -91,8 +91,8 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError('Please enter a valid email address');
+    if (!/^[eE]\d{7}@u\.nus\.edu$/.test(email.trim())) {
+      setError('Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., E1083043@u.nus.edu)');
       setLoading(false);
       return;
     }
@@ -152,7 +152,7 @@ function ResetPasswordForm() {
           } else if (data.error && data.error.includes('Password')) {
             errorMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character (@$!%*?&)';
           } else if (data.error && data.error.includes('email')) {
-            errorMessage = 'Please enter a valid email address.';
+            errorMessage = 'Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., E1083043@u.nus.edu)';
           } else {
             errorMessage = data.error;
           }
@@ -238,7 +238,7 @@ function ResetPasswordForm() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email address
+              NUS Email address
             </label>
             <div className="mt-1">
               <input
@@ -250,9 +250,12 @@ function ResetPasswordForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                placeholder="Enter your email address"
+                placeholder="Enter your NUS email (e.g., E1083043@u.nus.edu)"
                 disabled={loading}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Must be in the format eXXXXXXX@u.nus.edu
+              </p>
             </div>
           </div>
 
