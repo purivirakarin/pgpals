@@ -57,7 +57,18 @@ export default function ForgotPasswordPage() {
           router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
         }, 3000);
       } else {
-        setError(data.error || 'Failed to send reset code');
+        // Show more helpful error messages
+        let errorMessage = data.error || 'Failed to send reset code';
+        
+        if (response.status === 400) {
+          if (data.error && data.error.includes('valid email')) {
+            errorMessage = 'Please enter a valid email address (e.g., user@example.com)';
+          }
+        } else if (response.status >= 500) {
+          errorMessage = 'Server error. Please try again in a few moments.';
+        }
+        
+        setError(errorMessage);
       }
     } catch (err) {
       setError('Network error. Please try again.');
@@ -87,7 +98,9 @@ export default function ForgotPasswordPage() {
               )}
             </div>
             <p className="mt-4 text-sm text-gray-600">
-              Check your email (including spam folder) and enter the code on the next page.
+              Check your email (including spam folder) and enter the code on the next page. 
+              If you don&apos;t receive the email within a few minutes, please verify you&apos;re using 
+              the correct email address or try requesting another code.
             </p>
             <p className="mt-2 text-xs text-gray-500">
               Redirecting automatically in 3 seconds...
@@ -195,6 +208,18 @@ export default function ForgotPasswordPage() {
                 Sign in here
               </Link>
             </p>
+          </div>
+
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800">
+              <strong>Note:</strong> For security reasons, we won&apos;t reveal if an email exists in our system. 
+              If you don&apos;t receive a code within a few minutes, please check:
+            </p>
+            <ul className="text-xs text-blue-700 mt-1 space-y-1">
+              <li>• Your spam/junk folder</li>
+              <li>• That you&apos;re using the correct email address</li>
+              <li>• That you have an account with us</li>
+            </ul>
           </div>
         </form>
 

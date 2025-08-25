@@ -30,8 +30,20 @@ export async function POST(request: NextRequest) {
     });
     
     if (!validation.isValid) {
+      // Provide specific error messages for validation failures
+      let errorMessage = 'Please fix the following issues:';
+      const errors = validation.errors;
+      
+      if (errors.some(e => e.includes('email'))) {
+        errorMessage = 'Please enter a valid email address';
+      } else if (errors.some(e => e.includes('token'))) {
+        errorMessage = 'Verification code must be exactly 6 digits';
+      } else if (errors.some(e => e.includes('newPassword'))) {
+        errorMessage = 'Password must be at least 8 characters and include uppercase, lowercase, number, and special character (@$!%*?&)';
+      }
+      
       return NextResponse.json({ 
-        error: 'Invalid input', 
+        error: errorMessage,
         details: validation.errors 
       }, { status: 400 });
     }
@@ -48,15 +60,28 @@ export async function POST(request: NextRequest) {
     if (verificationError || !verificationResult || verificationResult.length === 0) {
       console.error('Token verification error:', verificationError);
       return NextResponse.json({
-        error: 'Invalid or expired reset code.'
+        error: 'Invalid verification code or email. Please check your code and try again, or request a new code if this one has expired.'
       }, { status: 400 });
     }
     
     const verification = verificationResult[0];
     
     if (!verification.is_valid) {
+      // Provide specific error message based on the verification result
+      let errorMessage = 'Invalid verification code. Please try again.';
+      
+      if (verification.error_message) {
+        if (verification.error_message.includes('expired')) {
+          errorMessage = 'Your verification code has expired. Please request a new code.';
+        } else if (verification.error_message.includes('not found')) {
+          errorMessage = 'Invalid verification code or email. Please check and try again.';
+        } else if (verification.error_message.includes('used')) {
+          errorMessage = 'This verification code has already been used. Please request a new code.';
+        }
+      }
+      
       return NextResponse.json({
-        error: verification.error_message || 'Invalid reset code.'
+        error: errorMessage
       }, { status: 400 });
     }
     
@@ -78,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Failed to update password:', updateError);
       return NextResponse.json({
-        error: 'Failed to update password. Please try again.'
+        error: 'Failed to update your password. Please try again or contact support if the problem persists.'
       }, { status: 500 });
     }
     
