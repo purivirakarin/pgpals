@@ -85,14 +85,15 @@ function ResetPasswordForm() {
     setError('');
 
     // Validate inputs
-    if (!email.trim()) {
+    const normalizedEmail = email.toLowerCase().trim();
+    if (!normalizedEmail) {
       setError('Please enter your email address');
       setLoading(false);
       return;
     }
 
-    if (!/^[eE]\d{7}@u\.nus\.edu$/.test(email.trim())) {
-      setError('Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., E1083043@u.nus.edu)');
+    if (!/^e\d{7}@u\.nus\.edu$/.test(normalizedEmail)) {
+      setError('Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., e1083043@u.nus.edu)');
       setLoading(false);
       return;
     }
@@ -122,7 +123,7 @@ function ResetPasswordForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: email.trim(),
+          email: normalizedEmail,
           token: token.trim(),
           newPassword,
         }),

@@ -21,13 +21,16 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email) return null;
 
+        // Normalize email to lowercase for case-insensitive comparison
+        const normalizedEmail = credentials.email.toLowerCase().trim();
+
         try {
           if (credentials.isSignUp === 'true') {
             // Sign up
             const { data: existingUser } = await supabaseAdmin
               .from('users')
               .select('*')
-              .eq('email', credentials.email)
+              .eq('email', normalizedEmail)
               .single();
 
             if (existingUser) {
@@ -40,7 +43,7 @@ export const authOptions: NextAuthOptions = {
             const { data: newUser, error } = await supabaseAdmin
               .from('users')
               .insert({
-                email: credentials.email,
+                email: normalizedEmail,
                 name: credentials.name || 'Anonymous',
                 password_hash: hashedPassword,
                 role: 'participant'
@@ -61,7 +64,7 @@ export const authOptions: NextAuthOptions = {
             const { data: user } = await supabaseAdmin
               .from('users')
               .select('*')
-              .eq('email', credentials.email)
+              .eq('email', normalizedEmail)
               .single();
 
             if (!user) {

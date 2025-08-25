@@ -15,6 +15,11 @@ export default function ForgotPasswordPage() {
   const [expiresIn, setExpiresIn] = useState<number | null>(null);
   const router = useRouter();
 
+  const validateNUSEmail = (email: string) => {
+    const nusEmailPattern = /^e\d{7}@u\.nus\.edu$/;
+    return nusEmailPattern.test(email);
+  };
+
   // Redirect authenticated users to home page
   useEffect(() => {
     if (status === 'authenticated' && session) {
@@ -33,19 +38,15 @@ export default function ForgotPasswordPage() {
     return null; // Component will be unmounted due to redirect
   }
 
-  const validateNUSEmail = (email: string) => {
-    const nusEmailPattern = /^[e]\d{7}@u\.nus\.edu$/;
-    return nusEmailPattern.test(email);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Validate NUS email format
-    if (!validateNUSEmail(email.trim())) {
-      setError('Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., e1083043@u.nus.edu)');
+        // Validate NUS email format
+    const normalizedEmail = email.toLowerCase().trim();
+    if (!validateNUSEmail(normalizedEmail)) {
+      setError('Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., E1083043@u.nus.edu)');
       setLoading(false);
       return;
     }
@@ -56,7 +57,7 @@ export default function ForgotPasswordPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
 
       const data = await response.json();
@@ -66,7 +67,7 @@ export default function ForgotPasswordPage() {
         setExpiresIn(data.expiresIn);
         // Redirect to reset password page after 3 seconds
         setTimeout(() => {
-          router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
+          router.push(`/auth/reset-password?email=${encodeURIComponent(normalizedEmail)}`);
         }, 3000);
       } else {
         // Show more helpful error messages
