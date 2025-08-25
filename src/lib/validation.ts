@@ -143,7 +143,7 @@ export const sanitizers = {
 export const patterns = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   
-  nusEmail: /^[eE]\d{7}@u\.nus\.edu$/,
+  nusEmail: /^e\d{7}@u\.nus\.edu$/,
   
   strongPassword: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
   

@@ -91,10 +91,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and name are required' }, { status: 400 });
     }
 
+    // Normalize email to lowercase for consistency
+    const normalizedEmail = email.toLowerCase().trim();
+
     const { data: user, error } = await supabaseAdmin
       .from('users')
       .insert({
-        email,
+        email: normalizedEmail,
         name,
         role: role || 'participant',
         telegram_id,
