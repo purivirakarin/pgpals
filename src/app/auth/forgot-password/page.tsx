@@ -33,10 +33,22 @@ export default function ForgotPasswordPage() {
     return null; // Component will be unmounted due to redirect
   }
 
+  const validateNUSEmail = (email: string) => {
+    const nusEmailPattern = /^[e]\d{7}@u\.nus\.edu$/;
+    return nusEmailPattern.test(email);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    // Validate NUS email format
+    if (!validateNUSEmail(email.trim())) {
+      setError('Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., e1083043@u.nus.edu)');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await fetch('/api/auth/forgot-password', {
@@ -62,7 +74,7 @@ export default function ForgotPasswordPage() {
         
         if (response.status === 400) {
           if (data.error && data.error.includes('valid email')) {
-            errorMessage = 'Please enter a valid email address (e.g., user@example.com)';
+            errorMessage = 'Please enter a valid NUS email address in the format eXXXXXXX@u.nus.edu (e.g., E1083043@u.nus.edu)';
           }
         } else if (response.status >= 500) {
           errorMessage = 'Server error. Please try again in a few moments.';
@@ -148,7 +160,7 @@ export default function ForgotPasswordPage() {
               Forgot your password?
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              No worries! Enter your email address and we&apos;ll send you a verification code to reset your password.
+              No worries! Enter your NUS email address and we&apos;ll send you a verification code to reset your password.
             </p>
           </div>
         </div>
@@ -163,7 +175,7 @@ export default function ForgotPasswordPage() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email address
+              NUS Email address
             </label>
             <div className="mt-1">
               <input
@@ -175,9 +187,12 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                placeholder="Enter your email address"
+                placeholder="Enter your NUS email (e.g., E1083043@u.nus.edu)"
                 disabled={loading}
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Must be in the format eXXXXXXX@u.nus.edu
+              </p>
             </div>
           </div>
 
