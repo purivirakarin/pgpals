@@ -87,6 +87,13 @@ function QuestsContent() {
                            quest.description?.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = !selectedCategory || quest.category === selectedCategory;
       
+      // Filter out expired quests for non-admin users
+      const isExpired = quest.expires_at && new Date(quest.expires_at) <= new Date();
+      const isAdmin = session?.user?.role === 'admin';
+      if (isExpired && !isAdmin) {
+        return false;
+      }
+      
       // Filter by submission status if specified
       if (selectedStatus && session) {
         const userSubmission = getUserSubmission(quest.id);
