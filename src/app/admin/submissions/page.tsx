@@ -387,7 +387,7 @@ export default function AdminSubmissionsPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-6 card p-6">
+      <div className="mb-6 card p-6 relative z-40">
         <div className="flex flex-col md:flex-row md:items-end gap-4">
           <div className="flex-1">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
@@ -405,7 +405,7 @@ export default function AdminSubmissionsPage() {
               />
             </div>
           </div>
-          <div className="md:w-64">
+          <div className="md:w-64 relative z-50">
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Status
             </label>
