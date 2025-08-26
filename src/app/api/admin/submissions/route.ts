@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const showDeleted = searchParams.get('showDeleted') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
 
     let query = supabaseAdmin
       .from('submissions')
@@ -40,8 +38,7 @@ export async function GET(request: NextRequest) {
           )
         )
       `)
-      .order('submitted_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .order('submitted_at', { ascending: false });
 
     // Filter by deletion status
     if (!showDeleted) {
