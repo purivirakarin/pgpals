@@ -463,7 +463,7 @@ function QuestsContent() {
               <QuestCard
                 key={quest.id}
                 quest={quest}
-                userSubmission={session ? getUserSubmission(quest.id) : undefined}
+                userSubmission={session && session.user?.role !== 'admin' ? getUserSubmission(quest.id) : undefined}
                 showGroupStatus={true}
               />
             ))}
