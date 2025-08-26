@@ -451,6 +451,7 @@ async function handlePhotoSubmission(
       .select('*')
       .eq('user_id', user.id)
       .eq('quest_id', questId)
+      .not('is_deleted', 'eq', true)
       .order('submitted_at', { ascending: false });
 
     if (existingSubmissions && existingSubmissions.length > 0) {
@@ -490,6 +491,7 @@ async function handlePhotoSubmission(
         .eq('quest_id', questId)
         .or(`user_id.eq.${user.id},user_id.eq.${user.partner_id}`)
         .in('status', ['approved', 'ai_approved', 'pending_ai', 'manual_review'])
+        .not('is_deleted', 'eq', true)
         .order('submitted_at', { ascending: false });
 
       if (partnerOrSelfSubmissions && partnerOrSelfSubmissions.length > 0) {

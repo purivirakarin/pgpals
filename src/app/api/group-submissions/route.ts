@@ -140,6 +140,7 @@ export async function POST(request: NextRequest) {
             .select('status')
             .eq('id', groupSubmission.submission_id)
             .in('status', ['approved', 'ai_approved', 'pending_ai', 'manual_review'])
+            .not('is_deleted', 'eq', true)
             .single();
 
           if (submissionStatus) {
