@@ -44,7 +44,7 @@ export default function Dropdown({
   }, []);
 
   return (
-    <div className={`relative ${className}`} ref={dropdownRef}>
+    <div className={`relative z-50 ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -62,7 +62,7 @@ export default function Dropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-[99999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-xl max-h-60 overflow-auto" style={{ zIndex: 99999 }}>
           {options.map((option) => (
             <button
               key={option.value}
