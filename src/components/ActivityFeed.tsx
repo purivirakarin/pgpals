@@ -18,7 +18,8 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  RefreshCw
+  RefreshCw,
+  Clock
 } from 'lucide-react';
 import Dropdown from '@/components/Dropdown';
 
@@ -75,9 +76,10 @@ export default function ActivityFeed({
     { value: '', label: 'All Types' },
     { value: 'user_registered', label: 'User Registered' },
     { value: 'user_updated', label: 'User Updated' },
-    { value: 'submission_created', label: 'Submission Created' },
-    { value: 'submission_approved', label: 'Submission Approved' },
-    { value: 'submission_rejected', label: 'Submission Rejected' },
+    { value: 'partnership_created', label: 'Partnership Created' },
+    { value: 'quest_submitted,pair_quest_submitted,group_quest_submitted', label: 'Quest Submitted' },
+    { value: 'quest_approved,quest_ai_approved', label: 'Quest Approved' },
+    { value: 'quest_rejected,quest_ai_rejected', label: 'Quest Rejected' },
     { value: 'quest_created', label: 'Quest Created' },
     { value: 'quest_updated', label: 'Quest Updated' }
   ];
@@ -181,12 +183,21 @@ export default function ActivityFeed({
         return <User className="w-4 h-4 text-blue-600" />;
       case 'user_updated':
         return <Shield className="w-4 h-4 text-purple-600" />;
-      case 'submission_created':
+      case 'partnership_created':
+        return <User className="w-4 h-4 text-green-600" />;
+      case 'quest_submitted':
+      case 'pair_quest_submitted':
+      case 'group_quest_submitted':
         return <MessageCircle className="w-4 h-4 text-orange-600" />;
-      case 'submission_approved':
+      case 'quest_approved':
+      case 'quest_ai_approved':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'submission_rejected':
+      case 'quest_rejected':
+      case 'quest_ai_rejected':
         return <XCircle className="w-4 h-4 text-red-600" />;
+      case 'quest_pending_ai':
+      case 'quest_manual_review':
+        return <Clock className="w-4 h-4 text-yellow-600" />;
       case 'quest_created':
         return <Plus className="w-4 h-4 text-blue-600" />;
       case 'quest_updated':
@@ -204,14 +215,22 @@ export default function ActivityFeed({
 
   const getActivityBadgeColor = (type: string) => {
     switch (type) {
-      case 'submission_approved':
+      case 'quest_approved':
+      case 'quest_ai_approved':
       case 'points_awarded':
+      case 'partnership_created':
         return 'bg-green-100 text-green-800';
-      case 'submission_rejected':
+      case 'quest_rejected':
+      case 'quest_ai_rejected':
       case 'quest_deleted':
         return 'bg-red-100 text-red-800';
-      case 'submission_created':
+      case 'quest_submitted':
+      case 'pair_quest_submitted':
+      case 'group_quest_submitted':
         return 'bg-orange-100 text-orange-800';
+      case 'quest_pending_ai':
+      case 'quest_manual_review':
+        return 'bg-yellow-100 text-yellow-800';
       case 'quest_created':
       case 'user_registered':
         return 'bg-blue-100 text-blue-800';
@@ -223,6 +242,22 @@ export default function ActivityFeed({
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const normalizeActivityTypeDisplay = (type: string) => {
+    // Treat AI actions the same as manual actions in the UI
+    const normalizedType = type
+      .replace('quest_ai_approved', 'quest_approved')
+      .replace('quest_ai_rejected', 'quest_rejected')
+      .replace('quest_pending_ai', 'quest_pending_review')
+      .replace('quest_manual_review', 'quest_pending_review')
+      .replace('pair_quest_submitted', 'quest_submitted')
+      .replace('group_quest_submitted', 'quest_submitted');
+    
+    // Convert to human readable format
+    return normalizedType
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase());
   };
 
   const formatTimeAgo = (timestamp: string) => {
@@ -279,16 +314,68 @@ export default function ActivityFeed({
     );
   }
 
-  if (activities.length === 0) {
+  if (activities.length === 0 && !loading) {
     return (
       <div className={`${className}`}>
         {showHeader && (
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Recent Activity</h2>
+              {!userId && (
+                <p className="text-sm text-gray-500">Showing latest 50 activities</p>
+              )}
+            </div>
+            {showRefresh && (
+              <button
+                onClick={() => fetchActivities(false, true)}
+                disabled={loading}
+                className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+          </div>
         )}
-        <div className="text-center py-8 text-gray-500">
-          <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <p>No recent activity</p>
-          <p className="text-sm">Activity will appear here as users interact with the platform.</p>
+
+        {/* Search and Filter Controls - Always show when enableSearch is true */}
+        {enableSearch && (
+          <div className="mb-4 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search activities..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div className="relative">
+                <Dropdown
+                  options={activityTypeOptions}
+                  value={typeFilter}
+                  onChange={setTypeFilter}
+                  placeholder="Filter by type"
+                  icon={<Filter className="w-4 h-4" />}
+                  className="min-w-[160px]"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="border border-gray-200 rounded-lg bg-gray-50">
+          <div className="text-center py-8 text-gray-500">
+            <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No recent activity</p>
+            <p className="text-sm">
+              {searchTerm || typeFilter 
+                ? 'Try adjusting your search or filter criteria.'
+                : 'Activity will appear here as users interact with the platform.'
+              }
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -397,7 +484,7 @@ export default function ActivityFeed({
                 <div className="flex items-center space-x-2 ml-4">
                   {/* Activity type badge */}
                   <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getActivityBadgeColor(activity.type)}`}>
-                    {activity.type.replace('_', ' ')}
+                    {normalizeActivityTypeDisplay(activity.type)}
                   </span>
                   
                   {/* Timestamp */}

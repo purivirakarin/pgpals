@@ -27,7 +27,13 @@ export async function GET(request: NextRequest) {
 
     // Filter by activity type if specified
     if (type) {
-      query = query.eq('type', type);
+      // Handle comma-separated types for grouped filters (e.g., "quest_approved,quest_ai_approved")
+      const types = type.split(',').map(t => t.trim());
+      if (types.length > 1) {
+        query = query.in('type', types);
+      } else {
+        query = query.eq('type', type);
+      }
     }
 
     // Filter by user if specified (for user-specific activity feeds)
@@ -67,7 +73,13 @@ export async function GET(request: NextRequest) {
 
     // Apply same filters for count
     if (type) {
-      totalCountQuery = totalCountQuery.eq('type', type);
+      // Handle comma-separated types for grouped filters (e.g., "quest_approved,quest_ai_approved")
+      const types = type.split(',').map(t => t.trim());
+      if (types.length > 1) {
+        totalCountQuery = totalCountQuery.in('type', types);
+      } else {
+        totalCountQuery = totalCountQuery.eq('type', type);
+      }
     }
     if (userId) {
       totalCountQuery = totalCountQuery.or(`user_id.eq.${userId},created_by.eq.${userId}`);
