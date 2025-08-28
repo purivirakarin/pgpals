@@ -103,9 +103,57 @@ export async function GET(
       }
     }
 
-    // For now, let's skip the complex group submissions and focus on making the basic functionality work
-    // We can add group submissions back later once the core feature is working
-    const groupSubmissions: any[] = [];
+    // 3. Get group submissions where this user participated
+    let groupSubmissions: any[] = [];
+    
+    const { data: groupParticipations, error: groupError } = await supabaseAdmin
+      .from('group_participants')
+      .select(`
+        group_submission_id,
+        opted_out,
+        opted_out_at,
+        group_submissions!inner(
+          id,
+          quest_id,
+          submission_id,
+          submitter_user_id,
+          submissions!inner(
+            id,
+            user_id,
+            quest_id,
+            status,
+            points_awarded,
+            submitted_at,
+            reviewed_at,
+            is_group_submission,
+            group_submission_id,
+            represents_pairs,
+            is_deleted,
+            deleted_at,
+            quest:quests(id, title, category, points, description),
+            submitter:users!submissions_user_id_fkey(id, name, email, telegram_username),
+            reviewer:users!submissions_reviewed_by_fkey(id, name, email)
+          )
+        )
+      `)
+      .eq('user_id', parseInt(userId));
+
+    if (!groupError && groupParticipations) {
+      groupSubmissions = groupParticipations.map(participation => {
+        const groupSubmission = participation.group_submissions as any;
+        const submission = groupSubmission.submissions as any;
+        
+        return {
+          ...submission,
+          submission_type: 'group',
+          group_submission_id: groupSubmission.id,
+          submitter_user_id: groupSubmission.submitter_user_id,
+          opted_out: participation.opted_out,
+          opted_out_at: participation.opted_out_at,
+          submitter: submission.submitter
+        };
+      });
+    }
 
     // 4. Calculate totals and statistics
     const allSubmissions = [
