@@ -12,6 +12,9 @@ interface UserSubmission {
   points_awarded: number | null;
   is_deleted: boolean;
   opted_out?: boolean;
+  opted_out_at?: string;
+  group_submission_id?: number;
+  submitter_user_id?: number;
   quest: {
     id: number;
     title: string;
