@@ -154,15 +154,25 @@ export default function ActivityFeed({
   }, [limit, offset, userId, searchTerm, typeFilter, currentPage, enablePagination]);
 
   useEffect(() => {
+    // Only fetch on initial load and when core parameters change
     fetchActivities(false);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, limit]); // Removed fetchActivities from deps to avoid infinite loop
+  }, [userId, limit]);
+
+  // Handle pagination changes
+  useEffect(() => {
+    if (enablePagination && currentPage > 1) {
+      fetchActivities(false, false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
   // Handle search with debounce
   useEffect(() => {
     if (!enableSearch) return;
     
     const timer = setTimeout(() => {
+      setCurrentPage(1); // Reset to page 1 when search/filter changes
       fetchActivities(false, true);
     }, 300);
 
@@ -171,8 +181,7 @@ export default function ActivityFeed({
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
-    // Force re-fetch when page changes
-    setTimeout(() => fetchActivities(false, false), 0);
+    // Remove setTimeout - let useEffect handle the fetch
   };
 
   const totalPages = Math.ceil(totalCount / limit);

@@ -22,9 +22,11 @@ import {
   Save,
   Link,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from 'lucide-react';
 import Dropdown from '@/components/Dropdown';
+import UserSubmissionsModal from '@/components/UserSubmissionsModal';
 
 interface UserData {
   id: number;
@@ -69,6 +71,9 @@ export default function AdminUsersPage() {
   const [linkingUser, setLinkingUser] = useState<UserData | null>(null);
   const [selectedTargetUser, setSelectedTargetUser] = useState<string>('');
   const [linkSearchTerm, setLinkSearchTerm] = useState('');
+  // Submissions modal state
+  const [showSubmissionsModal, setShowSubmissionsModal] = useState(false);
+  const [submissionsUserId, setSubmissionsUserId] = useState<number | null>(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -228,6 +233,11 @@ export default function AdminUsersPage() {
     setSelectedTargetUser('');
     setLinkSearchTerm('');
     setShowLinkModal(true);
+  };
+
+  const openSubmissionsModal = (user: UserData) => {
+    setSubmissionsUserId(user.id);
+    setShowSubmissionsModal(true);
   };
 
   const handleLinkUsers = async () => {
@@ -504,6 +514,13 @@ export default function AdminUsersPage() {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
+                            onClick={() => openSubmissionsModal(user)}
+                            className="text-green-600 hover:text-green-700"
+                            title="View all user submissions"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => openLinkModal(user)}
                             className="text-blue-600 hover:text-blue-700"
                             title="Create partnership with another user"
@@ -604,17 +621,24 @@ export default function AdminUsersPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center justify-center space-x-4 pt-3 border-t border-gray-100">
+                  <div className="flex items-center justify-center space-x-2 pt-3 border-t border-gray-100">
                     <button
                       onClick={() => openEditModal(user)}
-                      className="flex items-center px-3 py-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+                      className="flex items-center px-2 py-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
                     >
                       <Edit className="w-4 h-4 mr-1" />
                       <span className="text-sm">Edit</span>
                     </button>
                     <button
+                      onClick={() => openSubmissionsModal(user)}
+                      className="flex items-center px-2 py-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                    >
+                      <FileText className="w-4 h-4 mr-1" />
+                      <span className="text-sm">Submissions</span>
+                    </button>
+                    <button
                       onClick={() => openLinkModal(user)}
-                      className="flex items-center px-3 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="flex items-center px-2 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                     >
                       <Link className="w-4 h-4 mr-1" />
                       <span className="text-sm">Link</span>
@@ -622,7 +646,7 @@ export default function AdminUsersPage() {
                     {user.id !== parseInt(session.user?.id || '0') && (
                       <button
                         onClick={() => deleteUser(user.id, user.name)}
-                        className="flex items-center px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        className="flex items-center px-2 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4 mr-1" />
                         <span className="text-sm">Delete</span>
@@ -1013,6 +1037,18 @@ export default function AdminUsersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* User Submissions Modal */}
+      {submissionsUserId && (
+        <UserSubmissionsModal
+          userId={submissionsUserId}
+          isOpen={showSubmissionsModal}
+          onClose={() => {
+            setShowSubmissionsModal(false);
+            setSubmissionsUserId(null);
+          }}
+        />
       )}
       </div>
     </div>
