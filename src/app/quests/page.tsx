@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
-import { Quest, Submission } from '@/types';
+import { Quest, Submission, SubmissionWithMetadata } from '@/types';
 import QuestCard from '@/components/QuestCard';
 import LoadingSpinner, { QuestGridSkeleton } from '@/components/LoadingSpinner';
 import { Search, Filter, Target, Loader, X, Sparkles, ArrowUpDown, Camera, Users, Lightbulb, Bot } from 'lucide-react';
@@ -13,7 +13,7 @@ function QuestsContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const [quests, setQuests] = useState<Quest[]>([]);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] = useState<SubmissionWithMetadata[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -78,7 +78,37 @@ function QuestsContent() {
 
   const getUserSubmission = (questId: number) => {
     if (!Array.isArray(submissions)) return undefined;
-    return submissions.find(sub => sub.quest_id === questId);
+    
+    // Find the submission for this quest
+    const submission = submissions.find(sub => sub.quest_id === questId);
+    
+    // If it's a group submission and the user opted out, don't consider it as a valid submission
+    if (submission && submission.submitted_by === 'group' && submission.user_opted_out) {
+      return undefined;
+    }
+    
+    return submission;
+  };
+
+  // Helper function to check if user has any valid approved submission for a quest
+  const hasApprovedSubmission = (questId: number) => {
+    if (!Array.isArray(submissions)) return false;
+    
+    // Find all submissions for this quest
+    const questSubmissions = submissions.filter(sub => sub.quest_id === questId);
+    
+    // Check if any of them are approved and valid (not opted out for group submissions)
+    return questSubmissions.some(submission => {
+      const isApproved = submission.status === 'approved' || submission.status === 'ai_approved';
+      
+      // For group submissions, user must not have opted out
+      if (submission.submitted_by === 'group') {
+        return isApproved && !submission.user_opted_out;
+      }
+      
+      // For direct and partner submissions, just check if approved
+      return isApproved;
+    });
   };
 
   const filteredQuests = quests
@@ -102,8 +132,7 @@ function QuestsContent() {
           case 'available':
             return matchesSearch && matchesCategory && !userSubmission;
           case 'completed':
-            return matchesSearch && matchesCategory && userSubmission && 
-                   (userSubmission.status === 'approved' || userSubmission.status === 'ai_approved');
+            return matchesSearch && matchesCategory && hasApprovedSubmission(quest.id);
           case 'pending':
             return matchesSearch && matchesCategory && userSubmission && 
                    (userSubmission.status === 'pending_ai' || userSubmission.status === 'manual_review');
