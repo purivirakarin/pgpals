@@ -58,6 +58,20 @@ export interface Submission {
   deleted_by?: number;
 }
 
+// Extended submission interface for API responses that include additional metadata
+export interface SubmissionWithMetadata extends Submission {
+  submitted_by: 'self' | 'partner' | 'group';
+  submitter_name?: string;
+  submitter_telegram?: string;
+  user_opted_out?: boolean;
+  opted_out_at?: string;
+  is_submitter: boolean;
+  can_delete: boolean;
+  can_opt_out: boolean;
+  quest?: Quest;
+  users?: User;
+}
+
 export interface Activity {
   id: number;
   type: string;
