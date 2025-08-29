@@ -18,10 +18,12 @@ export async function GET(
     const fileId = params.fileId;
     
     // Verify the file ID exists in our submissions table for security
+    // Exclude soft-deleted records
     const { data: submission } = await supabaseAdmin
       .from('submissions')
       .select('telegram_file_id')
       .eq('telegram_file_id', fileId)
+      .eq('is_deleted', false)
       .single();
 
     if (!submission) {
