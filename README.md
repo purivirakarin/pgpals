@@ -66,7 +66,7 @@ For multiple-pair quests, use group codes:
 
 ### For Administrators
 - **Quest Management**: Create/edit quests with expiration dates
-- **Submission Review**: AI-assisted validation with manual override
+- **Submission Review**: Manual review
 - **User Management**: Monitor progress and manage partnerships
 
 ## 🏗️ Technical Stack
@@ -76,7 +76,6 @@ For multiple-pair quests, use group codes:
 - **Authentication**: NextAuth.js with role-based access
 - **Real-time**: Supabase subscriptions for live updates
 - **Image Storage**: Telegram Bot API (cost-effective CDN)
-- **AI Processing**: Local Python scripts for validation
 - **Deployment**: Vercel + Supabase (free tier compatible)
 
 ## 🔧 Development
@@ -101,20 +100,12 @@ npm run type-check   # TypeScript validation
 ### Core Tables
 - `users` - Participant and admin accounts with partnerships
 - `quests` - Quest definitions with categories and expiration
-- `submissions` - Photo submissions with AI analysis
+- `submissions` - Photo submissions
 - `partner_groups` - Group codes for collaborative submissions  
 - `group_submissions` - Multi-pair quest submissions
 
 ### Migrations
 Run migrations in `/database/` folder in numerical order (01-11) in your Supabase SQL editor.
-
-## 🤖 AI Processing
-
-Set up local Python environment for cost-effective validation:
-```bash
-python -m venv pgpals_ai && source pgpals_ai/bin/activate
-pip install torch torchvision transformers opencv-python pillow requests supabase
-```
 
 ## 🚀 Production Deployment
 
