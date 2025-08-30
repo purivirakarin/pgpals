@@ -627,7 +627,7 @@ export default function AdminQuestsPage() {
       {/* Quest Form Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-gray-900">
@@ -668,8 +668,8 @@ export default function AdminQuestsPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="relative z-30">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Category *
                     </label>
@@ -685,7 +685,7 @@ export default function AdminQuestsPage() {
                     />
                   </div>
 
-                  <div>
+                  <div className="relative z-20">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Points *
                     </label>
@@ -700,7 +700,7 @@ export default function AdminQuestsPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="relative z-10">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
