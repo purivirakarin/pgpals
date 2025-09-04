@@ -133,7 +133,9 @@ export default function ActivityFeed({
       if (enablePagination) {
         setActivities(activitiesData);
         setTotalCount(totalFromServer);
-        setHasMore((currentPage * limit) < totalFromServer);
+        // Calculate hasMore based on the actual current page being processed
+        const actualCurrentPage = resetPage ? 1 : currentPage;
+        setHasMore((actualCurrentPage * limit) < totalFromServer);
       } else {
         if (isLoadMore) {
           setActivities(prev => [...prev, ...activitiesData]);
@@ -155,17 +157,19 @@ export default function ActivityFeed({
 
   useEffect(() => {
     // Only fetch on initial load and when core parameters change
-    fetchActivities(false);
+    if (!enablePagination || currentPage === 1) {
+      fetchActivities(false);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, limit]);
 
   // Handle pagination changes
   useEffect(() => {
-    if (enablePagination && currentPage > 1) {
+    if (enablePagination) {
       fetchActivities(false, false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPage]);
+  }, [currentPage, enablePagination]);
 
   // Handle search with debounce
   useEffect(() => {
@@ -177,7 +181,8 @@ export default function ActivityFeed({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, typeFilter, fetchActivities, enableSearch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, typeFilter, enableSearch]);
 
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
