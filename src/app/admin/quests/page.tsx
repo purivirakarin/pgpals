@@ -374,7 +374,7 @@ export default function AdminQuestsPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-6 card p-6">
+      <div className="mb-6 card p-6 relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="md:col-span-1">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
@@ -464,7 +464,7 @@ export default function AdminQuestsPage() {
       </div>
 
       {/* Quests List */}
-      <div className="card">
+      <div className="card relative z-10">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">
             Quests ({totalFilteredQuests})
