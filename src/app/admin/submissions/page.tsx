@@ -22,7 +22,8 @@ import {
   AlertCircle,
   ExternalLink,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 import { Submission } from '@/types';
 import Dropdown from '@/components/Dropdown';
@@ -64,6 +65,7 @@ export default function AdminSubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [reviewLoading, setReviewLoading] = useState<number | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [downloadingPhotos, setDownloadingPhotos] = useState(false);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const submissionsPerPage = 10;
@@ -124,6 +126,86 @@ export default function AdminSubmissionsPage() {
       setError(err instanceof Error ? err.message : 'Failed to review submission');
     } finally {
       setReviewLoading(null);
+    }
+  };
+
+  const downloadAllPhotos = async () => {
+    setDownloadingPhotos(true);
+    try {
+      // Build query parameters based on current filters
+      const params = new URLSearchParams();
+      params.append('format', 'json');
+      
+      if (statusFilter) {
+        params.append('status', statusFilter);
+      }
+      if (showDeleted) {
+        params.append('includeDeleted', 'true');
+      }
+
+      // Get the list of photos
+      const response = await fetch(`/api/admin/submissions/download-photos?${params.toString()}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get photo list');
+      }
+
+      const data = await response.json();
+      
+      if (data.total_photos === 0) {
+        alert('No photos found with the current filters.');
+        return;
+      }
+
+      // Confirm download
+      const confirmed = confirm(`Found ${data.total_photos} photos. This will download them individually. Continue?`);
+      if (!confirmed) return;
+
+      // Download each photo individually
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 0; i < data.photos.length; i++) {
+        const photo = data.photos[i];
+        
+        try {
+          // Download individual photo
+          const photoResponse = await fetch(`/api/admin/submissions/download-photos?format=download&fileId=${photo.telegram_file_id}`);
+          
+          if (photoResponse.ok) {
+            const blob = await photoResponse.blob();
+            
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = photo.suggested_filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            successCount++;
+            
+            // Small delay to avoid overwhelming the browser
+            await new Promise(resolve => setTimeout(resolve, 100));
+          } else {
+            console.error(`Failed to download ${photo.suggested_filename}`);
+            errorCount++;
+          }
+        } catch (error) {
+          console.error(`Error downloading ${photo.suggested_filename}:`, error);
+          errorCount++;
+        }
+      }
+
+      alert(`Download completed!\nSuccessful: ${successCount}\nFailed: ${errorCount}`);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download photos');
+    } finally {
+      setDownloadingPhotos(false);
     }
   };
 
@@ -388,8 +470,8 @@ export default function AdminSubmissionsPage() {
 
       {/* Filters */}
       <div className="mb-6 card p-6 relative z-40">
-        <div className="flex flex-col md:flex-row md:items-end gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+          <div className="flex-1 lg:flex-[2]">
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
               Search Submissions
             </label>
@@ -400,12 +482,12 @@ export default function AdminSubmissionsPage() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                 placeholder="Search by user, quest, category, or @username..."
               />
             </div>
           </div>
-          <div className="md:w-64 relative z-50">
+          <div className="lg:w-48 relative z-50">
             <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
               Filter by Status
             </label>
@@ -428,18 +510,48 @@ export default function AdminSubmissionsPage() {
           </div>
 
           <div className="flex items-center">
-            <label className="flex items-center space-x-2 text-sm font-medium text-gray-700">
-              <input
-                type="checkbox"
-                checked={showDeleted}
-                onChange={(e) => setShowDeleted(e.target.checked)}
-                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-              />
-              <span>Show Deleted</span>
-            </label>
+            <div className="flex flex-col">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Options
+              </label>
+              <button
+                onClick={() => setShowDeleted(!showDeleted)}
+                className={`
+                  flex items-center space-x-2 px-3 py-2 rounded-lg border transition-all duration-200
+                  ${showDeleted 
+                    ? 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100' 
+                    : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                  }
+                `}
+                title={showDeleted ? "Hide deleted submissions" : "Show deleted submissions"}
+              >
+                <input
+                  type="checkbox"
+                  checked={showDeleted}
+                  onChange={() => {}} // Controlled by button click
+                  className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500 pointer-events-none"
+                />
+                <span className="text-sm font-medium">Show Deleted</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-end space-y-2 lg:space-y-0 lg:space-x-3">
+            <button
+              onClick={downloadAllPhotos}
+              disabled={downloadingPhotos}
+              className="btn-secondary flex items-center justify-center space-x-2 min-w-fit"
+              title="Download all photos from filtered submissions"
+            >
+              {downloadingPhotos ? (
+                <Loader className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">
+                {downloadingPhotos ? 'Downloading...' : 'Download Photos'}
+              </span>
+            </button>
             <button
               onClick={() => setStatusFilter('pending_review')}
               className="btn-primary"
