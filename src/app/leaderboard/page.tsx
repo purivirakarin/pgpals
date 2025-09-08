@@ -1,7 +1,18 @@
 import Leaderboard from '@/components/Leaderboard';
 import { Trophy } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-export default function LeaderboardPage() {
+export default async function LeaderboardPage() {
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === 'admin';
+
+  // Redirect non-admin users to home page
+  if (!isAdmin) {
+    redirect('/');
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -14,24 +25,24 @@ export default function LeaderboardPage() {
             Leaderboard
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            See how you rank against other participants in the quest challenge!
+            Monitor participant rankings and performance in the quest challenge.
           </p>
         </div>
 
-      <Leaderboard limit={20} className="max-w-none" />
-      
-      <div className="mt-8 card p-6 text-center">
-        <h2 className="text-xl font-semibold mb-4">How Points Work</h2>
-        <p className="text-gray-600 mb-4">
-          Points are awarded based on quest difficulty and completion speed. Rankings update in real-time after validation.
-        </p>
-        <a 
-          href="/help/scoring" 
-          className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm"
-        >
-          Learn more about scoring system →
-        </a>
-      </div>
+        <Leaderboard limit={20} className="max-w-none" />
+        
+        <div className="mt-8 card p-6 text-center">
+          <h2 className="text-xl font-semibold mb-4">How Points Work</h2>
+          <p className="text-gray-600 mb-4">
+            Points are awarded based on quest difficulty and completion speed. Rankings update in real-time after validation.
+          </p>
+          <a 
+            href="/help/scoring" 
+            className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium text-sm"
+          >
+            Learn more about scoring system →
+          </a>
+        </div>
       </div>
     </div>
   );

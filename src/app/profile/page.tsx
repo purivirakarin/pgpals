@@ -564,13 +564,13 @@ const completedQuests = completedSubmissions.length;
             <h3 className="text-lg font-semibold mb-4">Quest Progress</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center">
+                {/* <div className="flex items-center">
                   <Trophy className="w-5 h-5 text-primary-500 mr-2" />
                   <span className="text-gray-600">Current Rank</span>
                 </div>
                 <span className="text-2xl font-bold text-primary-600">
                   #{userStats?.current_rank || '-'}
-                </span>
+                </span> */}
               </div>
               
               <div className="flex items-center justify-between">
@@ -587,14 +587,6 @@ const completedQuests = completedSubmissions.length;
                   <span className="text-gray-600">Completed Quests</span>
                 </div>
                 <span className="text-lg font-semibold">{completedQuests}</span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Activity className="w-5 h-5 text-primary-500 mr-2" />
-                  <span className="text-gray-600">Current Streak</span>
-                </div>
-                <span className="text-lg font-semibold">{profile.streak_count}</span>
               </div>
             </div>
           </div>

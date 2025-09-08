@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { Trophy, Medal, Award, User, TrendingUp } from 'lucide-react';
 import { LeaderboardEntry } from '@/types';
 
@@ -11,9 +12,14 @@ interface LeaderboardProps {
 }
 
 export default function Leaderboard({ limit = 20, showRank = true, className = '' }: LeaderboardProps) {
+  const { data: session } = useSession();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Only show ranks to admin users
+  const isAdmin = session?.user?.role === 'admin';
+  const shouldShowRank = showRank && isAdmin;
 
   const fetchLeaderboard = useCallback(async () => {
     try {
@@ -119,12 +125,12 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
             <div
               key={entry.user_id}
               className={`flex items-center p-4 rounded-lg border transition-all hover:shadow-md ${
-                entry.rank <= 3 
+                shouldShowRank && entry.rank <= 3 
                   ? 'bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200' 
                   : 'bg-gray-50 border-gray-100'
               }`}
             >
-              {showRank && (
+              {shouldShowRank && (
                 <div className="flex items-center mr-4">
                   {getRankIcon(entry.rank)}
                 </div>
@@ -154,7 +160,7 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
                   <div className="text-xs text-gray-500">points</div>
                 </div>
                 
-                {showRank && (
+                {shouldShowRank && (
                   <div className={`px-3 py-1 rounded-full text-sm font-medium ${getRankBadge(entry.rank)}`}>
                     #{entry.rank}
                   </div>

@@ -49,7 +49,7 @@ async function handleMessage(message: any) {
       const showAll = parts.length > 1 && parts[1] === 'all';
       await handleQuestsCommand(chatId, userId, showAll);
     } else if (text?.startsWith('/leaderboard')) {
-      await handleLeaderboardCommand(chatId);
+      await handleLeaderboardCommand(chatId, userId);
     } else if (text?.startsWith('/groups')) {
       await handleGroupsCommand(chatId, userId);
     } else if (photo && caption) {
@@ -718,8 +718,32 @@ async function handleStatusCommand(chatId: number, telegramId: number) {
   }
 }
 
-async function handleLeaderboardCommand(chatId: number) {
+async function handleLeaderboardCommand(chatId: number, telegramId: number) {
   try {
+    // Check if user is admin
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('telegram_id', telegramId.toString())
+      .single();
+
+    const isAdmin = user?.role === 'admin';
+
+    if (!isAdmin) {
+      // Show message about final event for non-admin users
+      const message = 
+        '🏆 **Leaderboard - Coming Soon!**\n\n' +
+        '📅 The final leaderboard will be revealed during the **Final Event** on:\n\n' +
+        '🗓️ **Tuesday, September 9th**\n' +
+        '🕖 **7:00 PM**\n' +
+        '📍 **PGPR MPH**\n\n' +
+        '💪 Use `/status` to check your progress\n';
+
+      await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      return;
+    }
+
+    // Admin users see the actual leaderboard
     // Get all participants and calculate their points
     const { data: users } = await supabaseAdmin
       .from('users')
@@ -762,7 +786,7 @@ async function handleLeaderboardCommand(chatId: number) {
       return;
     }
 
-    let message = '🏆 **Leaderboard - Top 20**\n\n';
+    let message = '🏆 **Admin Leaderboard - Top 20**\n\n';
     topUsers.forEach((user: any, index: number) => {
       const medal = index < 3 ? ['🥇', '🥈', '🥉'][index] : `${index + 1}.`;
       const displayName = user.telegram_username ? `@${user.telegram_username}` : user.name;
