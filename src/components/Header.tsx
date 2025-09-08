@@ -10,12 +10,25 @@ export default function Header() {
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navigation = [
+  const baseNavigation = [
     { name: 'Home', href: '/' },
     { name: 'Quests', href: '/quests' },
     { name: 'Groups', href: '/groups' },
-    { name: 'Leaderboard', href: '/leaderboard' },
     { name: 'Help', href: '/help' },
+  ];
+
+  // Add appropriate ranking page based on user role
+  const navigation = [
+    ...baseNavigation.slice(0, 3), // Home, Quests, Groups
+    ...(session?.user?.role === 'admin'
+      ? [
+        {
+        name: 'Leaderboard',
+        href: '/leaderboard',
+        },
+      ]
+      : []),
+    ...baseNavigation.slice(3), // Help
   ];
 
   const userNavigation = [

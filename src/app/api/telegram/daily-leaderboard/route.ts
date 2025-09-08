@@ -63,7 +63,6 @@ export async function POST(request: NextRequest) {
       message += `${trophies[index]} ${user.name} - ${user.total_points} points\n`;
     });
 
-    message += `\n💪 Keep completing quests to climb the leaderboard!\n`;
     message += `Use /quests to see available challenges.`;
 
     // Send notification to all users

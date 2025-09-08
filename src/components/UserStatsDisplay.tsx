@@ -60,10 +60,11 @@ export default function UserStatsDisplay() {
         <span className="text-white/70 hidden sm:inline text-xs">pts</span>
       </div>
       
-      <div className="flex items-center space-x-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1">
+      {/* Hide rank display */}
+      {/* <div className="flex items-center space-x-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1">
         <Trophy className="w-4 h-4 text-primary-200" />
         <span className="font-medium text-white">#{stats.current_rank}</span>
-      </div>
+      </div> */}
       
       <div className="flex items-center space-x-1.5 bg-white/10 backdrop-blur-sm rounded-lg px-2 py-1 hidden md:flex">
         <CheckCircle className="w-4 h-4 text-primary-300" />
