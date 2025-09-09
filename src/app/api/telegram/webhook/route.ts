@@ -525,6 +525,18 @@ async function handlePhotoSubmission(
     const largestPhoto = photo[photo.length - 1];
     const fileId = largestPhoto.file_id;
     
+    // Check if submissions are enabled globally
+    const { data: submissionsEnabledCheck } = await supabaseAdmin
+      .rpc('get_system_setting', { setting_name: 'submissions_enabled' });
+
+    if (submissionsEnabledCheck !== true) {
+      await safeSendMessage(chatId, 
+        '🚫 Submissions temporarily disabled\n\n' +
+        'New submissions are currently not being accepted. Please try again later.'
+      );
+      return;
+    }
+    
     if (isGroupSubmission) {
       // Create group submission via API (supporting both formats)
       try {
@@ -599,6 +611,18 @@ async function handlePhotoSubmission(
         await safeSendMessage(chatId, `❌ ${errorMessage}\n\nTry: /groups to see valid group codes`);
         return;
       }
+    }
+
+    // Check if submissions are enabled globally
+    const { data: submissionsEnabledForIndividual } = await supabaseAdmin
+      .rpc('get_system_setting', { setting_name: 'submissions_enabled' });
+
+    if (submissionsEnabledForIndividual !== true) {
+      await safeSendMessage(chatId, 
+        '🚫 Submissions temporarily disabled\n\n' +
+        'New submissions are currently not being accepted. Please try again later.'
+      );
+      return;
     }
 
     // Regular individual submission
@@ -723,14 +747,18 @@ async function handleLeaderboardCommand(chatId: number, telegramId: number) {
     // Check if user is admin
     const { data: user } = await supabaseAdmin
       .from('users')
-      .select('role')
+      .select('id, role')
       .eq('telegram_id', telegramId.toString())
       .single();
 
     const isAdmin = user?.role === 'admin';
 
-    if (!isAdmin) {
-      // Show message about final event for non-admin users
+    // Check if leaderboard is visible to participants
+    const { data: leaderboardVisible } = await supabaseAdmin
+      .rpc('get_system_setting', { setting_name: 'leaderboard_visible' });
+
+    if (!isAdmin && leaderboardVisible !== true) {
+      // Show message about final event for non-admin users when leaderboard is disabled
       const message = 
         '🏆 **Leaderboard - Coming Soon!**\n\n' +
         '📅 The final leaderboard will be revealed during the **Final Event** on:\n\n' +
@@ -743,7 +771,7 @@ async function handleLeaderboardCommand(chatId: number, telegramId: number) {
       return;
     }
 
-    // Admin users see the actual leaderboard
+    // Admin users or when leaderboard is enabled see the actual leaderboard
     // Get all participants and calculate their points
     const { data: users } = await supabaseAdmin
       .from('users')
