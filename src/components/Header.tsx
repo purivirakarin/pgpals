@@ -5,10 +5,12 @@ import { useSession, signOut } from 'next-auth/react';
 import { User, LogOut, Menu, X, Shield } from 'lucide-react';
 import Link from 'next/link';
 import UserStatsDisplay from './UserStatsDisplay';
+import { useLeaderboardVisibility } from '@/hooks/useLeaderboardVisibility';
 
 export default function Header() {
   const { data: session, status } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { leaderboard_visible, loading: leaderboardLoading } = useLeaderboardVisibility();
 
   const baseNavigation = [
     { name: 'Home', href: '/' },
@@ -17,16 +19,12 @@ export default function Header() {
     { name: 'Help', href: '/help' },
   ];
 
-  // Add appropriate ranking page based on user role
+  // Add leaderboard link based on visibility and user role
   const navigation = [
     ...baseNavigation.slice(0, 3), // Home, Quests, Groups
-    ...(session?.user?.role === 'admin'
-      ? [
-        {
-        name: 'Leaderboard',
-        href: '/leaderboard',
-        },
-      ]
+    // Show leaderboard if user is admin OR if leaderboard is visible to everyone
+    ...(!leaderboardLoading && (session?.user?.role === 'admin' || leaderboard_visible)
+      ? [{ name: 'Leaderboard', href: '/leaderboard' }]
       : []),
     ...baseNavigation.slice(3), // Help
   ];

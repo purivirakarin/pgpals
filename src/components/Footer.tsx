@@ -1,7 +1,23 @@
+'use client';
+
 import Link from 'next/link';
 import { Heart, MessageCircle, Users, Mail } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useLeaderboardVisibility } from '@/hooks/useLeaderboardVisibility';
 
 export default function Footer() {
+  const { data: session } = useSession();
+  const { leaderboard_visible, loading: leaderboardLoading } = useLeaderboardVisibility();
+
+  // Show leaderboard link if user is admin OR if leaderboard is visible to everyone
+  const showLeaderboard = !leaderboardLoading && (session?.user?.role === 'admin' || leaderboard_visible);
+
+  const footerLinks = [
+    { name: 'Home', href: '/' },
+    { name: 'Quests', href: '/quests' },
+    ...(showLeaderboard ? [{ name: 'Leaderboard', href: '/leaderboard' }] : []),
+    { name: 'Help & Support', href: '/help' }
+  ];
   return (
     <footer className="bg-gradient-to-r from-primary-800 via-primary-700 to-primary-800 text-white border-t border-primary-600/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -25,12 +41,7 @@ export default function Footer() {
               Quick Links
             </h4>
             <ul className="space-y-3">
-              {[
-                { name: 'Home', href: '/' },
-                { name: 'Quests', href: '/quests' },
-                { name: 'Leaderboard', href: '/leaderboard' },
-                { name: 'Help & Support', href: '/help' }
-              ].map((link) => (
+              {footerLinks.map((link) => (
                 <li key={link.name}>
                   <Link 
                     href={link.href} 

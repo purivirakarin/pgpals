@@ -15,7 +15,8 @@ import {
   AlertTriangle,
   Loader,
   RefreshCw,
-  MessageSquare
+  MessageSquare,
+  Settings
 } from 'lucide-react';
 import Link from 'next/link';
 import ActivityFeed from '@/components/ActivityFeed';
@@ -185,6 +186,13 @@ export default function AdminDashboard() {
       href: '/admin/submissions',
       icon: FileText,
       color: 'text-purple-600 bg-purple-100'
+    },
+    {
+      title: 'Settings',
+      description: 'Manage submissions, leaderboard, and user access',
+      href: '/admin/controls',
+      icon: Settings,
+      color: 'text-red-600 bg-red-100'
     },
     {
       title: 'Broadcast Message',

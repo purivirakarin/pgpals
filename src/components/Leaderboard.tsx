@@ -93,13 +93,24 @@ export default function Leaderboard({ limit = 20, showRank = true, className = '
     return (
       <div className={`card p-6 ${className}`}>
         <div className="text-center text-muted-600">
-          <p>Error loading leaderboard: {error}</p>
-          <button
-            onClick={fetchLeaderboard}
-            className="mt-2 btn-primary"
-          >
-            Try Again
-          </button>
+          {error.includes('not available') ? (
+            <>
+              <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium text-gray-700 mb-2">Leaderboard Temporarily Hidden</p>
+              <p className="text-gray-600">The leaderboard will be revealed at the appropriate time.</p>
+              <p className="text-sm text-gray-500 mt-2">Check back later or contact administrators for more information.</p>
+            </>
+          ) : (
+            <>
+              <p>Error loading leaderboard: {error}</p>
+              <button
+                onClick={fetchLeaderboard}
+                className="mt-2 btn-primary"
+              >
+                Try Again
+              </button>
+            </>
+          )}
         </div>
       </div>
     );

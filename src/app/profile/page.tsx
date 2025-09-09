@@ -23,6 +23,7 @@ import {
   FileText
 } from 'lucide-react';
 import ActivityFeed from '@/components/ActivityFeed';
+import { useLeaderboardVisibility } from '@/hooks/useLeaderboardVisibility';
 
 interface UserProfile {
   id: string;
@@ -42,6 +43,7 @@ interface UserProfile {
 export default function ProfilePage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
+  const { leaderboard_visible, loading: leaderboardLoading } = useLeaderboardVisibility();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [userStats, setUserStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,9 @@ export default function ProfilePage() {
   const [telegramId, setTelegramId] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Show leaderboard link if user is admin OR if leaderboard is visible to everyone
+  const showLeaderboard = !leaderboardLoading && (session?.user?.role === 'admin' || leaderboard_visible);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -601,12 +606,14 @@ const completedQuests = completedSubmissions.length;
               >
                 Browse Quests
               </a>
-              <a
-                href="/leaderboard"
-                className="block w-full btn-secondary text-center"
-              >
-                View Leaderboard
-              </a>
+              {showLeaderboard && (
+                <a
+                  href="/leaderboard"
+                  className="block w-full btn-secondary text-center"
+                >
+                  View Leaderboard
+                </a>
+              )}
             </div>
           </div>
 

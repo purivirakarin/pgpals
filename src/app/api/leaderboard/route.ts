@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase';
 import { LeaderboardEntry } from '@/types';
 
@@ -6,8 +8,22 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
+
+    // Check if leaderboard is visible to participants
+    const { data: leaderboardSetting } = await supabaseAdmin
+      .rpc('get_system_setting', { setting_name: 'leaderboard_visible' });
+
+    const isLeaderboardVisible = leaderboardSetting === true;
+
+    // Allow admins to always see the leaderboard, regardless of setting
+    const isAdmin = session?.user?.role === 'admin';
+
+    if (!isLeaderboardVisible && !isAdmin) {
+      return NextResponse.json({ error: 'Leaderboard is currently not available' }, { status: 403 });
+    }
 
     // Use the view that automatically calculates points from approved submissions
     // Exclude admin users from leaderboard
