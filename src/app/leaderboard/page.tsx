@@ -1,4 +1,5 @@
 import Leaderboard from '@/components/Leaderboard';
+import LeaderboardDownloadButton from '@/components/LeaderboardDownloadButton';
 import { Trophy } from 'lucide-react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -68,6 +69,13 @@ export default async function LeaderboardPage() {
               : "Monitor participant rankings and performance in the quest challenge."
             }
           </p>
+          
+          {/* Download Button for Admins */}
+          {isAdmin && (
+            <div className="mt-6">
+              <LeaderboardDownloadButton />
+            </div>
+          )}
         </div>
 
         <Leaderboard limit={20} className="max-w-none" />
